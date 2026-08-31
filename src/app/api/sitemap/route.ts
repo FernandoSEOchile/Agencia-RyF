@@ -69,8 +69,9 @@ export async function GET(req: NextRequest) {
 
   if (tipo === "productos") {
     interface P { id: number; nombre: string; url: string; estado: string; palabras_desc: number; modificado: string; seo?: { metadesc?: string } }
+    // Solo lo publicado: los borradores no existen para Google ni para el cliente.
     const r = await api<{ productos: P[]; total: number; paginas: number }>(
-      clienteId, "GET", `/products?pagina=${pagina}`
+      clienteId, "GET", `/products?pagina=${pagina}&estado=publish`
     );
     if (!r.ok) return Response.json({ error: r.mensaje || r.codigo }, { status: 502 });
 
@@ -110,12 +111,15 @@ export async function GET(req: NextRequest) {
     return Response.json({ filas, total: filas.length, paginas: 1, pagina: 1 });
   }
 
-  // Páginas y entradas.
+  // Páginas o entradas, según la pestaña, y solo publicadas.
   interface C { id: number; titulo: string; url: string; tipo: string; estado: string; palabras: number; modificado: string }
   const r = await api<{ content: C[] }>(clienteId, "GET", "/audit?por_pagina=300");
   if (!r.ok) return Response.json({ error: r.mensaje || r.codigo }, { status: 502 });
 
-  const filas: Fila[] = (r.datos?.content ?? []).map((c) => ({
+  const claseWp = tipo === "paginas" ? "page" : "post";
+  const filas: Fila[] = (r.datos?.content ?? [])
+    .filter((c) => c.estado === "publish" && c.tipo === claseWp)
+    .map((c) => ({
     id: c.id,
     titulo: c.titulo || "(sin título)",
     url: c.url,

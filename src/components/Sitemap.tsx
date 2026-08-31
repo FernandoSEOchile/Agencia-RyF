@@ -14,9 +14,10 @@ interface Fila {
 }
 
 const TIPOS = [
-  ["contenido", "Páginas y entradas"],
   ["productos", "Productos"],
   ["categorias", "Categorías"],
+  ["posts", "Entradas"],
+  ["paginas", "Páginas"],
 ] as const;
 
 /** Estados que conviene resaltar: lo publicado manda, lo demás es aviso. */
@@ -27,7 +28,7 @@ function colorEstado(estado: string) {
 }
 
 export default function Sitemap({ clienteId }: { clienteId: string }) {
-  const [tipo, setTipo] = useState<(typeof TIPOS)[number][0]>("contenido");
+  const [tipo, setTipo] = useState<(typeof TIPOS)[number][0]>("productos");
   const [pagina, setPagina] = useState(1);
   const [filas, setFilas] = useState<Fila[]>([]);
   const [total, setTotal] = useState(0);
