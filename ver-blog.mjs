@@ -1,0 +1,15 @@
+const h = await (await fetch("https://fernandoparraseo.com/blog/?v=" + Date.now(), { headers: { "User-Agent": "Mozilla/5.0" } })).text();
+const m = h.replace(/<(style|script)\b[^>]*>[\s\S]*?<\/\1>/gi, "");
+console.log("\n  bytes: " + h.length);
+const bc = (m.match(/<body[^>]*>/) || [""])[0];
+console.log("  clases del body: " + bc.slice(0, 260));
+console.log("\n  ¿es la página de entradas? " + (/\bblog\b/.test(bc) && !/page-id/.test(bc) ? "posible" : "—"));
+console.log("  clase 'blog'      : " + /class="[^"]*\bblog\b/.test(bc));
+console.log("  clase 'page'      : " + /class="[^"]*\bpage\b/.test(bc));
+console.log("  page-id-9         : " + /page-id-9\b/.test(bc));
+const arts = (m.match(/<article/g) || []).length;
+console.log("  <article> en la página: " + arts);
+const h1 = [...m.matchAll(/<h1[^>]*>([\s\S]*?)<\/h1>/g)].map(x => x[1].replace(/<[^>]+>/g,"").trim());
+const h2 = [...m.matchAll(/<h2[^>]*>([\s\S]*?)<\/h2>/g)].map(x => x[1].replace(/<[^>]+>/g,"").trim());
+console.log("  H1: " + (h1.join(" | ") || "(ninguno)"));
+console.log("  H2 (" + h2.length + "): " + h2.slice(0,8).join(" | ").slice(0,200));

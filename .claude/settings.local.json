@@ -1,0 +1,25 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm --version)",
+      "Bash(git --version)",
+      "Bash(npm install *)",
+      "Bash(npm run *)",
+      "Bash(curl -s -X POST http://localhost:3000/api/generar-categoria -H \"Content-Type: application/json\" -d '{\"categoria\":\"Zapatillas\",\"keywordPrincipal\":\"comprar zapatillas\"}')",
+      "Bash(taskkill //F //IM node.exe)",
+      "Bash(python -c \"import openpyxl; print\\('openpyxl OK', openpyxl.__version__\\)\")",
+      "Bash(python -c ' *)",
+      "Read(//tmp/**)",
+      "Bash(curl -s -o /dev/null -w \"HOME=%{http_code}\\\\n\" http://localhost:3000/)",
+      "Bash(netstat -ano)",
+      "Bash(curl -s -X POST http://localhost:3000/api/parse-arquitectura -F \"file=@G:\\\\Mi unidad\\\\Proyectos Agencia RyF\\\\01 Clientes Activos\\\\Café Barista\\\\2. SEO\\\\1. Fase 1\\\\1. Entregables\\\\KR - AST - CAFE BARISTA.xlsx\" -o arq_test.json -w \"HTTP=%{http_code}\\\\n\")",
+      "Bash(curl -s -X POST http://localhost:3000/api/proponer-menu -H \"Content-Type: application/json\" -d '{\"arquitectura\":{\"categorias\":[{\"slug\":\"/cafe-grano\",\"nombre\":\"Cafe Grano\",\"nivel\":1,\"keywords\":[{\"keyword\":\"cafe en grano\",\"volumen\":8100}],\"totalVolumen\":8100,\"hijos\":[]}],\"home\":[],\"numCategorias\":1,\"numPaginas\":1,\"totalKeywords\":1}}' -w \"\\\\nHTTP=%{http_code}\\\\n\")",
+      "Bash(curl -s -o /dev/null -w \"arquitectura=%{http_code}\\\\n\" \"http://localhost:3000/arquitectura\")",
+      "Bash(node -e \"const {loadEnvConfig}=require\\('@next/env'\\); loadEnvConfig\\(process.cwd\\(\\)\\); console.log\\('ANTHROPIC_API_KEY length:', \\(process.env.ANTHROPIC_API_KEY||''\\).length\\); console.log\\('MODEL:', process.env.ANTHROPIC_MODEL\\); console.log\\('starts sk-ant:', \\(process.env.ANTHROPIC_API_KEY||''\\).startsWith\\('sk-ant'\\)\\);\")",
+      "Bash(node -e \"console.log\\('YA definida en entorno?', 'ANTHROPIC_API_KEY' in process.env\\); console.log\\('valor actual length:', \\(process.env.ANTHROPIC_API_KEY===undefined?'\\(undefined\\)':process.env.ANTHROPIC_API_KEY.length\\)\\);\")",
+      "Bash(powershell -NoProfile -Command \"[Environment]::GetEnvironmentVariable\\('ANTHROPIC_API_KEY','User'\\); '---machine---'; [Environment]::GetEnvironmentVariable\\('ANTHROPIC_API_KEY','Machine'\\)\")",
+      "Bash(node -e \"const {loadEnvConfig}=require\\('@next/env'\\); loadEnvConfig\\(process.cwd\\(\\)\\); console.log\\('APP key length:', \\(process.env.APP_ANTHROPIC_API_KEY||''\\).length, '| starts sk-ant:', \\(process.env.APP_ANTHROPIC_API_KEY||''\\).startsWith\\('sk-ant'\\)\\);\")",
+      "Bash(curl -s -o /dev/null -w \"server=%{http_code}\\\\n\" http://localhost:3000/arquitectura)"
+    ]
+  }
+}

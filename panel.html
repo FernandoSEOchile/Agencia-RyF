@@ -1,0 +1,422 @@
+<title>Clientes AppSEO</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400;500;600;700&display=swap">
+<style>
+:root {
+  --naranja: #ff6b00;
+  --naranja-suave: rgba(255, 107, 0, 0.12);
+  --fondo: #f7f7f5;
+  --panel: #ffffff;
+  --tinta: #111111;
+  --texto: #575757;
+  --tenue: #8a8a86;
+  --borde: #e7e7e3;
+  --ok: #1f8a4c;
+  --ok-fondo: rgba(31, 138, 76, 0.1);
+  --warn: #a86400;
+  --warn-fondo: rgba(168, 100, 0, 0.1);
+  --crit: #c0392b;
+  --crit-fondo: rgba(192, 57, 43, 0.1);
+  --sombra: 0 1px 2px rgba(17, 17, 17, 0.04), 0 8px 24px rgba(17, 17, 17, 0.04);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --naranja: #ff8534;
+    --naranja-suave: rgba(255, 133, 52, 0.16);
+    --fondo: #121211;
+    --panel: #1a1a19;
+    --tinta: #f4f4f2;
+    --texto: #b0b0aa;
+    --tenue: #7e7e78;
+    --borde: #2b2b29;
+    --ok: #4ec27d;
+    --ok-fondo: rgba(78, 194, 125, 0.14);
+    --warn: #e0a53f;
+    --warn-fondo: rgba(224, 165, 63, 0.14);
+    --crit: #f0705f;
+    --crit-fondo: rgba(240, 112, 95, 0.14);
+    --sombra: 0 1px 2px rgba(0, 0, 0, 0.4), 0 8px 24px rgba(0, 0, 0, 0.3);
+  }
+}
+
+:root[data-theme="dark"] {
+  --naranja: #ff8534;
+  --naranja-suave: rgba(255, 133, 52, 0.16);
+  --fondo: #121211;
+  --panel: #1a1a19;
+  --tinta: #f4f4f2;
+  --texto: #b0b0aa;
+  --tenue: #7e7e78;
+  --borde: #2b2b29;
+  --ok: #4ec27d;
+  --ok-fondo: rgba(78, 194, 125, 0.14);
+  --warn: #e0a53f;
+  --warn-fondo: rgba(224, 165, 63, 0.14);
+  --crit: #f0705f;
+  --crit-fondo: rgba(240, 112, 95, 0.14);
+  --sombra: 0 1px 2px rgba(0, 0, 0, 0.4), 0 8px 24px rgba(0, 0, 0, 0.3);
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--fondo);
+  color: var(--texto);
+  font-family: "Schibsted Grotesk", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-size: 15px;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+}
+
+.tabular { font-variant-numeric: tabular-nums; }
+
+.envoltorio {
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 48px 24px 80px;
+}
+
+/* --- Cabecera --- */
+
+.cabecera {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  padding-bottom: 24px;
+  border-bottom: 1px solid var(--borde);
+}
+
+.cabecera h1 {
+  margin: 0;
+  color: var(--tinta);
+  font-size: 1.75rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.marca {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  margin-right: 10px;
+  border-radius: 3px;
+  background: var(--naranja);
+  vertical-align: 2px;
+}
+
+.sello { color: var(--tenue); font-size: 0.85rem; margin: 4px 0 0; }
+
+/* --- Resumen --- */
+
+.resumen {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 1px;
+  margin: 28px 0 40px;
+  background: var(--borde);
+  border: 1px solid var(--borde);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.metrica { background: var(--panel); padding: 18px 20px; }
+.metrica dt { color: var(--tenue); font-size: 0.75rem; font-weight: 500; letter-spacing: 0.04em; text-transform: uppercase; margin: 0 0 6px; }
+.metrica dd { margin: 0; color: var(--tinta); font-size: 1.6rem; font-weight: 600; font-variant-numeric: tabular-nums; letter-spacing: -0.02em; }
+.metrica dd small { font-size: 0.85rem; font-weight: 500; color: var(--tenue); }
+
+/* --- Tarjeta de sitio --- */
+
+.sitios { display: grid; gap: 20px; }
+
+.sitio {
+  background: var(--panel);
+  border: 1px solid var(--borde);
+  border-radius: 14px;
+  padding: 22px 24px 24px;
+  box-shadow: var(--sombra);
+}
+
+.sitio.caido { border-left: 3px solid var(--crit); }
+
+.sitio-cab {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.sitio-cab h2 { margin: 0; color: var(--tinta); font-size: 1.15rem; font-weight: 600; letter-spacing: -0.01em; }
+.sitio-cab h2 a { color: inherit; text-decoration: none; }
+.sitio-cab h2 a:hover { color: var(--naranja); text-decoration: underline; text-underline-offset: 3px; }
+.sitio-sub { margin: 2px 0 0; color: var(--tenue); font-size: 0.82rem; }
+
+.pills { display: flex; flex-wrap: wrap; gap: 6px; }
+
+.pill {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-size: 0.76rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.pill-ok { background: var(--ok-fondo); color: var(--ok); }
+.pill-warn { background: var(--warn-fondo); color: var(--warn); }
+.pill-crit { background: var(--crit-fondo); color: var(--crit); }
+.pill-neutro { background: var(--borde); color: var(--texto); }
+
+/* --- Datos --- */
+
+.datos {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 14px 20px;
+  margin: 0 0 20px;
+  padding: 16px 0;
+  border-top: 1px solid var(--borde);
+  border-bottom: 1px solid var(--borde);
+}
+
+.dato dt { color: var(--tenue); font-size: 0.72rem; font-weight: 500; letter-spacing: 0.04em; text-transform: uppercase; margin-bottom: 3px; }
+.dato dd { margin: 0; color: var(--tinta); font-size: 1.05rem; font-weight: 600; }
+.crit { color: var(--crit); }
+
+/* --- Cobertura --- */
+
+.cobertura { margin-bottom: 20px; }
+.cobertura h3, .actividad h3 {
+  margin: 0 0 10px;
+  color: var(--tinta);
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.barra { height: 7px; border-radius: 4px; background: var(--borde); overflow: hidden; }
+.barra-relleno { height: 100%; border-radius: 4px; background: var(--naranja); }
+.barra-pie { display: flex; justify-content: space-between; margin-top: 6px; color: var(--tenue); font-size: 0.8rem; }
+
+/* --- Actividad --- */
+
+.linea { list-style: none; margin: 0; padding: 0; }
+
+.linea li {
+  display: grid;
+  grid-template-columns: 76px 96px 1fr;
+  gap: 12px;
+  align-items: baseline;
+  padding: 7px 0;
+  border-bottom: 1px solid var(--borde);
+  font-size: 0.85rem;
+}
+
+.linea li:last-child { border-bottom: 0; }
+.linea li.mal .resumen { color: var(--crit); }
+.hora { color: var(--tenue); font-size: 0.78rem; }
+
+.chip {
+  justify-self: start;
+  padding: 1px 8px;
+  border-radius: 5px;
+  background: var(--naranja-suave);
+  color: var(--naranja);
+  font-size: 0.72rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.resumen { color: var(--texto); overflow-wrap: anywhere; }
+
+/* --- Avisos --- */
+
+.aviso {
+  margin: 0 0 16px;
+  padding: 10px 14px;
+  border-radius: 8px;
+  background: var(--borde);
+  color: var(--texto);
+  font-size: 0.85rem;
+}
+
+.aviso-warn { background: var(--warn-fondo); color: var(--warn); }
+
+.pie { margin-top: 40px; color: var(--tenue); font-size: 0.8rem; text-align: center; }
+.pie a { color: var(--naranja); }
+
+@media (max-width: 640px) {
+  .envoltorio { padding: 32px 16px 60px; }
+  .linea li { grid-template-columns: 1fr; gap: 2px; padding: 10px 0; }
+  .chip { margin-bottom: 2px; }
+}
+</style>
+
+<div class="envoltorio">
+  <header class="cabecera">
+    <div>
+      <h1><span class="marca"></span>Clientes AppSEO</h1>
+      <p class="sello">Recolectado el 30 de agosto de 2026 a las 10:00 p. m.</p>
+    </div>
+    <p class="sello">Conector más reciente: v1.13.0</p>
+  </header>
+
+  <dl class="resumen">
+    <div class="metrica"><dt>Sitios conectados</dt><dd>2<small> / 2</small></dd></div>
+    <div class="metrica"><dt>Operaciones</dt><dd>138</dd></div>
+    <div class="metrica"><dt>Con escritura</dt><dd>2</dd></div>
+    <div class="metrica"><dt>Versiones en uso</dt><dd>2</dd></div>
+    <div class="metrica"><dt>Por actualizar</dt><dd class="crit">1</dd></div>
+  </dl>
+
+  <div class="sitios">
+    <article class="sitio">
+    <header class="sitio-cab">
+      <div>
+        <h2><a href="https://beepromo.cl" target="_blank" rel="noopener">beepromo.cl</a></h2>
+        <p class="sitio-sub">WordPress 7.1 · PHP 8.5.4</p>
+      </div>
+      <div class="pills">
+        <span class="pill pill-ok" title="Versión al día">v1.13.0</span>
+        <span class="pill pill-ok">Escritura</span>
+      </div>
+    </header>
+
+    <dl class="datos">
+      <div class="dato "><dt>Productos</dt><dd class="tabular">2.252</dd></div>
+      <div class="dato "><dt>Categorías</dt><dd class="tabular">135</dd></div>
+      <div class="dato "><dt>Operaciones</dt><dd class="tabular">132</dd></div>
+      <div class="dato "><dt>Fallos recientes</dt><dd class="tabular">0</dd></div>
+      <div class="dato "><dt>Publicar</dt><dd class="tabular">Sí</dd></div>
+      <div class="dato "><dt>CSS propio</dt><dd class="tabular">9.124 B</dd></div>
+    </dl>
+
+    <section class="cobertura">
+        <h3>Categorías con descripción SEO</h3>
+        <div class="barra" role="img" aria-label="99% de cobertura">
+      <div class="barra-relleno" style="width:99%"></div>
+    </div>
+    <div class="barra-pie"><span>134 de 135</span><span class="tabular">99%</span></div>
+      </section>
+
+    
+
+    <section class="actividad">
+      <h3>Actividad reciente</h3>
+      <ul class="linea"><li class="">
+        <span class="hora tabular">08-30 21:42</span>
+        <span class="chip">Categoría</span>
+        <span class="resumen">Tecnología · descripción SEO de 2.072 a 2.057 bytes</span>
+      </li><li class="">
+        <span class="hora tabular">08-30 21:42</span>
+        <span class="chip">Categoría</span>
+        <span class="resumen">Audio y Tecnología · descripción SEO de 2.133 a 2.118 bytes</span>
+      </li><li class="">
+        <span class="hora tabular">08-30 21:40</span>
+        <span class="chip">Categoría</span>
+        <span class="resumen">Juegos - Infantil · descripción SEO de 1.881 a 1.871 bytes</span>
+      </li><li class="">
+        <span class="hora tabular">08-30 21:40</span>
+        <span class="chip">Categoría</span>
+        <span class="resumen">Vino, Bar y Cristalería · descripción SEO de 2.081 a 2.071 bytes</span>
+      </li><li class="">
+        <span class="hora tabular">08-30 21:40</span>
+        <span class="chip">Categoría</span>
+        <span class="resumen">Cocina Gourmet · descripción SEO de 1.986 a 1.976 bytes</span>
+      </li><li class="">
+        <span class="hora tabular">08-30 21:40</span>
+        <span class="chip">Categoría</span>
+        <span class="resumen">Tecnología · descripción SEO de 2.081 a 2.072 bytes</span>
+      </li><li class="">
+        <span class="hora tabular">08-30 21:40</span>
+        <span class="chip">Categoría</span>
+        <span class="resumen">Audio y Tecnología · descripción SEO de 2.142 a 2.133 bytes</span>
+      </li><li class="">
+        <span class="hora tabular">08-30 21:37</span>
+        <span class="chip">Categoría</span>
+        <span class="resumen">Empresa de Regalos Publicitarios · descripción SEO de 1.560 a 1.764 bytes</span>
+      </li><li class="">
+        <span class="hora tabular">08-30 21:37</span>
+        <span class="chip">Categoría</span>
+        <span class="resumen">Dulces · descripción SEO de 1.603 a 1.817 bytes</span>
+      </li><li class="">
+        <span class="hora tabular">08-30 21:37</span>
+        <span class="chip">Categoría</span>
+        <span class="resumen">Lapices Gel y Roller · descripción SEO de 1.586 a 1.808 bytes</span>
+      </li><li class="">
+        <span class="hora tabular">08-30 21:37</span>
+        <span class="chip">Categoría</span>
+        <span class="resumen">Parker · descripción SEO de 1.694 a 1.832 bytes</span>
+      </li><li class="">
+        <span class="hora tabular">08-30 21:37</span>
+        <span class="chip">Categoría</span>
+        <span class="resumen">Bic Grip Roller Azul · descripción SEO de 1.555 a 1.790 bytes</span>
+      </li></ul>
+    </section>
+  </article>
+<article class="sitio">
+    <header class="sitio-cab">
+      <div>
+        <h2><a href="https://fernandoparraseo.com" target="_blank" rel="noopener">fernandoparraseo.com</a></h2>
+        <p class="sitio-sub">WordPress 6.9.7 · PHP 8.3.30</p>
+      </div>
+      <div class="pills">
+        <span class="pill pill-warn" title="Hay una versión más nueva">v1.10.2</span>
+        <span class="pill pill-ok">Escritura</span>
+      </div>
+    </header>
+
+    <dl class="datos">
+      <div class="dato "><dt>Productos</dt><dd class="tabular">6</dd></div>
+      <div class="dato "><dt>Categorías</dt><dd class="tabular">—</dd></div>
+      <div class="dato "><dt>Operaciones</dt><dd class="tabular">6</dd></div>
+      <div class="dato "><dt>Fallos recientes</dt><dd class="tabular">0</dd></div>
+      <div class="dato "><dt>Publicar</dt><dd class="tabular">Sí</dd></div>
+      <div class="dato "><dt>CSS propio</dt><dd class="tabular">—</dd></div>
+    </dl>
+
+    
+
+    
+
+    <section class="actividad">
+      <h3>Actividad reciente</h3>
+      <ul class="linea"><li class="">
+        <span class="hora tabular">08-30 23:51</span>
+        <span class="chip">CSS</span>
+        <span class="resumen">reemplazado · de 11.492 a 635 bytes</span>
+      </li><li class="">
+        <span class="hora tabular">08-30 23:47</span>
+        <span class="chip">Credenciales</span>
+        <span class="resumen">La conexión anterior quedó invalidada</span>
+      </li><li class="">
+        <span class="hora tabular">08-30 23:41</span>
+        <span class="chip">CSS</span>
+        <span class="resumen">anexado · de 635 a 11.483 bytes</span>
+      </li><li class="">
+        <span class="hora tabular">08-30 23:29</span>
+        <span class="chip">producto crear</span>
+        <span class="resumen">«Migración SEO Segura» (draft) · con cambio de precio</span>
+      </li><li class="">
+        <span class="hora tabular">08-30 23:29</span>
+        <span class="chip">medio subir</span>
+        <span class="resumen">producto6.png (128,9 KB)</span>
+      </li><li class="">
+        <span class="hora tabular">08-30 23:25</span>
+        <span class="chip">prueba registro</span>
+        <span class="resumen">Inserción de prueba lanzada desde el panel</span>
+      </li></ul>
+    </section>
+  </article>
+  </div>
+
+  <p class="pie">AppSEO RyF · <a href="https://agenciaryf.com/">Agencia RYF</a></p>
+</div>

@@ -1,0 +1,60 @@
+# Despliegue del panel AppSEO en un VPS.
+#
+# Tres servicios: la base de datos, la aplicación y un proxy que resuelve el
+# certificado HTTPS solo. HTTPS no es opcional aquí: por esta aplicación pasan
+# las contraseñas del equipo y las credenciales de escritura de cada cliente.
+
+services:
+  base:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: appseo
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?falta POSTGRES_PASSWORD en .env}
+      POSTGRES_DB: appseo
+    volumes:
+      - datos:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U appseo"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    # Sin `ports`: la base solo es accesible desde la red interna de Docker.
+    # Exponerla a internet es el error más caro de este montaje.
+
+  panel:
+    build: .
+    restart: unless-stopped
+    depends_on:
+      base:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://appseo:${POSTGRES_PASSWORD}@base:5432/appseo?schema=public
+      AUTH_SECRET: ${AUTH_SECRET:?falta AUTH_SECRET en .env}
+      AUTH_TRUST_HOST: "true"
+      NEXTAUTH_URL: https://${DOMINIO:?falta DOMINIO en .env}
+      APPSEO_CLAVE_CIFRADO: ${APPSEO_CLAVE_CIFRADO:?falta APPSEO_CLAVE_CIFRADO en .env}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:?falta ANTHROPIC_API_KEY en .env}
+      ANTHROPIC_MODEL: ${ANTHROPIC_MODEL:-claude-opus-5}
+    expose:
+      - "3000"
+
+  proxy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    depends_on:
+      - panel
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      DOMINIO: ${DOMINIO}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_datos:/data
+      - caddy_config:/config
+
+volumes:
+  datos:
+  caddy_datos:
+  caddy_config:

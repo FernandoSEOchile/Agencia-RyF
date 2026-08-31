@@ -1,0 +1,13 @@
+const u = process.argv[2];
+const h = await (await fetch(u + "?v=" + Date.now(), { headers: { "User-Agent": "Mozilla/5.0" } })).text();
+const m = h.replace(/<(style|script)\b[^>]*>[\s\S]*?<\/\1>/gi, "");
+const g = (t) => [...m.matchAll(new RegExp("<"+t+"[^>]*>([\s\S]*?)</"+t+">","g"))].map(x=>x[1].replace(/<[^>]+>/g,"").trim());
+console.log("\n  " + u + "  ·  " + h.length + " bytes");
+console.log("  H1 (" + g("h1").length + "): " + g("h1").join(" | "));
+console.log("  H2 (" + g("h2").length + "):"); g("h2").forEach(x=>console.log("     " + x.slice(0,70)));
+console.log("  H3 (" + g("h3").length + ")");
+console.log("  tabla   : " + (/<table/.test(m) ? "sí" : "NO") + "  filas " + ((m.match(/<tr/g)||[]).length));
+console.log("  details : " + ((m.match(/<details/g)||[]).length));
+console.log("  enlaces internos: " + [...new Set([...m.matchAll(/<a href="(https:\/\/fernandoparraseo\.com\/[^"?#]+)"/g)].map(x=>x[1]))].filter(x=>!/wp-|\/blog\/$|\/$/.test(x)).join("  "));
+const meta = (h.match(/<meta name="description" content="([^"]*)"/)||[])[1];
+console.log("  meta description: " + (meta ? meta.slice(0,120) : "NO"));

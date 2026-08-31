@@ -1,0 +1,39 @@
+ 333  Regalos para Oficina                     https://beepromo.cl/categoria/escritorio-y-oficina/
+ 302  Bananos, Bolsos y Mochilas Corporativas  https://beepromo.cl/categoria/mochilas-bananos-y-bolsos/
+ 256  Ecologicos Sustentable                   https://beepromo.cl/categoria/ecologicos-sustentable/
+ 222  Audio y Tecnología                       https://beepromo.cl/categoria/audio-y-tecnologia/
+ 190  Asados Cocina Gourmet                    https://beepromo.cl/categoria/asados-cocina-gourmet/
+ 186  Tazas, Vasos y Mug Corporativos          https://beepromo.cl/categoria/mug-vasos-tazas/
+ 141  Tecnología                               https://beepromo.cl/categoria/audio-y-tecnologia/tecnologia/
+ 133  Cocina Gourmet                           https://beepromo.cl/categoria/asados-cocina-gourmet/cocina-gourmet/
+ 121  Viajes                                   https://beepromo.cl/categoria/viajes/
+ 109  Belleza Salud Mujer                      https://beepromo.cl/categoria/belleza-salud-mujer/
+ 108  Camping - Cooler y Pícnic                https://beepromo.cl/categoria/camping-cooler-y-picnic/
+  99  Bolsas TNT, Algodón, Yute                https://beepromo.cl/categoria/mochilas-bananos-y-bolsos/bolsas-tnt-algodon/
+  99  Ropa Publicitaria                        https://beepromo.cl/categoria/ropa-publicitaria/
+  84  Vino, Bar y Cristalería                  https://beepromo.cl/categoria/asados-cocina-gourmet/cocina-gourmet/vino-bar-y-cristaleria/
+  80  Mochila porta Notebok                    https://beepromo.cl/categoria/mochilas-bananos-y-bolsos/mochila-porta-notebok/
+  71  Deporte                                  https://beepromo.cl/categoria/deporte/
+  69  Audio                                    https://beepromo.cl/categoria/audio-y-tecnologia/audio/
+  64  Accesorios de Teléfono                   https://beepromo.cl/categoria/audio-y-tecnologia/tecnologia/accesorios-de-telefono/
+  64  Verano                                   https://beepromo.cl/categoria/verano/
+  49  Regalos Corporativos de Cobre            https://beepromo.cl/categoria/cobre/
+  49  Trofeos y Galvanos                       https://beepromo.cl/categoria/escritorio-y-oficina/trofeos-y-galvanos/
+  48  Bananos y Bolsos                         https://beepromo.cl/categoria/mochilas-bananos-y-bolsos/bananos-y-bolsos/
+  47  Invierno                                 https://beepromo.cl/categoria/invierno/
+  44  Asados                                   https://beepromo.cl/categoria/asados-cocina-gourmet/asados/
+  43  Lapices Ecologicos Personalizados        https://beepromo.cl/categoria/lapices/ecologicos/
+  41  Herramientas                             https://beepromo.cl/categoria/herramientas/
+  41  Premium                                  https://beepromo.cl/categoria/premium/
+  39  Juegos - Infantil                        https://beepromo.cl/categoria/juegos-infantil/
+  23  Lapices Promocionales                    https://beepromo.cl/categoria/lapices/promocionales-lapices/
+  21  Automóvil                                https://beepromo.cl/categoria/automovil/
+  18  Bic                                      https://beepromo.cl/categoria/lapices/lapices-promocionales-bic/
+  18  Lapices Metálicos Promocionales          https://beepromo.cl/categoria/lapices/metalicos-lapices/
+  17  Thomas                                   https://beepromo.cl/categoria/premium/thomas/
+  12  KiT Bienvenida                           https://beepromo.cl/categoria/escritorio-y-oficina/kit-bienvenida/
+   6  Parker                                   https://beepromo.cl/categoria/lapices/parker-cross-lapices/
+   6  Bic Grip Roller Azul                     https://beepromo.cl/categoria/lapices/bic/grip-roller/azul/
+   5  Dulces                                   https://beepromo.cl/categoria/asados-cocina-gourmet/cocina-gourmet/dulces/
+   5  Lapices Gel y Roller                     https://beepromo.cl/categoria/lapices/gel-y-roller-lapices/
+   4  Empresa de Regalos Publicitarios         https://beepromo.cl/categoria/regalos-corporativos/empresa-de-regalos-publicitarios/

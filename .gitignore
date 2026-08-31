@@ -1,0 +1,36 @@
+/node_modules
+/.next
+/out
+/build
+.env
+.env.local
+.env*.local
+*.tsbuildinfo
+next-env.d.ts
+.DS_Store
+.appseo-conexion
+.appseo/
+.anthropic-key
+
+# Despliegue
+.env.produccion
+Caddyfile.local
+
+
+# La base local: contiene credenciales cifradas y usuarios.
+prisma/*.db
+prisma/*.db-journal
+
+# Paquetes ymaterial de trabajo que no son código.
+/publicar
+/pendiente
+/css
+*.zip
+
+# El plugin y los scripts sueltos viven aparte del panel.
+/appseo-ryf
+/appseo-connect
+theme-huella.json
+inventario.json
+ficha-analizada.html
+panel-datos.json

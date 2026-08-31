@@ -1,0 +1,306 @@
+/* ------------------------------------------------------------------
+   Descripción SEO al pie de categoría — Beepromo
+   Pegar en: AppSEO → Alcance → Tienda → CSS de esa sección
+   Todo va acotado a .appseo-cat-seo: no afecta al resto del sitio.
+   ------------------------------------------------------------------ */
+
+.appseo-cat-seo {
+	/* Paleta tomada del propio sitio. Cambia estos cinco valores y se
+	   adapta a otra tienda sin tocar nada más abajo. */
+	--acento: #f6b21b;
+	--acento-oscuro: #eaa72c;
+	--tinta: #111111;
+	--tinta-suave: #475569;
+	--borde: #e6e6e6;
+	--fondo-suave: #fbfbfb;
+
+	/* La fuente se hereda del tema a propósito: así combina con la
+	   tienda aunque el cliente cambie de tipografía más adelante. */
+	max-width: 74ch;
+	margin: 56px auto 8px;
+	padding-top: 40px;
+	border-top: 1px solid var(--borde);
+	color: var(--tinta-suave);
+	font-size: 1rem;
+	line-height: 1.7;
+	text-align: left;
+}
+
+/* --- Encabezados ------------------------------------------------- */
+
+.appseo-cat-seo h2,
+.appseo-cat-seo h3,
+.appseo-cat-seo h4 {
+	color: var(--tinta);
+	line-height: 1.25;
+	text-wrap: balance;
+	margin: 0 0 0.6em;
+}
+
+.appseo-cat-seo h2 {
+	font-size: 1.7rem;
+	font-weight: 700;
+	letter-spacing: -0.01em;
+	padding-bottom: 0.45em;
+	position: relative;
+}
+
+/* Un subrayado corto en el color de marca, en vez de una línea completa:
+   marca el arranque de sección sin partir la página en dos. */
+.appseo-cat-seo h2::after {
+	content: "";
+	position: absolute;
+	left: 0;
+	bottom: 0;
+	width: 52px;
+	height: 3px;
+	border-radius: 2px;
+	background: var(--acento);
+}
+
+.appseo-cat-seo h3 {
+	font-size: 1.25rem;
+	font-weight: 650;
+	margin-top: 2em;
+}
+
+.appseo-cat-seo h4 {
+	font-size: 1.05rem;
+	font-weight: 650;
+	margin-top: 1.6em;
+}
+
+.appseo-cat-seo > :first-child {
+	margin-top: 0;
+}
+
+/* --- Texto ------------------------------------------------------- */
+
+.appseo-cat-seo p {
+	margin: 0 0 1.15em;
+}
+
+.appseo-cat-seo strong {
+	color: var(--tinta);
+	font-weight: 650;
+}
+
+.appseo-cat-seo a {
+	color: var(--acento-oscuro);
+	text-decoration: underline;
+	text-underline-offset: 3px;
+	text-decoration-thickness: 1px;
+	transition: color 0.2s ease;
+}
+
+.appseo-cat-seo a:hover {
+	color: var(--tinta);
+}
+
+/* --- Listas ------------------------------------------------------ */
+
+.appseo-cat-seo ul,
+.appseo-cat-seo ol {
+	margin: 0 0 1.3em;
+	padding-left: 0;
+	list-style: none;
+}
+
+.appseo-cat-seo li {
+	position: relative;
+	padding-left: 1.6em;
+	margin-bottom: 0.55em;
+}
+
+.appseo-cat-seo ul > li::before {
+	content: "";
+	position: absolute;
+	left: 0.35em;
+	top: 0.62em;
+	width: 6px;
+	height: 6px;
+	border-radius: 50%;
+	background: var(--acento);
+}
+
+.appseo-cat-seo ol {
+	counter-reset: appseo-item;
+}
+
+.appseo-cat-seo ol > li {
+	counter-increment: appseo-item;
+}
+
+.appseo-cat-seo ol > li::before {
+	content: counter(appseo-item);
+	position: absolute;
+	left: 0;
+	top: 0.1em;
+	font-size: 0.8em;
+	font-weight: 700;
+	color: var(--acento-oscuro);
+	font-variant-numeric: tabular-nums;
+}
+
+/* --- Tablas ------------------------------------------------------ */
+
+/* El contenedor con scroll evita que una tabla ancha empuje toda la
+   página hacia los lados en el móvil. */
+.appseo-cat-seo table {
+	width: 100%;
+	margin: 0 0 1.6em;
+	border-collapse: collapse;
+	font-size: 0.95rem;
+	display: block;
+	overflow-x: auto;
+	-webkit-overflow-scrolling: touch;
+}
+
+.appseo-cat-seo thead th {
+	background: var(--tinta);
+	color: #fff;
+	font-weight: 650;
+	text-align: left;
+	white-space: nowrap;
+}
+
+.appseo-cat-seo th,
+.appseo-cat-seo td {
+	padding: 12px 16px;
+	border-bottom: 1px solid var(--borde);
+	vertical-align: top;
+}
+
+.appseo-cat-seo tbody tr:nth-child(even) {
+	background: var(--fondo-suave);
+}
+
+.appseo-cat-seo tbody td:first-child {
+	font-weight: 600;
+	color: var(--tinta);
+	white-space: nowrap;
+}
+
+.appseo-cat-seo table :is(td, th):last-child {
+	border-right: 0;
+}
+
+/* --- Preguntas frecuentes ---------------------------------------- */
+
+/* Se escriben a mano con <details><summary>. Funciona sin una línea de
+   JavaScript, y el navegador ya se encarga del teclado y del lector de
+   pantalla, que es donde fallan los acordeones caseros. */
+.appseo-cat-seo details {
+	background: var(--fondo-suave);
+	border: 1px solid var(--borde);
+	border-radius: 10px;
+	margin-bottom: 10px;
+	transition: background 0.25s ease, border-color 0.25s ease;
+}
+
+.appseo-cat-seo details[open] {
+	background: #fffbf0;
+	border-color: rgba(246, 178, 27, 0.35);
+}
+
+.appseo-cat-seo summary {
+	cursor: pointer;
+	list-style: none;
+	padding: 16px 48px 16px 20px;
+	font-weight: 650;
+	color: var(--tinta);
+	position: relative;
+	line-height: 1.4;
+}
+
+.appseo-cat-seo summary::-webkit-details-marker {
+	display: none;
+}
+
+/* Flecha dibujada con bordes: sin imágenes ni iconos externos. */
+.appseo-cat-seo summary::after {
+	content: "";
+	position: absolute;
+	right: 20px;
+	top: 50%;
+	width: 8px;
+	height: 8px;
+	margin-top: -6px;
+	border-right: 2px solid var(--acento);
+	border-bottom: 2px solid var(--acento);
+	transform: rotate(45deg);
+	transition: transform 0.25s ease;
+}
+
+.appseo-cat-seo details[open] summary::after {
+	transform: rotate(-135deg);
+	margin-top: -2px;
+}
+
+.appseo-cat-seo summary:hover {
+	color: var(--acento-oscuro);
+}
+
+.appseo-cat-seo summary:focus-visible {
+	outline: 2px solid var(--acento);
+	outline-offset: -2px;
+	border-radius: 10px;
+}
+
+.appseo-cat-seo details > :not(summary) {
+	padding: 0 20px;
+}
+
+.appseo-cat-seo details > :last-child {
+	padding-bottom: 18px;
+}
+
+/* --- Citas e imágenes -------------------------------------------- */
+
+.appseo-cat-seo blockquote {
+	margin: 0 0 1.4em;
+	padding: 4px 0 4px 20px;
+	border-left: 3px solid var(--acento);
+	color: var(--tinta);
+	font-size: 1.05rem;
+}
+
+.appseo-cat-seo img {
+	max-width: 100%;
+	height: auto;
+	border-radius: 8px;
+}
+
+/* --- Móvil -------------------------------------------------------- */
+
+@media (max-width: 782px) {
+	.appseo-cat-seo {
+		margin-top: 40px;
+		padding-top: 28px;
+		font-size: 0.97rem;
+	}
+
+	.appseo-cat-seo h2 {
+		font-size: 1.4rem;
+	}
+
+	.appseo-cat-seo h3 {
+		font-size: 1.15rem;
+	}
+
+	.appseo-cat-seo th,
+	.appseo-cat-seo td {
+		padding: 10px 12px;
+	}
+
+	.appseo-cat-seo summary {
+		padding: 14px 40px 14px 16px;
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.appseo-cat-seo *,
+	.appseo-cat-seo summary::after {
+		transition: none;
+	}
+}

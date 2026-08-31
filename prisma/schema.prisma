@@ -1,0 +1,183 @@
+// Esquema del panel AppSEO.
+//
+// Arranca en SQLite para poder trabajar sin montar un servidor. Al desplegar
+// en el VPS se cambia `provider` a "postgresql" y la URL: el resto del esquema
+// no necesita tocarse.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+/// Persona que entra al panel.
+model Usuario {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  nombre    String
+  clave     String // hash bcrypt, nunca la contraseña
+  rol       Rol      @default(EDITOR)
+  activo    Boolean  @default(true)
+  creado    DateTime @default(now())
+  ultimoAcceso DateTime?
+
+  accesos   Acceso[]
+  registro  Registro[]
+}
+
+enum Rol {
+  ADMIN // gestiona usuarios y clientes, ve las credenciales
+  EDITOR // trabaja sobre los clientes que tenga asignados
+  LECTOR // solo consulta
+}
+
+/// Sitio WordPress conectado mediante el plugin AppSEO RyF.
+model Cliente {
+  id       String   @id @default(cuid())
+  nombre   String
+  dominio  String   @unique
+  urlRest  String
+  keyId    String
+
+  /// Secreto HMAC cifrado con AES-256-GCM. Nunca se guarda en claro.
+  secreto  String
+
+  activo   Boolean  @default(true)
+  creado   DateTime @default(now())
+
+  // Última foto conocida, para no consultar el sitio en cada carga.
+  version      String?
+  soloLectura  Boolean?
+  ultimaSonda  DateTime?
+  estadoSonda  String?
+
+  accesos  Acceso[]
+  registro Registro[]
+  trabajos Trabajo[]
+}
+
+/// Qué usuario puede trabajar sobre qué cliente.
+///
+/// Existe como tabla propia y no como una lista en el usuario porque un
+/// trabajador rara vez debe ver toda la cartera: se le asignan sus clientes.
+model Acceso {
+  id        String  @id @default(cuid())
+  usuario   Usuario @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  usuarioId String
+  cliente   Cliente @relation(fields: [clienteId], references: [id], onDelete: Cascade)
+  clienteId String
+
+  @@unique([usuarioId, clienteId])
+}
+
+/// Qué se hizo, sobre qué cliente y quién lo hizo.
+///
+/// El plugin ya lleva su propio registro dentro de cada WordPress. Este es el
+/// del panel, y responde a otra pregunta: no «qué le pasó al sitio» sino
+/// «quién de mi equipo lo hizo».
+model Registro {
+  id        String   @id @default(cuid())
+  creado    DateTime @default(now())
+  accion    String
+  resumen   String
+  resultado String   @default("ok")
+
+  usuario   Usuario? @relation(fields: [usuarioId], references: [id], onDelete: SetNull)
+  usuarioId String?
+  cliente   Cliente? @relation(fields: [clienteId], references: [id], onDelete: SetNull)
+  clienteId String?
+
+  @@index([clienteId, creado])
+}
+
+/// Tanda de trabajo sobre muchos elementos.
+///
+/// Se guarda en la base y no en memoria porque una tanda de 2000 productos
+/// dura más que cualquier petición HTTP y tiene que sobrevivir a un reinicio.
+model Trabajo {
+  id        String   @id @default(cuid())
+  cliente   Cliente  @relation(fields: [clienteId], references: [id], onDelete: Cascade)
+  clienteId String
+
+  tipo      String // metadesc | descripcion | categoria
+  estado    EstadoTrabajo @default(PENDIENTE)
+  total     Int      @default(0)
+  hechos    Int      @default(0)
+  fallidos  Int      @default(0)
+
+  creado    DateTime @default(now())
+  iniciado  DateTime?
+  terminado DateTime?
+  error     String?
+
+  items     ItemTrabajo[]
+
+  @@index([clienteId, estado])
+}
+
+enum EstadoTrabajo {
+  PENDIENTE
+  GENERANDO
+  LISTO_PARA_REVISAR
+  ESCRIBIENDO
+  TERMINADO
+  FALLIDO
+  CANCELADO
+}
+
+/// Un elemento dentro de una tanda: un producto, una categoría, una página.
+model ItemTrabajo {
+  id        String  @id @default(cuid())
+  trabajo   Trabajo @relation(fields: [trabajoId], references: [id], onDelete: Cascade)
+  trabajoId String
+
+  objetoId  Int
+  nombre    String
+
+  /// Huella del contenido original al leerlo. Si al escribir no coincide,
+  /// alguien lo editó por su cuenta y el item se salta en vez de pisarlo.
+  huella    String?
+
+  propuesto String?
+  anterior  String?
+  estado    String  @default("pendiente")
+  error     String?
+
+  @@index([trabajoId, estado])
+  @@unique([trabajoId, objetoId])
+}
+
+/// Conversación del panel sobre un cliente concreto.
+model Conversacion {
+  id        String   @id @default(cuid())
+  clienteId String
+  usuarioId String
+  titulo    String   @default("Nueva conversación")
+  creado    DateTime @default(now())
+  tocado    DateTime @updatedAt
+
+  mensajes  Mensaje[]
+
+  @@index([clienteId, tocado])
+}
+
+/// Un turno de la conversación.
+model Mensaje {
+  id             String       @id @default(cuid())
+  conversacion   Conversacion @relation(fields: [conversacionId], references: [id], onDelete: Cascade)
+  conversacionId String
+
+  rol       String // user | assistant
+  contenido String
+  /// Herramientas usadas en este turno, en JSON. Sirve para mostrar en la
+  /// interfaz qué tocó el asistente, no solo lo que dijo.
+  usadas    String?
+  entrada   Int      @default(0)
+  salida    Int      @default(0)
+  creado    DateTime @default(now())
+
+  @@index([conversacionId, creado])
+}

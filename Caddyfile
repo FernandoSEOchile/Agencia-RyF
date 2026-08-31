@@ -1,0 +1,20 @@
+# Caddy resuelve el certificado HTTPS solo, con Let's Encrypt, y lo renueva
+# sin que nadie tenga que acordarse. Por eso está aquí en vez de nginx.
+
+{$DOMINIO} {
+	encode zstd gzip
+
+	# El chat responde en flujo: si el proxy acumula la respuesta antes de
+	# mandarla, el usuario ve una pantalla parada durante minutos.
+	reverse_proxy panel:3000 {
+		flush_interval -1
+	}
+
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "SAMEORIGIN"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		-Server
+	}
+}
