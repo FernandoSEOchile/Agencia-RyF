@@ -68,6 +68,16 @@ export async function POST(req: NextRequest) {
     take: 40,
   });
 
+  // El primer mensaje da nombre al hilo, como en cualquier chat: un hilo
+  // pre-creado con el botón «Nueva conversación» dejaría ese título genérico
+  // para siempre.
+  if (previos.length === 0 && conversacion.titulo === "Nueva conversación") {
+    await db.conversacion.update({
+      where: { id: conversacion.id },
+      data: { titulo: mensaje.trim().slice(0, 60) },
+    });
+  }
+
   await db.mensaje.create({
     data: { conversacionId: conversacion.id, rol: "user", contenido: mensaje },
   });

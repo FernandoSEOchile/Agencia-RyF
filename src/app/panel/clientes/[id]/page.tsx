@@ -18,11 +18,18 @@ interface EntradaLog {
 const corto = (f: string | Date) =>
   (typeof f === "string" ? f : f.toISOString().replace("T", " ")).slice(5, 16);
 
-export default async function Ficha({ params }: { params: Promise<{ id: string }> }) {
+export default async function Ficha({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ c?: string }>;
+}) {
   const sesion = await auth();
   if (!sesion?.user?.id) redirect("/entrar");
 
   const { id } = await params;
+  const { c } = await searchParams;
   const rol = (sesion.user as { rol?: string }).rol ?? "LECTOR";
 
   const cliente = await db.cliente.findUnique({ where: { id } });
@@ -39,7 +46,7 @@ export default async function Ficha({ params }: { params: Promise<{ id: string }
 
   // Se piden en paralelo y ningún fallo bloquea al resto: un endpoint que la
   // versión instalada del conector no tiene no debe vaciar la ficha entera.
-  const [log, productos, terminos, registroPanel, conversacion] = await Promise.all([
+  const [log, productos, terminos, registroPanel, conversaciones] = await Promise.all([
     api<{ entradas: EntradaLog[]; total: number }>(id, "GET", "/log?por_pagina=50").catch(() => null),
     api<{ total: number }>(id, "GET", "/products?pagina=1").catch(() => null),
     api<{ terminos: { seo_bytes: number }[] }>(id, "GET", "/terms?taxonomia=product_cat").catch(() => null),
@@ -49,12 +56,26 @@ export default async function Ficha({ params }: { params: Promise<{ id: string }
       take: 50,
       include: { usuario: { select: { nombre: true } } },
     }),
-    db.conversacion.findFirst({
+    db.conversacion.findMany({
       where: { clienteId: id, usuarioId: sesion.user.id },
       orderBy: { tocado: "desc" },
-      include: { mensajes: { orderBy: { creado: "asc" }, take: 60 } },
+      take: 30,
+      select: { id: true, titulo: true, tocado: true, _count: { select: { mensajes: true } } },
     }),
   ]);
+
+  // La conversación abierta: la pedida por URL si es de esta persona y este
+  // cliente, o la más reciente. Las de otros usuarios no se abren nunca:
+  // cada quien tiene sus hilos, como en cualquier chat.
+  const conversacion = await db.conversacion.findFirst({
+    where: {
+      clienteId: id,
+      usuarioId: sesion.user.id,
+      ...(c ? { id: c } : {}),
+    },
+    orderBy: { tocado: "desc" },
+    include: { mensajes: { orderBy: { creado: "asc" }, take: 60 } },
+  });
 
   const sucesos: Suceso[] = [
     ...(log?.datos?.entradas ?? []).map((e) => ({
@@ -107,6 +128,16 @@ export default async function Ficha({ params }: { params: Promise<{ id: string }
       resumen: r.ok ? `Conector v${r.salud?.conector}` : `Sin respuesta: ${r.mensaje}`,
       resultado: r.ok ? "ok" : "error",
     });
+    redirect(`/panel/clientes/${id}`);
+  }
+
+  async function borrarConversacion(datos: FormData) {
+    "use server";
+    const s = await auth();
+    if (!s?.user?.id) redirect("/entrar");
+    const convId = String(datos.get("conversacionId") || "");
+    // Solo el dueño borra sus hilos; el filtro por usuario lo garantiza.
+    await db.conversacion.deleteMany({ where: { id: convId, usuarioId: s.user.id } });
     redirect(`/panel/clientes/${id}`);
   }
 
@@ -177,6 +208,13 @@ export default async function Ficha({ params }: { params: Promise<{ id: string }
         puedeEscribir={puedeEscribir}
         historialInicial={historial}
         conversacionInicial={conversacion?.id ?? null}
+        conversaciones={conversaciones.map((x) => ({
+          id: x.id,
+          titulo: x.titulo,
+          fecha: x.tocado.toISOString().slice(5, 16).replace("T", " "),
+          mensajes: x._count.mensajes,
+        }))}
+        borrar={borrarConversacion}
         sucesos={sucesos}
         datos={datos}
       />

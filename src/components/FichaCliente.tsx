@@ -19,6 +19,13 @@ interface Turno {
   usadas?: string[];
 }
 
+export interface ResumenConversacion {
+  id: string;
+  titulo: string;
+  fecha: string;
+  mensajes: number;
+}
+
 const PESTAÑAS = [
   { id: "chat", etiqueta: "Conversación" },
   { id: "registro", etiqueta: "Registro" },
@@ -44,6 +51,8 @@ export default function FichaCliente({
   conversacionInicial,
   sucesos,
   datos,
+  conversaciones,
+  borrar,
 }: {
   clienteId: string;
   nombre: string;
@@ -52,6 +61,8 @@ export default function FichaCliente({
   conversacionInicial: string | null;
   sucesos: Suceso[];
   datos: { etiqueta: string; valor: string }[];
+  conversaciones: ResumenConversacion[];
+  borrar: (datos: FormData) => Promise<void>;
 }) {
   const [activa, setActiva] = useState<Pestaña>("chat");
   const [filtro, setFiltro] = useState<"todo" | "sitio" | "panel">("todo");
@@ -82,14 +93,73 @@ export default function FichaCliente({
       {/* El chat se oculta en lugar de desmontarse: cambiar de pestaña no debe
           perder una respuesta a medio escribir ni cortar un envío en curso. */}
       <div className={activa === "chat" ? "block" : "hidden"}>
-        <div className="mt-4">
-          <Chat
-            clienteId={clienteId}
-            nombre={nombre}
-            puedeEscribir={puedeEscribir}
-            historialInicial={historialInicial}
-            conversacionInicial={conversacionInicial}
-          />
+        <div className="mt-4 flex gap-5">
+          {conversaciones.length > 1 && (
+            <aside className="hidden w-52 shrink-0 sm:block">
+              <p className="text-[11px] font-semibold uppercase tracking-wide text-neutral-400">
+                Conversaciones
+              </p>
+              <ul className="mt-2 space-y-1">
+                {conversaciones.map((cv) => {
+                  const abierta = cv.id === conversacionInicial;
+                  return (
+                    <li key={cv.id} className="group relative">
+                      <a
+                        href={`?c=${cv.id}`}
+                        className={`block rounded-lg px-3 py-2 pr-7 text-xs transition ${
+                          abierta
+                            ? "bg-[#ff6b00]/10 font-semibold text-neutral-900"
+                            : "text-neutral-600 hover:bg-neutral-100"
+                        }`}
+                      >
+                        <span className="line-clamp-2">{cv.titulo}</span>
+                        <span className="mt-0.5 block text-[10px] tabular-nums text-neutral-400">
+                          {cv.fecha} · {cv.mensajes} msj
+                        </span>
+                      </a>
+                      {/* Borrar: visible al pasar el ratón, nunca sobre el hilo abierto
+                          con una respuesta en curso. */}
+                      <form action={borrar} className="absolute right-1.5 top-1.5 opacity-0 transition group-hover:opacity-100">
+                        <input type="hidden" name="conversacionId" value={cv.id} />
+                        <button
+                          type="submit"
+                          title="Borrar conversación"
+                          className="grid h-5 w-5 place-items-center rounded text-neutral-400 hover:bg-red-50 hover:text-red-600"
+                        >
+                          ×
+                        </button>
+                      </form>
+                    </li>
+                  );
+                })}
+              </ul>
+            </aside>
+          )}
+
+          <div className="min-w-0 flex-1">
+            {/* En pantallas chicas la lista pasa a un desplegable. */}
+            {conversaciones.length > 1 && (
+              <select
+                defaultValue={conversacionInicial ?? ""}
+                onChange={(e) => { if (e.target.value) window.location.search = "?c=" + e.target.value; }}
+                className="mb-3 w-full rounded-lg border border-neutral-200 bg-white px-3 py-2 text-xs sm:hidden"
+              >
+                {conversaciones.map((cv) => (
+                  <option key={cv.id} value={cv.id}>
+                    {cv.titulo} · {cv.fecha}
+                  </option>
+                ))}
+              </select>
+            )}
+            <Chat
+              key={conversacionInicial ?? "nueva"}
+              clienteId={clienteId}
+              nombre={nombre}
+              puedeEscribir={puedeEscribir}
+              historialInicial={historialInicial}
+              conversacionInicial={conversacionInicial}
+            />
+          </div>
         </div>
       </div>
 
