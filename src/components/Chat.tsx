@@ -45,10 +45,13 @@ export default function Chat({
   const [coste, setCoste] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   const conversacion = useRef<string | null>(conversacionInicial);
-  const fondo = useRef<HTMLDivElement>(null);
+  const lista = useRef<HTMLDivElement>(null);
 
+  // Se desplaza SOLO la caja de mensajes. scrollIntoView movería también la
+  // página entera y dejaría la barra superior fuera de la vista al entrar.
   useEffect(() => {
-    fondo.current?.scrollIntoView({ behavior: "smooth" });
+    const caja = lista.current;
+    if (caja) caja.scrollTop = caja.scrollHeight;
   }, [turnos, actividad]);
 
   async function enviar(e: React.FormEvent) {
@@ -126,7 +129,7 @@ export default function Chat({
 
   return (
     <div className="flex h-[calc(100vh-13rem)] flex-col">
-      <div className="flex-1 space-y-4 overflow-y-auto pr-1">
+      <div ref={lista} className="flex-1 space-y-4 overflow-y-auto scroll-smooth pr-1">
         {turnos.length === 0 && (
           <div className="rounded-xl border border-dashed border-neutral-300 px-6 py-10 text-center">
             <p className="text-sm text-neutral-600">
@@ -183,7 +186,6 @@ export default function Chat({
 
         {error && <p className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p>}
 
-        <div ref={fondo} />
       </div>
 
       <form onSubmit={enviar} className="mt-4 border-t border-neutral-200 pt-4">
