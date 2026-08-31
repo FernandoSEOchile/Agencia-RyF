@@ -22,12 +22,29 @@ services:
     # Sin `ports`: la base solo es accesible desde la red interna de Docker.
     # Exponerla a internet es el error más caro de este montaje.
 
+  # Prepara la base y se apaga. Corre sobre la etapa de compilación, que tiene
+  # el CLI de Prisma con todas sus dependencias; la imagen de la aplicación es
+  # mínima a propósito y no las lleva.
+  migrador:
+    build:
+      context: .
+      target: build
+    restart: "no"
+    depends_on:
+      base:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://appseo:${POSTGRES_PASSWORD}@base:5432/appseo?schema=public
+    command: npx prisma db push --skip-generate
+
   panel:
     build: .
     restart: unless-stopped
     depends_on:
       base:
         condition: service_healthy
+      migrador:
+        condition: service_completed_successfully
     environment:
       DATABASE_URL: postgresql://appseo:${POSTGRES_PASSWORD}@base:5432/appseo?schema=public
       AUTH_SECRET: ${AUTH_SECRET:?falta AUTH_SECRET en .env}

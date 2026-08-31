@@ -31,26 +31,18 @@ COPY --from=build /app/public ./public
 COPY --from=build --chown=panel:nodejs /app/.next/standalone ./
 COPY --from=build --chown=panel:nodejs /app/.next/static ./.next/static
 
-# Prisma necesita el esquema y las migraciones en tiempo de ejecución para
-# poder aplicar `migrate deploy` al arrancar.
+# El esquema se copia solo para tenerlo a mano; quien lo aplica es el servicio
+# `migrador` del docker-compose, que corre sobre la etapa de compilación y sí
+# tiene todas las dependencias del CLI de Prisma.
 COPY --from=build --chown=panel:nodejs /app/prisma ./prisma
 COPY --from=build /app/node_modules/.prisma ./node_modules/.prisma
-COPY --from=build /app/node_modules/@prisma ./node_modules/@prisma
-COPY --from=build /app/node_modules/prisma ./node_modules/prisma
+COPY --from=build /app/node_modules/@prisma/client ./node_modules/@prisma/client
 COPY --from=build /app/scripts ./scripts
 
 USER panel
 EXPOSE 3000
 
-# El esquema se aplica al arrancar, así que desplegar una versión con cambios
-# de base es un solo paso y no se puede olvidar.
-#
-# Se usa `db push` y no `migrate deploy` porque el proyecto acaba de cambiar de
-# SQLite a Postgres y no hay migraciones de Postgres todavía. `db push` crea lo
-# que falte a partir del esquema y se niega si el cambio destruiría datos.
-#
-# Se invoca por su ruta y no con `npx`: la compilación de Next no copia
-# `node_modules/.bin`, así que `npx` no encontraría el ejecutable e intentaría
-# descargarlo de internet en cada arranque. Si eso falla, el `&&` corta y el
-# servidor nunca llega a levantarse.
-CMD ["sh", "-c", "node ./node_modules/prisma/build/index.js db push --skip-generate && node server.js"]
+# Solo levanta el servidor. La base la prepara el servicio `migrador` antes de
+# que este contenedor arranque: meter el CLI de Prisma aquí obligaría a copiar
+# medio node_modules a una imagen que se supone mínima.
+CMD ["node", "server.js"]
