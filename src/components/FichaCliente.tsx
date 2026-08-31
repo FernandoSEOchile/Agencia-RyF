@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Chat from "@/components/Chat";
+import Sitemap from "@/components/Sitemap";
 
 export interface Suceso {
   fecha: string;
@@ -28,6 +29,7 @@ export interface ResumenConversacion {
 
 const PESTAÑAS = [
   { id: "chat", etiqueta: "Conversación" },
+  { id: "sitemap", etiqueta: "Sitemap" },
   { id: "registro", etiqueta: "Registro" },
   { id: "datos", etiqueta: "Datos" },
 ] as const;
@@ -65,6 +67,8 @@ export default function FichaCliente({
   borrar: (datos: FormData) => Promise<void>;
 }) {
   const [activa, setActiva] = useState<Pestaña>("chat");
+  const [sitemapVisto, setSitemapVisto] = useState(false);
+  if (activa === "sitemap" && !sitemapVisto) setSitemapVisto(true);
   const [filtro, setFiltro] = useState<"todo" | "sitio" | "panel">("todo");
 
   const visibles = sucesos.filter((s) => filtro === "todo" || s.origen === filtro);
@@ -162,6 +166,12 @@ export default function FichaCliente({
           </div>
         </div>
       </div>
+
+      {sitemapVisto && (
+        <div className={activa === "sitemap" ? "block" : "hidden"}>
+          <Sitemap clienteId={clienteId} />
+        </div>
+      )}
 
       {activa === "registro" && (
         <div className="mt-4">
