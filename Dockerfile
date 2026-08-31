@@ -48,4 +48,9 @@ EXPOSE 3000
 # Se usa `db push` y no `migrate deploy` porque el proyecto acaba de cambiar de
 # SQLite a Postgres y no hay migraciones de Postgres todavía. `db push` crea lo
 # que falte a partir del esquema y se niega si el cambio destruiría datos.
-CMD ["sh", "-c", "npx prisma db push --skip-generate && node server.js"]
+#
+# Se invoca por su ruta y no con `npx`: la compilación de Next no copia
+# `node_modules/.bin`, así que `npx` no encontraría el ejecutable e intentaría
+# descargarlo de internet en cada arranque. Si eso falla, el `&&` corta y el
+# servidor nunca llega a levantarse.
+CMD ["sh", "-c", "node ./node_modules/prisma/build/index.js db push --skip-generate && node server.js"]
