@@ -42,6 +42,10 @@ COPY --from=build /app/scripts ./scripts
 USER panel
 EXPOSE 3000
 
-# Las migraciones se aplican al arrancar: así desplegar una versión con cambios
-# de esquema es un solo paso y no se puede olvidar.
-CMD ["sh", "-c", "npx prisma migrate deploy && node server.js"]
+# El esquema se aplica al arrancar, así que desplegar una versión con cambios
+# de base es un solo paso y no se puede olvidar.
+#
+# Se usa `db push` y no `migrate deploy` porque el proyecto acaba de cambiar de
+# SQLite a Postgres y no hay migraciones de Postgres todavía. `db push` crea lo
+# que falte a partir del esquema y se niega si el cambio destruiría datos.
+CMD ["sh", "-c", "npx prisma db push --skip-generate && node server.js"]

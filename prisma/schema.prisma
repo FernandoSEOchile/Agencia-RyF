@@ -1,15 +1,14 @@
 // Esquema del panel AppSEO.
 //
-// Arranca en SQLite para poder trabajar sin montar un servidor. Al desplegar
-// en el VPS se cambia `provider` a "postgresql" y la URL: el resto del esquema
-// no necesita tocarse.
+// En producción corre sobre Postgres. Para volver a SQLite en local basta con
+// cambiar `provider`, pero las migraciones no son intercambiables entre ambos.
 
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
