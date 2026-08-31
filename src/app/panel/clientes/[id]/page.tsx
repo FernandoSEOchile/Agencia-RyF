@@ -2,7 +2,7 @@ import Link from "next/link";
 import { redirect, notFound } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { api, sondear, anotar } from "@/lib/clientes";
+import { api, sondear, anotar, veTodo } from "@/lib/clientes";
 import FichaCliente, { type Suceso } from "@/components/FichaCliente";
 import Barra from "@/components/Barra";
 
@@ -28,7 +28,7 @@ export default async function Ficha({ params }: { params: Promise<{ id: string }
   const cliente = await db.cliente.findUnique({ where: { id } });
   if (!cliente) notFound();
 
-  if (rol !== "ADMIN") {
+  if (!veTodo(rol)) {
     const acceso = await db.acceso.findUnique({
       where: { usuarioId_clienteId: { usuarioId: sesion.user.id, clienteId: id } },
     });

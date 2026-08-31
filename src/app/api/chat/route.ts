@@ -9,6 +9,7 @@ import { NextRequest } from "next/server";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { conversar, instrucciones, type Turno } from "@/lib/asistente";
+import { veTodo } from "@/lib/clientes";
 
 export const runtime = "nodejs";
 export const maxDuration = 300;
@@ -33,7 +34,7 @@ export async function POST(req: NextRequest) {
     return Response.json({ error: "Cliente no disponible." }, { status: 404 });
   }
 
-  if (rol !== "ADMIN") {
+  if (!veTodo(rol)) {
     const acceso = await db.acceso.findUnique({
       where: { usuarioId_clienteId: { usuarioId, clienteId } },
     });

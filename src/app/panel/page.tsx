@@ -77,7 +77,16 @@ export default async function Panel() {
             </p>
           </div>
 
+          <div className="flex items-center gap-2">
           {rol === "ADMIN" && (
+            <Link
+              href="/panel/usuarios"
+              className="rounded-lg border border-neutral-300 px-4 py-2.5 text-sm font-semibold text-neutral-700 transition hover:border-[#ff6b00] hover:text-[#ff6b00]"
+            >
+              Usuarios
+            </Link>
+          )}
+          {(rol === "ADMIN" || rol === "GESTOR") && (
             <Link
               href="/panel/clientes/nuevo"
               className="rounded-lg bg-[#111111] px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-[#ff6b00]"
@@ -85,6 +94,7 @@ export default async function Panel() {
               Conectar sitio
             </Link>
           )}
+          </div>
         </div>
 
         {clientes.length === 0 ? (

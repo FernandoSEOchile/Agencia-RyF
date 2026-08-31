@@ -16,7 +16,8 @@ export default async function NuevoCliente({
 }) {
   const sesion = await auth();
   if (!sesion?.user?.id) redirect("/entrar");
-  if ((sesion.user as { rol?: string }).rol !== "ADMIN") redirect("/panel");
+  const rolSesion = (sesion.user as { rol?: string }).rol;
+  if (rolSesion !== "ADMIN" && rolSesion !== "GESTOR") redirect("/panel");
 
   const { error } = await searchParams;
   const listo = cifradoListo();
@@ -25,7 +26,8 @@ export default async function NuevoCliente({
     "use server";
 
     const s = await auth();
-    if (!s?.user?.id || (s.user as { rol?: string }).rol !== "ADMIN") redirect("/entrar");
+    const rolAccion = (s?.user as { rol?: string } | undefined)?.rol;
+    if (!s?.user?.id || (rolAccion !== "ADMIN" && rolAccion !== "GESTOR")) redirect("/entrar");
 
     const cadena = String(datos.get("cadena") || "");
     const nombre = String(datos.get("nombre") || "").trim();
@@ -88,7 +90,7 @@ export default async function NuevoCliente({
 
   return (
     <>
-      <Barra usuario={sesion.user.name} rol="ADMIN" />
+      <Barra usuario={sesion.user.name} rol={rolSesion} />
       <main className="mx-auto max-w-xl px-6 py-10">
       <Link href="/panel" className="text-sm text-neutral-500 underline-offset-4 hover:underline">
         ← Clientes

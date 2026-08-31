@@ -28,7 +28,8 @@ model Usuario {
 }
 
 enum Rol {
-  ADMIN // gestiona usuarios y clientes, ve las credenciales
+  ADMIN // todo, incluida la gestión de usuarios
+  GESTOR // toda la cartera y todas las operaciones, salvo gestionar usuarios
   EDITOR // trabaja sobre los clientes que tenga asignados
   LECTOR // solo consulta
 }

@@ -69,9 +69,14 @@ export async function sondear(clienteId: string) {
     : { ok: false as const, mensaje: r.mensaje || r.codigo || `HTTP ${r.estado}` };
 }
 
+/** ¿Este rol ve la cartera completa sin necesitar asignaciones? */
+export function veTodo(rol: string) {
+  return rol === "ADMIN" || rol === "GESTOR";
+}
+
 /** Clientes visibles para un usuario, según su rol y sus accesos. */
 export async function clientesDe(usuarioId: string, rol: string) {
-  if (rol === "ADMIN") {
+  if (veTodo(rol)) {
     return db.cliente.findMany({ orderBy: { nombre: "asc" } });
   }
 
