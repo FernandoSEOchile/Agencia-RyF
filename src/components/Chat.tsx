@@ -33,12 +33,14 @@ export default function Chat({
   puedeEscribir,
   historialInicial,
   conversacionInicial,
+  visible,
 }: {
   clienteId: string;
   nombre: string;
   puedeEscribir: boolean;
   historialInicial: Turno[];
   conversacionInicial: string | null;
+  visible: boolean;
 }) {
   const [turnos, setTurnos] = useState<Turno[]>(historialInicial);
   const [entrada, setEntrada] = useState("");
@@ -48,6 +50,25 @@ export default function Chat({
   const [error, setError] = useState<string | null>(null);
   const [adjuntas, setAdjuntas] = useState<Adjunta[]>([]);
   const [arrastrando, setArrastrando] = useState(false);
+
+  const caja = useRef<HTMLDivElement>(null);
+  const [alto, setAlto] = useState<number | undefined>(undefined);
+
+  useEffect(() => {
+    if (!visible) return;
+
+    const medir = () => {
+      const el = caja.current;
+      if (!el) return;
+      // Se descuenta el pie de la página (pb-10) para que el chat llegue justo
+      // al borde inferior sin provocar scroll de la ventana entera.
+      setAlto(Math.max(384, window.innerHeight - el.getBoundingClientRect().top - 40));
+    };
+
+    medir();
+    window.addEventListener("resize", medir);
+    return () => window.removeEventListener("resize", medir);
+  }, [visible]);
   const archivos = useRef<HTMLInputElement>(null);
   const conversacion = useRef<string | null>(conversacionInicial);
   const lista = useRef<HTMLDivElement>(null);
@@ -177,7 +198,7 @@ export default function Chat({
   }
 
   return (
-    <div className="flex h-[calc(100vh-13rem)] flex-col">
+    <div ref={caja} style={{ height: alto }} className="flex min-h-[24rem] flex-col">
       <div ref={lista} className="flex-1 space-y-4 overflow-y-auto scroll-smooth pr-1">
         {turnos.length === 0 && (
           <div className="rounded-xl border border-dashed border-neutral-300 px-6 py-10 text-center">

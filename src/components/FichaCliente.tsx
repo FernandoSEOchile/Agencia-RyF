@@ -170,6 +170,7 @@ export default function FichaCliente({
               puedeEscribir={puedeEscribir}
               historialInicial={historialInicial}
               conversacionInicial={conversacionInicial}
+              visible={activa === "chat"}
             />
           </div>
         </div>
