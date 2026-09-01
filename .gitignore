@@ -34,3 +34,9 @@ theme-huella.json
 inventario.json
 ficha-analizada.html
 panel-datos.json
+
+# El paquete publicado del conector SÍ se versiona: es lo que descargan los
+# WordPress de los clientes al actualizarse, y tiene que viajar al servidor.
+!/public/plugin/
+!/public/plugin/*.zip
+!/public/plugin/*.json

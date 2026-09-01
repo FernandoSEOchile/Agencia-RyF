@@ -9,7 +9,8 @@
     "lint": "next lint",
     "panel:usuario": "node --env-file=.env --env-file=.env.local scripts/crear-usuario.mjs",
     "panel:importar": "node --env-file=.env --env-file=.env.local scripts/importar-clientes.mjs",
-    "panel:postgres": "node scripts/a-postgres.mjs"
+    "panel:postgres": "node scripts/a-postgres.mjs",
+    "plugin:publicar": "node scripts/publicar-plugin.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.122.0",
