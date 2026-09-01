@@ -164,27 +164,27 @@ export default async function Ficha({
   return (
     <>
       <Barra usuario={sesion.user.name} rol={rol} />
-      <main className="mx-auto max-w-3xl px-6 py-8">
-      <Link href="/panel" className="text-sm text-neutral-500 underline-offset-4 hover:underline">
+      <main className="contenedor py-10">
+      <Link href="/panel" className="boton-sutil">
         ← Clientes
       </Link>
 
-      <header className="mt-3 flex flex-wrap items-center justify-between gap-3 border-b border-neutral-200 pb-4">
+      <header className="mt-4 flex flex-wrap items-center justify-between gap-3">
         <div className="min-w-0">
-          <h1 className="truncate text-xl font-bold tracking-tight text-neutral-900">{cliente.nombre}</h1>
-          <p className="flex flex-wrap items-center gap-2 text-xs text-neutral-500">
+          <h1 className="truncate text-[28px] font-semibold leading-tight">{cliente.nombre}</h1>
+          <p className="mt-0.5 flex flex-wrap items-center gap-2 text-[13px] text-[color:var(--tinta-media)]">
             <a
               href={`https://${cliente.dominio}`}
               target="_blank"
               rel="noopener"
-              className="underline-offset-4 hover:text-[#ff6b00] hover:underline"
+              className="underline-offset-4 transition hover:text-[color:var(--acento)] hover:underline"
             >
               {cliente.dominio}
             </a>
-            <span className="text-neutral-300">·</span>
+            <span className="text-black/20">·</span>
             <span className="tabular-nums">v{cliente.version ?? "?"}</span>
-            <span className="text-neutral-300">·</span>
-            <span className={puedeEscribir ? "text-emerald-700" : "text-neutral-500"}>
+            <span className="text-black/20">·</span>
+            <span className={puedeEscribir ? "text-emerald-600" : ""}>
               {puedeEscribir ? "escritura" : "solo lectura"}
             </span>
           </p>
@@ -192,12 +192,12 @@ export default async function Ficha({
 
         <div className="flex items-center gap-2">
           <form action={nuevaConversacion}>
-            <button className="rounded-lg border border-neutral-200 px-3 py-1.5 text-xs font-medium text-neutral-600 transition hover:border-[#ff6b00] hover:text-[#ff6b00]">
+            <button className="boton">
               Nueva conversación
             </button>
           </form>
           <form action={comprobar}>
-            <button className="rounded-lg border border-neutral-200 px-3 py-1.5 text-xs font-medium text-neutral-600 transition hover:border-[#ff6b00] hover:text-[#ff6b00]">
+            <button className="boton">
               Comprobar
             </button>
           </form>
@@ -205,7 +205,7 @@ export default async function Ficha({
       </header>
 
       {caido && (
-        <p className="mt-4 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">
+        <p className="mt-5 rounded-2xl bg-red-50 px-4 py-3 text-[13px] text-red-700">
           La última comprobación falló: {cliente.estadoSonda}
         </p>
       )}

@@ -57,22 +57,22 @@ export default async function Panel() {
         rol={rol}
         acciones={
           <form action={salir}>
-            <button className="text-xs font-medium text-white/60 underline-offset-4 transition hover:text-white hover:underline">
+            <button className="text-[12px] font-medium text-white/55 transition hover:text-white">
               Salir
             </button>
           </form>
         }
       />
 
-      <main className="mx-auto max-w-5xl px-6 py-8">
+      <main className="contenedor py-14">
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold tracking-tight text-neutral-900">Clientes</h1>
-            <p className="mt-0.5 text-sm text-neutral-500">
+            <h1 className="text-[32px] font-semibold leading-tight">Clientes</h1>
+            <p className="mt-1 text-[15px] text-[color:var(--tinta-media)]">
               {clientes.length} {clientes.length === 1 ? "sitio conectado" : "sitios conectados"}
               {conEscritura > 0 && ` · ${conEscritura} con escritura`}
               {atrasados > 0 && (
-                <span className="text-amber-700"> · {atrasados} por actualizar</span>
+                <span className="text-amber-600"> · {atrasados} por actualizar</span>
               )}
             </p>
           </div>
@@ -81,7 +81,7 @@ export default async function Panel() {
           {rol === "ADMIN" && (
             <Link
               href="/panel/ajustes"
-              className="rounded-lg border border-neutral-300 px-4 py-2.5 text-sm font-semibold text-neutral-700 transition hover:border-[#ff6b00] hover:text-[#ff6b00]"
+              className="boton"
             >
               Ajustes
             </Link>
@@ -89,7 +89,7 @@ export default async function Panel() {
           {rol === "ADMIN" && (
             <Link
               href="/panel/usuarios"
-              className="rounded-lg border border-neutral-300 px-4 py-2.5 text-sm font-semibold text-neutral-700 transition hover:border-[#ff6b00] hover:text-[#ff6b00]"
+              className="boton"
             >
               Usuarios
             </Link>
@@ -97,7 +97,7 @@ export default async function Panel() {
           {(rol === "ADMIN" || rol === "GESTOR") && (
             <Link
               href="/panel/clientes/nuevo"
-              className="rounded-lg bg-[#111111] px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-[#ff6b00]"
+              className="boton-fuerte"
             >
               Conectar sitio
             </Link>
@@ -106,16 +106,16 @@ export default async function Panel() {
         </div>
 
         {clientes.length === 0 ? (
-          <div className="mt-10 rounded-2xl border border-dashed border-neutral-300 bg-white px-6 py-14 text-center">
-            <p className="text-sm font-medium text-neutral-700">Todavía no hay clientes aquí.</p>
-            <p className="mx-auto mt-1.5 max-w-sm text-xs text-neutral-500">
+          <div className="mt-10 rounded-2xl border border-dashed border-[color:var(--linea-fuerte)] px-6 py-20 text-center">
+            <p className="text-[15px] font-medium">Todavía no hay clientes aquí.</p>
+            <p className="mx-auto mt-2 max-w-sm text-[13px] text-[color:var(--tinta-media)]">
               {rol === "ADMIN"
                 ? "Instala el plugin AppSEO RyF en el WordPress del cliente y pega su cadena de conexión."
                 : "Pide a un administrador que te asigne los clientes con los que vas a trabajar."}
             </p>
           </div>
         ) : (
-          <ul className="mt-6 grid gap-3 sm:grid-cols-2">
+          <ul className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {clientes.map((c) => {
               const atrasado = c.version && c.version !== ultima;
               const caido = c.estadoSonda && c.estadoSonda !== "ok";
@@ -123,45 +123,47 @@ export default async function Panel() {
                 <li key={c.id}>
                   <Link
                     href={`/panel/clientes/${c.id}`}
-                    className={`group flex h-full flex-col rounded-2xl border bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:border-[#ff6b00] hover:shadow-md ${
-                      caido ? "border-red-200" : "border-neutral-200"
+                    className={`tarjeta-pulsable group flex h-full flex-col p-5 ${
+                      caido ? "!border-red-200" : ""
                     }`}
                   >
                     <div className="flex items-start gap-3">
                       <span
-                        className={`grid h-10 w-10 shrink-0 place-items-center rounded-xl text-xs font-bold tracking-tight ${
+                        className={`grid h-10 w-10 shrink-0 place-items-center rounded-full text-[12px] font-semibold tracking-tight transition ${
                           caido
                             ? "bg-red-50 text-red-600"
-                            : "bg-neutral-100 text-neutral-500 group-hover:bg-[#ff6b00]/10 group-hover:text-[#ff6b00]"
+                            : "bg-black/[0.05] text-[color:var(--tinta-media)] group-hover:bg-[color:var(--acento)]/10 group-hover:text-[color:var(--acento)]"
                         }`}
                       >
                         {inicial(c.dominio)}
                       </span>
 
                       <div className="min-w-0 flex-1">
-                        <p className="truncate font-semibold text-neutral-900">{c.nombre}</p>
-                        <p className="truncate text-xs text-neutral-500">{c.dominio}</p>
+                        <p className="truncate text-[15px] font-semibold">{c.nombre}</p>
+                        <p className="truncate text-[13px] text-[color:var(--tinta-suave)]">{c.dominio}</p>
                       </div>
                     </div>
 
-                    <div className="mt-4 flex flex-wrap items-center gap-1.5">
+                    <div className="mt-5 flex flex-wrap items-center gap-1.5">
                       {caido ? (
-                        <span className="rounded-full bg-red-50 px-2.5 py-1 text-[11px] font-semibold text-red-700">
+                        <span className="pastilla bg-red-50 text-red-700">
                           {c.estadoSonda}
                         </span>
                       ) : (
                         <>
                           <span
-                            className={`rounded-full px-2.5 py-1 text-[11px] font-semibold tabular-nums ${
-                              atrasado ? "bg-amber-50 text-amber-800" : "bg-emerald-50 text-emerald-700"
+                            className={`pastilla tabular-nums ${
+                              atrasado
+                                ? "bg-amber-50 text-amber-700"
+                                : "bg-black/[0.05] text-[color:var(--tinta-media)]"
                             }`}
                           >
                             v{c.version ?? "?"}
                           </span>
                           <span
-                            className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${
+                            className={`pastilla ${
                               c.soloLectura
-                                ? "bg-neutral-100 text-neutral-600"
+                                ? "bg-black/[0.05] text-[color:var(--tinta-media)]"
                                 : "bg-emerald-50 text-emerald-700"
                             }`}
                           >
@@ -169,7 +171,7 @@ export default async function Panel() {
                           </span>
                         </>
                       )}
-                      <span className="ml-auto text-[11px] text-neutral-400">
+                      <span className="ml-auto text-[11px] text-[color:var(--tinta-suave)]">
                         {haceCuanto(c.ultimaSonda)}
                       </span>
                     </div>
@@ -181,23 +183,21 @@ export default async function Panel() {
         )}
 
         {registro.length > 0 && (
-          <section className="mt-10">
-            <h2 className="text-[11px] font-semibold uppercase tracking-wider text-neutral-400">
-              Actividad del equipo
-            </h2>
-            <ul className="mt-3 divide-y divide-neutral-100 overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-sm">
+          <section className="mt-14">
+            <h2 className="rotulo">Actividad del equipo</h2>
+            <ul className="tarjeta mt-3 divide-y divide-[color:var(--linea)] overflow-hidden">
               {registro.map((r) => (
-                <li key={r.id} className="flex flex-wrap items-baseline gap-x-3 gap-y-1 px-5 py-3 text-sm">
-                  <span className="w-20 shrink-0 tabular-nums text-[11px] text-neutral-400">
+                <li key={r.id} className="flex flex-wrap items-baseline gap-x-3 gap-y-1 px-5 py-3 text-[13px]">
+                  <span className="w-20 shrink-0 tabular-nums text-[11px] text-[color:var(--tinta-suave)]">
                     {r.creado.toISOString().slice(5, 16).replace("T", " ")}
                   </span>
-                  <span className="rounded bg-[#ff6b00]/10 px-1.5 py-0.5 text-[11px] font-semibold text-[#ff6b00]">
+                  <span className="pastilla bg-[color:var(--acento)]/10 text-[color:var(--acento)]">
                     {r.accion}
                   </span>
-                  <span className={r.resultado === "ok" ? "text-neutral-700" : "font-medium text-red-600"}>
+                  <span className={r.resultado === "ok" ? "text-[color:var(--tinta)]" : "font-medium text-red-600"}>
                     {r.resumen}
                   </span>
-                  <span className="ml-auto text-[11px] text-neutral-400">
+                  <span className="ml-auto text-[11px] text-[color:var(--tinta-suave)]">
                     {r.usuario?.nombre ?? "—"}
                     {r.cliente ? ` · ${r.cliente.nombre}` : ""}
                   </span>

@@ -82,21 +82,21 @@ export default function FichaCliente({
   const visibles = sucesos.filter((s) => filtro === "todo" || s.origen === filtro);
 
   return (
-    <div className="mt-5">
-      <div className="flex gap-1 border-b border-neutral-200">
+    <div className="mt-7">
+      {/* Control segmentado en vez de pestañas subrayadas: agrupa las vistas en
+          un solo objeto en lugar de dejar cinco palabras sueltas sobre una raya. */}
+      <div className="segmentos">
         {PESTAÑAS.map((p) => (
           <button
             key={p.id}
             onClick={() => setActiva(p.id)}
-            className={`-mb-px border-b-2 px-3 py-2 text-sm font-medium transition ${
-              activa === p.id
-                ? "border-[#ff6b00] text-neutral-900"
-                : "border-transparent text-neutral-500 hover:text-neutral-800"
-            }`}
+            className={`segmento ${activa === p.id ? "segmento-activo" : ""}`}
           >
             {p.etiqueta}
             {p.id === "registro" && sucesos.length > 0 && (
-              <span className="ml-1.5 text-xs tabular-nums text-neutral-400">{sucesos.length}</span>
+              <span className="ml-1.5 tabular-nums text-[color:var(--tinta-suave)]">
+                {sucesos.length}
+              </span>
             )}
           </button>
         ))}
@@ -105,7 +105,7 @@ export default function FichaCliente({
       {/* El chat se oculta en lugar de desmontarse: cambiar de pestaña no debe
           perder una respuesta a medio escribir ni cortar un envío en curso. */}
       <div className={activa === "chat" ? "block" : "hidden"}>
-        <div className="mt-4 flex gap-5">
+        <div className="mt-5 flex gap-6">
           {conversaciones.length > 1 && (
             <aside className="hidden w-52 shrink-0 sm:block">
               <p className="text-[11px] font-semibold uppercase tracking-wide text-neutral-400">

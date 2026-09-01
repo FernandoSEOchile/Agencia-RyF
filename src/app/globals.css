@@ -2,18 +2,39 @@
 @tailwind components;
 @tailwind utilities;
 
-/* La tipografía es la misma que usa el plugin en el escritorio de WordPress:
-   quien salta del panel a WordPress no debería notar que cambia de producto. */
-@import url("https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400;500;600;700&display=swap");
+/* Inter es lo más cercano a SF Pro que se puede servir desde la web, y la
+   pila del sistema va delante para que en un Mac se use la de verdad. */
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap");
 
 :root {
-  --naranja: #ff6b00;
-  --oscuro: #111111;
-  --borde: #ececec;
+  /* El acento es el naranja de la agencia, y se gasta con cuentagotas: lo que
+     hace legible una pantalla densa es la jerarquía tipográfica, no el color. */
+  --acento: #ff6b00;
+
+  /* Grises con una pizca de azul, como los de Apple: un gris neutro puro se
+     ve apagado al lado del blanco. */
+  --tinta: #1d1d1f;
+  --tinta-media: #6e6e73;
+  --tinta-suave: #86868b;
+  --fondo: #fbfbfd;
+  --panel: #ffffff;
+  --linea: rgba(0, 0, 0, 0.08);
+  --linea-fuerte: rgba(0, 0, 0, 0.14);
 }
 
 body {
-  font-family: "Schibsted Grotesk", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Inter", "Segoe UI", sans-serif;
+  background: var(--fondo);
+  color: var(--tinta);
+}
+
+/* Los títulos grandes van con el interletrado cerrado; a partir de cierto
+   cuerpo el espaciado por defecto se abre demasiado y pierde firmeza. */
+h1,
+h2,
+.titular {
+  letter-spacing: -0.022em;
+  text-wrap: balance;
 }
 
 /* Las barras de scroll por defecto de Windows son gruesas y parten el diseño
@@ -21,6 +42,73 @@ body {
 @supports (scrollbar-width: thin) {
   .scroll-fino {
     scrollbar-width: thin;
-    scrollbar-color: #d4d4d4 transparent;
+    scrollbar-color: #d2d2d7 transparent;
+  }
+}
+
+@layer components {
+  /* Un solo ancho para todas las pantallas: si cada pestaña elige el suyo, las
+     columnas bailan al cambiar de una a otra. */
+  .contenedor {
+    @apply mx-auto w-full max-w-[1120px] px-6;
+  }
+
+  /* Superficie base. El borde es un pelo, no una caja: lo que separa del fondo
+     es el blanco y la sombra, no la línea. */
+  .tarjeta {
+    @apply rounded-2xl border border-[color:var(--linea)] bg-[color:var(--panel)];
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+  }
+
+  .tarjeta-pulsable {
+    @apply tarjeta transition duration-200;
+  }
+  .tarjeta-pulsable:hover {
+    border-color: var(--linea-fuerte);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+    transform: translateY(-1px);
+  }
+
+  /* Botones de cápsula, en dos pesos. */
+  .boton {
+    @apply inline-flex items-center justify-center gap-1.5 rounded-full border border-[color:var(--linea-fuerte)]
+           bg-white px-4 py-1.5 text-[13px] font-medium text-[color:var(--tinta)]
+           transition duration-150 hover:bg-neutral-50 disabled:opacity-40;
+  }
+
+  .boton-fuerte {
+    @apply inline-flex items-center justify-center gap-1.5 rounded-full bg-[color:var(--tinta)]
+           px-4 py-1.5 text-[13px] font-medium text-white transition duration-150
+           hover:bg-black disabled:opacity-40;
+  }
+
+  .boton-sutil {
+    @apply text-[13px] font-medium text-[color:var(--tinta-media)] transition
+           hover:text-[color:var(--tinta)];
+  }
+
+  /* Control segmentado, en lugar de pestañas subrayadas. */
+  .segmentos {
+    @apply inline-flex items-center gap-0.5 rounded-full bg-black/[0.045] p-1;
+  }
+
+  .segmento {
+    @apply rounded-full px-3.5 py-1.5 text-[13px] font-medium text-[color:var(--tinta-media)]
+           transition duration-150 hover:text-[color:var(--tinta)];
+  }
+
+  .segmento-activo {
+    @apply bg-white text-[color:var(--tinta)];
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  }
+
+  /* Etiqueta de sección: versalitas finas, el recurso con el que Apple separa
+     bloques sin meter una regla horizontal. */
+  .rotulo {
+    @apply text-[11px] font-semibold uppercase tracking-[0.06em] text-[color:var(--tinta-suave)];
+  }
+
+  .pastilla {
+    @apply inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-medium;
   }
 }

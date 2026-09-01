@@ -5,8 +5,9 @@ import Link from "next/link";
  * Barra superior del panel.
  *
  * Va en oscuro porque el logo de la agencia es blanco con transparencia: sobre
- * fondo claro no se vería. Y porque separa con claridad el marco de la
- * herramienta del contenido de cada cliente, que sí es claro.
+ * fondo claro no se vería. Es fija y translúcida para que el contenido pase por
+ * debajo en lugar de empujarla, que es lo que hace que la pantalla se sienta
+ * de una pieza al desplazarse.
  */
 export default function Barra({
   usuario,
@@ -18,8 +19,8 @@ export default function Barra({
   acciones?: React.ReactNode;
 }) {
   return (
-    <header className="border-b border-black/10 bg-[#111111]">
-      <div className="mx-auto flex max-w-5xl flex-wrap items-center gap-4 px-6 py-3.5">
+    <header className="sticky top-0 z-40 border-b border-white/10 bg-[#1d1d1f]/80 backdrop-blur-xl backdrop-saturate-150">
+      <div className="contenedor flex h-12 flex-wrap items-center gap-4">
         <Link href="/panel" className="flex items-center gap-3">
           <Image
             src="/ryf.webp"
@@ -27,18 +28,16 @@ export default function Barra({
             width={512}
             height={199}
             priority
-            className="h-6 w-auto"
+            className="h-[18px] w-auto"
           />
-          <span className="border-l border-white/20 pl-3 text-sm font-semibold tracking-tight text-white">
-            Panel
-          </span>
+          <span className="text-[13px] font-medium tracking-tight text-white/90">Panel</span>
         </Link>
 
         <div className="ml-auto flex items-center gap-4">
           {usuario && (
-            <span className="hidden text-xs text-white/50 sm:block">
+            <span className="hidden text-[12px] text-white/55 sm:block">
               {usuario}
-              {rol && <span className="ml-1.5 text-white/30">· {rol.toLowerCase()}</span>}
+              {rol && <span className="ml-1.5 text-white/30">{rol.toLowerCase()}</span>}
             </span>
           )}
           {acciones}

@@ -40,8 +40,8 @@ const FILTROS = [
 
 function estilo(estado: string) {
   if (estado === "creada") return "bg-emerald-50 text-emerald-700";
-  if (estado === "dudosa") return "bg-amber-50 text-amber-800";
-  if (estado === "falta") return "bg-red-50 text-red-700";
+  if (estado === "dudosa") return "bg-amber-50 text-amber-700";
+  if (estado === "falta") return "bg-red-50 text-red-600";
   return "bg-neutral-100 text-neutral-600";
 }
 
@@ -226,14 +226,10 @@ export default function Arquitectura({
   })();
 
   return (
-    <div className="relative left-1/2 mt-4 w-[calc(100vw-3rem)] max-w-[1400px] -translate-x-1/2">
-      <div className="flex flex-wrap items-center gap-3">
-        <span className="rounded-full bg-[#ff6b00]/10 px-2.5 py-1 text-[11px] font-semibold text-[#ff6b00]">
-          beta
-        </span>
-
+    <div className="mt-5">
+      <div className="flex flex-wrap items-center gap-2">
         {puedeSubir && (
-          <label className="cursor-pointer rounded-lg border border-neutral-300 px-3.5 py-1.5 text-xs font-semibold text-neutral-700 transition hover:border-[#ff6b00] hover:text-[#ff6b00]">
+          <label className="boton cursor-pointer">
             {subiendo ? "Procesando…" : actual ? "Subir otra versión" : "Subir Excel AST"}
             <input
               type="file"
@@ -246,47 +242,43 @@ export default function Arquitectura({
         )}
 
         {actual && puedeSubir && (
-          <button
-            onClick={recotejar}
-            disabled={subiendo}
-            className="rounded-lg border border-neutral-300 px-3.5 py-1.5 text-xs font-medium text-neutral-600 transition hover:border-[#ff6b00] hover:text-[#ff6b00] disabled:opacity-40"
-          >
+          <button onClick={recotejar} disabled={subiendo} className="boton">
             Volver a cotejar
           </button>
         )}
 
         {subiendo && (
-          <span className="text-xs text-neutral-400">
+          <span className="text-[13px] text-[color:var(--tinta-suave)]">
             Leyendo el sitemap y cotejando con la IA; puede tardar un par de minutos.
           </span>
         )}
       </div>
 
-      {error && <p className="mt-3 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p>}
-      {aviso && <p className="mt-3 rounded-lg bg-emerald-50 px-4 py-3 text-sm text-emerald-700">{aviso}</p>}
+      {error && <p className="mt-4 rounded-2xl bg-red-50 px-4 py-3 text-[13px] text-red-700">{error}</p>}
+      {aviso && <p className="mt-4 rounded-2xl bg-emerald-50 px-4 py-3 text-[13px] text-emerald-700">{aviso}</p>}
 
       {!actual ? (
-        <div className="mt-4 rounded-2xl border border-dashed border-neutral-300 bg-white px-6 py-12 text-center">
-          <p className="text-sm font-medium text-neutral-700">
+        <div className="mt-5 rounded-2xl border border-dashed border-[color:var(--linea-fuerte)] px-6 py-20 text-center">
+          <p className="text-[15px] font-medium">
             No hay ninguna arquitectura cargada para este cliente.
           </p>
-          <p className="mx-auto mt-1.5 max-w-md text-xs text-neutral-500">
+          <p className="mx-auto mt-2 max-w-md text-[13px] text-[color:var(--tinta-media)]">
             Sube el Excel con la hoja «AST». Se leerán las secciones previstas y se cruzarán con el
             sitemap del sitio para ver qué está creado, con qué URL, y qué falta.
           </p>
         </div>
       ) : (
         <>
-          <dl className="mt-4 grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-neutral-200 bg-neutral-200 sm:grid-cols-4">
+          <dl className="tarjeta mt-5 grid grid-cols-2 divide-x divide-[color:var(--linea)] overflow-hidden sm:grid-cols-4">
             {[
               ["Secciones", String(nodos.length), ""],
               ["Creadas", String(cuenta("creada")), "text-emerald-700"],
               ["Dudosas", String(cuenta("dudosa")), "text-amber-700"],
               ["Por crear", String(cuenta("falta")), "text-red-700"],
             ].map(([k, v, color]) => (
-              <div key={k} className="bg-white px-4 py-3">
-                <dt className="text-[11px] font-medium uppercase tracking-wide text-neutral-500">{k}</dt>
-                <dd className={`mt-0.5 text-lg font-semibold tabular-nums ${color || "text-neutral-900"}`}>
+              <div key={k} className="px-5 py-4">
+                <dt className="rotulo">{k}</dt>
+                <dd className={`mt-1 text-[26px] font-semibold tabular-nums ${color || ""}`}>
                   {v}
                 </dd>
               </div>
@@ -294,100 +286,98 @@ export default function Arquitectura({
           </dl>
 
           {volumenPerdido > 0 && (
-            <p className="mt-2 text-xs text-neutral-500">
+            <p className="mt-3 text-[13px] text-[color:var(--tinta-media)]">
               Las secciones por crear suman{" "}
-              <strong className="tabular-nums text-neutral-800">
+              <strong className="font-semibold tabular-nums text-[color:var(--tinta)]">
                 {volumenPerdido.toLocaleString("es-CL")}
               </strong>{" "}
               búsquedas mensuales que hoy el sitio no puede capturar.
             </p>
           )}
 
-          <div className="mt-4 flex flex-wrap items-center gap-2">
-            {FILTROS.map(([id, texto]) => (
-              <button
-                key={id}
-                onClick={() => setFiltro(id)}
-                className={`rounded-full px-3 py-1 text-xs font-medium transition ${
-                  filtro === id
-                    ? "bg-neutral-900 text-white"
-                    : "bg-neutral-100 text-neutral-600 hover:bg-neutral-200"
-                }`}
-              >
-                {texto}
-              </button>
-            ))}
-            <span className="ml-auto text-xs text-neutral-400">
+          <div className="mt-6 flex flex-wrap items-center gap-2">
+            <div className="segmentos">
+              {FILTROS.map(([id, texto]) => (
+                <button
+                  key={id}
+                  onClick={() => setFiltro(id)}
+                  className={`segmento ${filtro === id ? "segmento-activo" : ""}`}
+                >
+                  {texto}
+                </button>
+              ))}
+            </div>
+            <span className="ml-auto text-[12px] text-[color:var(--tinta-suave)]">
               {actual.archivo}
               {actual.cotejado && ` · cotejado ${actual.cotejado.slice(0, 16).replace("T", " ")}`}
             </span>
           </div>
 
-          <div className="mt-3 overflow-x-auto rounded-xl border border-neutral-200 bg-white">
-            <table className="w-full min-w-[720px] border-collapse text-sm">
+          <div className="tarjeta mt-3 overflow-x-auto">
+            <table className="w-full min-w-[720px] border-collapse text-[13px]">
               <thead>
-                <tr className="border-b border-neutral-200 text-left text-[11px] uppercase tracking-wide text-neutral-400">
-                  <th className="px-4 py-2.5 font-semibold">Sección prevista</th>
-                  <th className="px-3 py-2.5 text-right font-semibold">Volumen</th>
-                  <th className="px-3 py-2.5 font-semibold">Estado</th>
-                  <th className="px-4 py-2.5 font-semibold">URL que la ataca</th>
+                <tr className="border-b border-[color:var(--linea)] text-left">
+                  <th className="rotulo px-5 py-3">Sección prevista</th>
+                  <th className="rotulo px-3 py-3 text-right">Volumen</th>
+                  <th className="rotulo px-3 py-3">Estado</th>
+                  <th className="rotulo px-5 py-3">URL que la ataca</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-neutral-100">
+              <tbody className="divide-y divide-[color:var(--linea)]">
                 {visibles.map((n) => (
                   <Fragment key={n.id}>
-                  <tr className="align-top hover:bg-neutral-50">
-                    <td className="w-[34%] px-4 py-2.5">
+                  <tr className="align-top transition hover:bg-black/[0.015]">
+                    <td className="w-[34%] px-5 py-3">
                       {/* La sangría hace visible la jerarquía sin una columna extra. */}
                       <div style={{ paddingLeft: (n.nivel - 1) * 14 }}>
-                        <p className="truncate font-medium text-neutral-900">{n.nombre}</p>
-                        <p className="truncate font-mono text-[11px] text-neutral-400">{n.slug}</p>
+                        <p className="truncate font-medium">{n.nombre}</p>
+                        <p className="truncate font-mono text-[11px] text-[color:var(--tinta-suave)]">
+                          {n.slug}
+                        </p>
                       </div>
                     </td>
-                    <td className="px-3 py-2.5 text-right text-xs tabular-nums text-neutral-600">
+                    <td className="px-3 py-3 text-right tabular-nums text-[color:var(--tinta-media)]">
                       {n.volumen ? n.volumen.toLocaleString("es-CL") : "—"}
                     </td>
-                    <td className="px-3 py-2.5">
-                      <span
-                        className={`whitespace-nowrap rounded-full px-2 py-0.5 text-[11px] font-semibold ${estilo(
-                          n.estado
-                        )}`}
-                      >
+                    <td className="px-3 py-3">
+                      <span className={`pastilla whitespace-nowrap ${estilo(n.estado)}`}>
                         {etiqueta(n.estado)}
                       </span>
                       {n.estado === "dudosa" && n.confianza !== null && (
-                        <span className="ml-1.5 text-[11px] tabular-nums text-neutral-400">
+                        <span className="ml-1.5 text-[11px] tabular-nums text-[color:var(--tinta-suave)]">
                           {n.confianza}%
                         </span>
                       )}
                     </td>
-                    <td className="px-4 py-2.5 text-xs">
+                    <td className="px-5 py-3">
                       {n.urlDestino ? (
                         <>
                           <a
                             href={n.urlDestino}
                             target="_blank"
                             rel="noopener"
-                            className="block truncate text-neutral-700 underline-offset-2 hover:text-[#ff6b00] hover:underline"
+                            className="block truncate underline-offset-2 transition hover:text-[color:var(--acento)] hover:underline"
                             title={n.urlDestino}
                           >
                             {n.urlDestino.replace(/^https?:\/\/[^/]+/, "")}
                           </a>
-                          <p className="mt-0.5 text-[11px] text-neutral-400">
+                          <p className="mt-0.5 text-[11px] text-[color:var(--tinta-suave)]">
                             {origen(n.comoSeCotejo) && (
-                              <span className="mr-1 text-neutral-500">{origen(n.comoSeCotejo)}</span>
+                              <span className="mr-1 text-[color:var(--tinta-media)]">
+                                {origen(n.comoSeCotejo)}
+                              </span>
                             )}
                             {n.nota}
                           </p>
                         </>
                       ) : (
-                        <span className="text-neutral-300">sin URL — hay que crearla</span>
+                        <span className="text-[color:var(--tinta-suave)]">sin URL — hay que crearla</span>
                       )}
 
                       {puedeSubir && (
                         <button
                           onClick={() => abrir(n)}
-                          className="mt-1 block text-[11px] font-medium text-neutral-500 underline-offset-2 hover:text-[#ff6b00] hover:underline"
+                          className="mt-1.5 block text-[12px] font-medium text-[color:var(--tinta-media)] transition hover:text-[color:var(--acento)]"
                         >
                           {abierta?.id === n.id ? "Cerrar" : n.urlDestino ? "Cambiar URL" : "Asignar URL"}
                         </button>
@@ -399,31 +389,31 @@ export default function Arquitectura({
                       de la celda de URL se quedaba en 340 px y no cabía. */}
                   {abierta?.id === n.id && (
                     <tr>
-                      <td colSpan={4} className="bg-neutral-50 px-4 pb-4 pt-1">
+                      <td colSpan={4} className="bg-black/[0.02] px-5 pb-5 pt-2">
                         <input
                           autoFocus
                           value={busca}
                           onChange={(e) => setBusca(e.target.value)}
                           placeholder="Filtrar las URLs del sitio, o pegar una entera"
-                          className="w-full rounded-md border border-neutral-300 bg-white px-3 py-2 text-xs outline-none focus:border-[#ff6b00]"
+                          className="w-full rounded-xl border border-[color:var(--linea-fuerte)] bg-white px-3.5 py-2 text-[13px] outline-none transition focus:border-[color:var(--acento)]"
                         />
 
                         {cargandoUrls && (
-                          <p className="mt-2 text-[11px] text-neutral-400">
+                          <p className="mt-2 text-[12px] text-[color:var(--tinta-suave)]">
                             Leyendo el sitemap del sitio…
                           </p>
                         )}
 
                         {urls && (
                           <>
-                            <p className="mt-2 text-[11px] text-neutral-400">
+                            <p className="mt-3 text-[12px] text-[color:var(--tinta-suave)]">
                               {listadas.length === urls.length
                                 ? `${urls.length} URLs del sitio, las más parecidas a «${n.nombre}» arriba`
                                 : `${listadas.length} de ${urls.length} URLs`}
                             </p>
-                            <div className="mt-1 max-h-72 overflow-y-auto rounded-md border border-neutral-200 bg-white">
+                            <div className="scroll-fino mt-1.5 max-h-72 overflow-y-auto rounded-xl border border-[color:var(--linea)] bg-white">
                               {listadas.length === 0 ? (
-                                <p className="px-3 py-4 text-[11px] text-neutral-400">
+                                <p className="px-4 py-5 text-[12px] text-[color:var(--tinta-suave)]">
                                   Ninguna URL del sitio coincide con ese filtro. Borra el texto para ver
                                   el sitemap completo.
                                 </p>
@@ -433,17 +423,17 @@ export default function Arquitectura({
                                     key={u.url}
                                     disabled={guardando}
                                     onClick={() => asignar(n.id, u.url)}
-                                    className="flex w-full items-baseline gap-3 border-b border-neutral-100 px-3 py-2 text-left last:border-0 hover:bg-[#ff6b00]/5 disabled:opacity-40"
+                                    className="flex w-full items-baseline gap-3 border-b border-[color:var(--linea)] px-4 py-2.5 text-left transition last:border-0 hover:bg-[color:var(--acento)]/5 disabled:opacity-40"
                                   >
                                     <span className="min-w-0 flex-1">
-                                      <span className="block truncate text-xs font-medium text-neutral-800">
+                                      <span className="block truncate text-[13px] font-medium">
                                         {u.nombre}
                                       </span>
-                                      <span className="block truncate font-mono text-[10px] text-neutral-400">
+                                      <span className="block truncate font-mono text-[11px] text-[color:var(--tinta-suave)]">
                                         {u.url.replace(/^https?:\/\/[^/]+/, "")}
                                       </span>
                                     </span>
-                                    <span className="shrink-0 rounded-full bg-neutral-100 px-2 py-0.5 text-[10px] text-neutral-500">
+                                    <span className="pastilla shrink-0 bg-black/[0.05] text-[color:var(--tinta-media)]">
                                       {u.tipo === "product_cat"
                                         ? "categoría"
                                         : u.tipo === "page"
@@ -464,7 +454,7 @@ export default function Arquitectura({
                             <button
                               disabled={guardando}
                               onClick={() => asignar(n.id, busca.trim())}
-                              className="rounded-md bg-neutral-900 px-3 py-1.5 text-[11px] font-semibold text-white disabled:opacity-40"
+                              className="boton-fuerte"
                             >
                               Usar «{busca.trim()}»
                             </button>
@@ -473,7 +463,7 @@ export default function Arquitectura({
                             <button
                               disabled={guardando}
                               onClick={() => asignar(n.id, "")}
-                              className="rounded-md border border-neutral-300 px-3 py-1.5 text-[11px] font-medium text-neutral-600 disabled:opacity-40"
+                              className="boton"
                             >
                               Quitar la URL
                             </button>
@@ -488,7 +478,7 @@ export default function Arquitectura({
             </table>
           </div>
 
-          <p className="mt-3 text-xs text-neutral-400">
+          <p className="mt-4 max-w-3xl text-[12px] leading-relaxed text-[color:var(--tinta-suave)]">
             El cruce va en tres pasos: coincidencia exacta de slug, parecido por nombre, y lo que quede
             sin resolver lo decide la IA sobre las URLs del sitemap. Lo que ni así queda claro se marca
             como dudoso en vez de decidirlo por ti, y siempre puedes asignar la URL a mano.
