@@ -2,11 +2,13 @@
 
 import { useEffect, useRef, useState } from "react";
 import Markdown from "@/components/Markdown";
+import { prepararImagen, pesoLegible, FORMATOS, type Adjunta } from "@/lib/imagenes";
 
 interface Turno {
   rol: "user" | "assistant";
   contenido: string;
   usadas?: string[];
+  imagenes?: string[];
 }
 
 /** Nombres legibles de las herramientas, para no enseñar identificadores. */
@@ -44,6 +46,9 @@ export default function Chat({
   const [actividad, setActividad] = useState<string | null>(null);
   const [coste, setCoste] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [adjuntas, setAdjuntas] = useState<Adjunta[]>([]);
+  const [arrastrando, setArrastrando] = useState(false);
+  const archivos = useRef<HTMLInputElement>(null);
   const conversacion = useRef<string | null>(conversacionInicial);
   const lista = useRef<HTMLDivElement>(null);
 
@@ -54,16 +59,55 @@ export default function Chat({
     if (caja) caja.scrollTop = caja.scrollHeight;
   }, [turnos, actividad]);
 
+  async function anadir(lista: FileList | File[] | null) {
+    if (!lista) return;
+    const imagenes = [...lista].filter((f) => FORMATOS.includes(f.type));
+    if (imagenes.length === 0) return;
+
+    if (adjuntas.length + imagenes.length > 5) {
+      setError("Máximo 5 imágenes por mensaje.");
+      return;
+    }
+
+    setError(null);
+    for (const archivo of imagenes) {
+      try {
+        const a = await prepararImagen(archivo);
+        setAdjuntas((prev) => [...prev, a]);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "No se pudo procesar la imagen.");
+      }
+    }
+  }
+
+  /** Pegar con Ctrl+V es la forma natural de mandar una captura. */
+  function alPegar(e: React.ClipboardEvent) {
+    const files = [...e.clipboardData.items]
+      .filter((i) => i.kind === "file")
+      .map((i) => i.getAsFile())
+      .filter((f): f is File => f !== null);
+    if (files.length) {
+      e.preventDefault();
+      anadir(files);
+    }
+  }
+
   async function enviar(e: React.FormEvent) {
     e.preventDefault();
     const texto = entrada.trim();
-    if (!texto || ocupado) return;
+    if ((!texto && adjuntas.length === 0) || ocupado) return;
 
+    const envio = adjuntas.map((a) => a.uri);
     setEntrada("");
+    setAdjuntas([]);
     setError(null);
     setCoste(null);
     setOcupado(true);
-    setTurnos((t) => [...t, { rol: "user", contenido: texto }, { rol: "assistant", contenido: "" }]);
+    setTurnos((t) => [
+      ...t,
+      { rol: "user", contenido: texto, imagenes: envio.length ? envio : undefined },
+      { rol: "assistant", contenido: "" },
+    ]);
 
     const usadas: string[] = [];
 
@@ -71,7 +115,12 @@ export default function Chat({
       const r = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ clienteId, conversacionId: conversacion.current, mensaje: texto }),
+        body: JSON.stringify({
+          clienteId,
+          conversacionId: conversacion.current,
+          mensaje: texto,
+          imagenes: envio,
+        }),
       });
 
       if (!r.ok || !r.body) {
@@ -164,7 +213,24 @@ export default function Chat({
                 </ul>
               )}
               {t.rol === "user" ? (
-                <p className="whitespace-pre-wrap text-sm leading-relaxed text-white">{t.contenido}</p>
+                <>
+                  {t.imagenes && t.imagenes.length > 0 && (
+                    <div className="mb-2 flex flex-wrap gap-1.5">
+                      {t.imagenes.map((src, k) => (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          key={k}
+                          src={src}
+                          alt="Imagen adjunta"
+                          className="max-h-40 rounded-lg border border-white/20 object-cover"
+                        />
+                      ))}
+                    </div>
+                  )}
+                  {t.contenido && (
+                    <p className="whitespace-pre-wrap text-sm leading-relaxed text-white">{t.contenido}</p>
+                  )}
+                </>
               ) : (
                 <div className="text-sm leading-relaxed text-neutral-700">
                   <Markdown>{t.contenido}</Markdown>
@@ -188,11 +254,75 @@ export default function Chat({
 
       </div>
 
-      <form onSubmit={enviar} className="mt-4 border-t border-neutral-200 pt-4">
+      <form
+        onSubmit={enviar}
+        onDragOver={(e) => {
+          e.preventDefault();
+          setArrastrando(true);
+        }}
+        onDragLeave={() => setArrastrando(false)}
+        onDrop={(e) => {
+          e.preventDefault();
+          setArrastrando(false);
+          anadir(e.dataTransfer.files);
+        }}
+        className={`mt-4 rounded-xl border-t pt-4 transition ${
+          arrastrando ? "border-t-[#ff6b00] bg-[#ff6b00]/5" : "border-t-neutral-200"
+        }`}
+      >
+        {adjuntas.length > 0 && (
+          <div className="mb-2 flex flex-wrap gap-2">
+            {adjuntas.map((a, k) => (
+              <div key={k} className="group relative">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={a.uri}
+                  alt={a.nombre}
+                  className="h-16 w-16 rounded-lg border border-neutral-200 object-cover"
+                />
+                <button
+                  type="button"
+                  onClick={() => setAdjuntas((prev) => prev.filter((_, j) => j !== k))}
+                  title="Quitar"
+                  className="absolute -right-1.5 -top-1.5 grid h-5 w-5 place-items-center rounded-full bg-neutral-900 text-xs text-white opacity-0 transition group-hover:opacity-100"
+                >
+                  ×
+                </button>
+                <span className="mt-0.5 block text-center text-[10px] tabular-nums text-neutral-400">
+                  {pesoLegible(a.bytes)}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
+
         <div className="flex items-end gap-2">
+          <input
+            ref={archivos}
+            type="file"
+            accept={FORMATOS.join(",")}
+            multiple
+            hidden
+            onChange={(e) => {
+              anadir(e.target.files);
+              e.target.value = "";
+            }}
+          />
+          <button
+            type="button"
+            onClick={() => archivos.current?.click()}
+            disabled={ocupado}
+            title="Adjuntar imagen"
+            className="grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-neutral-200 text-neutral-500 transition hover:border-[#ff6b00] hover:text-[#ff6b00] disabled:opacity-40"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+              <path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48" />
+            </svg>
+          </button>
           <textarea
             value={entrada}
             onChange={(e) => setEntrada(e.target.value)}
+            onPaste={alPegar}
             onKeyDown={(e) => {
               if (e.key === "Enter" && !e.shiftKey) {
                 e.preventDefault();
@@ -206,7 +336,7 @@ export default function Chat({
           />
           <button
             type="submit"
-            disabled={ocupado || !entrada.trim()}
+            disabled={ocupado || (!entrada.trim() && adjuntas.length === 0)}
             className="rounded-xl bg-neutral-900 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#ff6b00] disabled:cursor-not-allowed disabled:bg-neutral-300"
           >
             {ocupado ? "…" : "Enviar"}
@@ -216,6 +346,7 @@ export default function Chat({
         <p className="mt-2 flex items-center justify-between text-xs text-neutral-400">
           <span>
             {puedeEscribir ? "Puede escribir en el sitio." : "Solo lectura: no modificará nada."}
+            <span className="ml-1.5 text-neutral-300">· pega o arrastra imágenes</span>
           </span>
           {coste !== null && <span className="tabular-nums">Último mensaje: {coste.toFixed(4)} USD</span>}
         </p>

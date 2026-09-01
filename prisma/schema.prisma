@@ -172,6 +172,11 @@ model Mensaje {
 
   rol       String // user | assistant
   contenido String
+  /// Imágenes adjuntas, como JSON de data URIs. Se guardan para que el hilo
+  /// se vea completo al recargarlo, pero al hablar con el modelo solo viajan
+  /// las de los últimos turnos: reenviar todas en cada mensaje multiplicaría
+  /// el coste de una conversación larga.
+  imagenes  String?
   /// Herramientas usadas en este turno, en JSON. Sirve para mostrar en la
   /// interfaz qué tocó el asistente, no solo lo que dijo.
   usadas    String?

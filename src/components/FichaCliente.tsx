@@ -18,6 +18,7 @@ interface Turno {
   rol: "user" | "assistant";
   contenido: string;
   usadas?: string[];
+  imagenes?: string[];
 }
 
 export interface ResumenConversacion {

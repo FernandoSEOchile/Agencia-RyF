@@ -64,6 +64,39 @@ ${datos.conDiseno ? CRITERIO_DISENO : ""}`;
 export interface Turno {
   rol: "user" | "assistant";
   contenido: string;
+  /** Data URIs de las imágenes adjuntas a este turno. */
+  imagenes?: string[];
+}
+
+/** Formatos que acepta la API; el resto se rechaza antes de llegar aquí. */
+const TIPOS_IMAGEN = ["image/jpeg", "image/png", "image/gif", "image/webp"] as const;
+
+/**
+ * Convierte un turno en el contenido que espera la API.
+ *
+ * Las imágenes van ANTES del texto: es el orden que recomienda Anthropic
+ * cuando el texto se refiere a lo que se ve.
+ */
+function contenidoDe(t: Turno): string | Anthropic.Beta.BetaContentBlockParam[] {
+  if (!t.imagenes || t.imagenes.length === 0) return t.contenido;
+
+  const bloques: Anthropic.Beta.BetaContentBlockParam[] = [];
+
+  for (const uri of t.imagenes) {
+    const m = /^data:([^;,]+);base64,(.+)$/s.exec(uri);
+    if (!m) continue;
+    const tipo = m[1];
+    if (!TIPOS_IMAGEN.includes(tipo as (typeof TIPOS_IMAGEN)[number])) continue;
+    bloques.push({
+      type: "image",
+      source: { type: "base64", media_type: tipo as "image/png", data: m[2] },
+    });
+  }
+
+  // Un turno solo con imágenes ilegibles quedaría vacío, y la API rechaza los
+  // mensajes sin contenido.
+  bloques.push({ type: "text", text: t.contenido || "(sin texto)" });
+  return bloques;
 }
 
 /**
@@ -86,7 +119,7 @@ export async function conversar(
     system: [{ type: "text", text: sistema, cache_control: { type: "ephemeral" } }],
     thinking: { type: "adaptive" },
     tools: herramientasDe(ctx),
-    messages: historial.map((t) => ({ role: t.rol, content: t.contenido })),
+    messages: historial.map((t) => ({ role: t.rol, content: contenidoDe(t) })),
     stream: true,
   });
 

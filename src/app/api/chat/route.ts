@@ -20,10 +20,25 @@ export async function POST(req: NextRequest) {
     return Response.json({ error: "Sesión no iniciada." }, { status: 401 });
   }
 
-  const { clienteId, conversacionId, mensaje } = await req.json();
+  const { clienteId, conversacionId, mensaje, imagenes } = await req.json();
 
-  if (!clienteId || !mensaje?.trim()) {
+  const adjuntas: string[] = Array.isArray(imagenes) ? imagenes.filter((x) => typeof x === "string") : [];
+
+  // Un mensaje puede ser solo una imagen —«mira esto»— pero no puede estar
+  // vacío del todo.
+  if (!clienteId || (!mensaje?.trim() && adjuntas.length === 0)) {
     return Response.json({ error: "Faltan datos." }, { status: 400 });
+  }
+
+  if (adjuntas.length > 5) {
+    return Response.json({ error: "Máximo 5 imágenes por mensaje." }, { status: 400 });
+  }
+
+  // El navegador ya reduce las imágenes antes de enviarlas; este tope es la
+  // segunda barrera, por si alguien llama a la API directamente.
+  const pesoTotal = adjuntas.reduce((a, x) => a + x.length, 0);
+  if (pesoTotal > 12_000_000) {
+    return Response.json({ error: "Las imágenes pesan demasiado." }, { status: 413 });
   }
 
   const rol = (sesion.user as { rol?: string }).rol ?? "LECTOR";
@@ -52,7 +67,7 @@ export async function POST(req: NextRequest) {
         data: {
           clienteId,
           usuarioId,
-          titulo: mensaje.trim().slice(0, 60),
+          titulo: (mensaje?.trim() || "Imagen").slice(0, 60),
         },
       });
 
@@ -74,17 +89,35 @@ export async function POST(req: NextRequest) {
   if (previos.length === 0 && conversacion.titulo === "Nueva conversación") {
     await db.conversacion.update({
       where: { id: conversacion.id },
-      data: { titulo: mensaje.trim().slice(0, 60) },
+      data: { titulo: (mensaje?.trim() || "Imagen").slice(0, 60) },
     });
   }
 
   await db.mensaje.create({
-    data: { conversacionId: conversacion.id, rol: "user", contenido: mensaje },
+    data: {
+      conversacionId: conversacion.id,
+      rol: "user",
+      contenido: mensaje ?? "",
+      imagenes: adjuntas.length ? JSON.stringify(adjuntas) : null,
+    },
   });
 
+  // Las imágenes solo viajan en los dos últimos turnos que las llevaban: una
+  // captura de 1 MB reenviada en cada mensaje convierte una conversación larga
+  // en una factura larga. Las anteriores se sustituyen por una nota.
+  const conImagen = previos.filter((m) => m.imagenes);
+  const recientes = new Set(conImagen.slice(-2).map((m) => m.id));
+
   const historial: Turno[] = [
-    ...previos.map((m) => ({ rol: m.rol as "user" | "assistant", contenido: m.contenido })),
-    { rol: "user" as const, contenido: mensaje },
+    ...previos.map((m) => ({
+      rol: m.rol as "user" | "assistant",
+      contenido:
+        m.imagenes && !recientes.has(m.id)
+          ? (m.contenido || "") + " [imagen adjunta en un mensaje anterior]"
+          : m.contenido,
+      imagenes: m.imagenes && recientes.has(m.id) ? (JSON.parse(m.imagenes) as string[]) : undefined,
+    })),
+    { rol: "user" as const, contenido: mensaje ?? "", imagenes: adjuntas.length ? adjuntas : undefined },
   ];
 
   // El criterio de diseño son casi mil palabras: se cargan cuando el hilo

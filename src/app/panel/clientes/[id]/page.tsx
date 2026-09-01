@@ -114,6 +114,7 @@ export default async function Ficha({
     rol: m.rol as "user" | "assistant",
     contenido: m.contenido,
     usadas: m.usadas ? (JSON.parse(m.usadas) as string[]) : undefined,
+    imagenes: m.imagenes ? (JSON.parse(m.imagenes) as string[]) : undefined,
   }));
 
   async function comprobar() {
