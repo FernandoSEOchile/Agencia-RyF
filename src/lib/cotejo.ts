@@ -1,6 +1,7 @@
 import "server-only";
 import { api } from "@/lib/clientes";
 import { normalizar, parecido } from "@/lib/ast";
+import { leerSitemap } from "@/lib/sitemap";
 
 /**
  * Cotejo de la arquitectura contra lo que existe en el sitio.
@@ -16,7 +17,7 @@ export interface Candidato {
   nombre: string;
   url: string;
   slug: string;
-  tipo: "product_cat" | "page" | "post";
+  tipo: "product_cat" | "page" | "post" | "sitemap";
 }
 
 export interface Veredicto {
@@ -46,8 +47,8 @@ function segmento(url: string): string {
  * siempre es una categoría, pero en muchos sitios está resuelta como página
  * de aterrizaje, y darla por inexistente sería falso.
  */
-export async function candidatosDe(clienteId: string): Promise<Candidato[]> {
-  const [terminos, contenido] = await Promise.all([
+export async function candidatosDe(clienteId: string, dominio?: string): Promise<Candidato[]> {
+  const [terminos, contenido, mapa] = await Promise.all([
     api<{ terminos: { id: number; nombre: string; slug: string; url: string }[] }>(
       clienteId,
       "GET",
@@ -58,12 +59,17 @@ export async function candidatosDe(clienteId: string): Promise<Candidato[]> {
       "GET",
       "/audit?por_pagina=300"
     ).catch(() => null),
+    // El sitemap es la fuente más completa: trae todo lo indexable sin los
+    // topes de paginación de la API, y es lo que Google ve.
+    dominio ? leerSitemap(dominio).catch(() => null) : Promise.resolve(null),
   ]);
 
   const lista: Candidato[] = [];
+  const vistas = new Set<string>();
 
   for (const t of terminos?.datos?.terminos ?? []) {
     lista.push({ id: t.id, nombre: t.nombre, url: t.url, slug: t.slug, tipo: "product_cat" });
+    vistas.add(t.url.replace(/\/$/, ""));
   }
 
   for (const c of contenido?.datos?.content ?? []) {
@@ -77,6 +83,22 @@ export async function candidatosDe(clienteId: string): Promise<Candidato[]> {
       url: c.url,
       slug: segmento(c.url),
       tipo: c.tipo,
+    });
+    vistas.add(c.url.replace(/\/$/, ""));
+  }
+
+  // Del sitemap solo se añade lo que no conocíamos: esas URLs no traen título
+  // ni identificador, así que son peor candidato cuando ya existe el bueno.
+  for (const u of mapa?.urls ?? []) {
+    const limpia = u.url.replace(/\/$/, "");
+    if (vistas.has(limpia)) continue;
+    vistas.add(limpia);
+    lista.push({
+      id: 0,
+      nombre: u.segmento.replace(/-/g, " "),
+      url: u.url,
+      slug: u.segmento,
+      tipo: "sitemap",
     });
   }
 

@@ -25,6 +25,12 @@ export interface ArquitecturaVista {
   nodos: NodoVista[];
 }
 
+interface UrlSitio {
+  url: string;
+  nombre: string;
+  tipo: string;
+}
+
 const FILTROS = [
   ["todo", "Todo"],
   ["falta", "Por crear"],
@@ -46,6 +52,15 @@ function etiqueta(estado: string) {
   return estado;
 }
 
+/** Cómo se llegó a esa URL, para que nadie confunda un acierto de la IA con un dato comprobado. */
+function origen(como: string | null) {
+  if (como === "slug") return "por slug";
+  if (como === "nombre") return "por nombre";
+  if (como === "ia") return "por IA";
+  if (como === "manual") return "a mano";
+  return null;
+}
+
 export default function Arquitectura({
   clienteId,
   actual,
@@ -59,6 +74,14 @@ export default function Arquitectura({
   const [subiendo, setSubiendo] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [aviso, setAviso] = useState<string | null>(null);
+
+  // Asignación manual: qué fila está abierta, qué se busca, y el catálogo del
+  // sitio, que se pide una sola vez y se reutiliza mientras dure la pantalla.
+  const [abierta, setAbierta] = useState<string | null>(null);
+  const [busca, setBusca] = useState("");
+  const [urls, setUrls] = useState<UrlSitio[] | null>(null);
+  const [cargandoUrls, setCargandoUrls] = useState(false);
+  const [guardando, setGuardando] = useState(false);
 
   async function subir(e: React.ChangeEvent<HTMLInputElement>) {
     const f = e.target.files?.[0];
@@ -105,11 +128,67 @@ export default function Arquitectura({
     }
   }
 
+  /** Abre el selector de una fila y, la primera vez, trae las URLs del sitio. */
+  async function abrir(nodo: NodoVista) {
+    if (abierta === nodo.id) {
+      setAbierta(null);
+      return;
+    }
+    setAbierta(nodo.id);
+    // Se propone el nombre de la sección como búsqueda inicial: casi siempre
+    // deja la URL correcta a la vista sin escribir nada.
+    setBusca(nodo.nombre);
+
+    if (urls || cargandoUrls) return;
+    setCargandoUrls(true);
+    try {
+      const r = await fetch(`/api/arquitectura?cliente=${encodeURIComponent(clienteId)}`);
+      const j = await r.json();
+      if (!r.ok) throw new Error(j.error || "No se pudieron leer las URLs del sitio.");
+      setUrls(j.urls);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Error inesperado.");
+    } finally {
+      setCargandoUrls(false);
+    }
+  }
+
+  async function asignar(nodoId: string, url: string) {
+    setGuardando(true);
+    setError(null);
+    try {
+      const r = await fetch("/api/arquitectura", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ nodoId, url }),
+      });
+      const j = await r.json();
+      if (!r.ok) throw new Error(j.error || "No se pudo guardar.");
+      window.location.reload();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Error inesperado.");
+      setGuardando(false);
+    }
+  }
+
   const nodos = actual?.nodos ?? [];
   const visibles = filtro === "todo" ? nodos : nodos.filter((n) => n.estado === filtro);
 
   const cuenta = (e: string) => nodos.filter((n) => n.estado === e).length;
   const volumenPerdido = nodos.filter((n) => n.estado === "falta").reduce((s, n) => s + n.volumen, 0);
+
+  const filtradas = (() => {
+    if (!urls) return [];
+    const q = busca.trim().toLowerCase();
+    if (!q) return urls.slice(0, 40);
+    const partes = q.split(/\s+/);
+    return urls
+      .filter((u) => {
+        const texto = (u.nombre + " " + u.url).toLowerCase();
+        return partes.every((p) => texto.includes(p));
+      })
+      .slice(0, 40);
+  })();
 
   return (
     <div className="mt-4">
@@ -140,6 +219,12 @@ export default function Arquitectura({
             Volver a cotejar
           </button>
         )}
+
+        {subiendo && (
+          <span className="text-xs text-neutral-400">
+            Leyendo el sitemap y cotejando con la IA; puede tardar un par de minutos.
+          </span>
+        )}
       </div>
 
       {error && <p className="mt-3 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p>}
@@ -151,8 +236,8 @@ export default function Arquitectura({
             No hay ninguna arquitectura cargada para este cliente.
           </p>
           <p className="mx-auto mt-1.5 max-w-md text-xs text-neutral-500">
-            Sube el Excel con la hoja «AST». Se leerán las secciones previstas y se cruzarán con lo que
-            existe en el sitio para ver qué está creado, con qué URL, y qué falta.
+            Sube el Excel con la hoja «AST». Se leerán las secciones previstas y se cruzarán con el
+            sitemap del sitio para ver qué está creado, con qué URL, y qué falta.
           </p>
         </div>
       ) : (
@@ -240,7 +325,7 @@ export default function Arquitectura({
                         </span>
                       )}
                     </td>
-                    <td className="max-w-[300px] px-4 py-2.5 text-xs">
+                    <td className="max-w-[340px] px-4 py-2.5 text-xs">
                       {n.urlDestino ? (
                         <>
                           <a
@@ -252,10 +337,86 @@ export default function Arquitectura({
                           >
                             {n.urlDestino.replace(/^https?:\/\/[^/]+/, "")}
                           </a>
-                          {n.nota && <p className="mt-0.5 text-[11px] text-neutral-400">{n.nota}</p>}
+                          <p className="mt-0.5 text-[11px] text-neutral-400">
+                            {origen(n.comoSeCotejo) && (
+                              <span className="mr-1 text-neutral-500">{origen(n.comoSeCotejo)}</span>
+                            )}
+                            {n.nota}
+                          </p>
                         </>
                       ) : (
                         <span className="text-neutral-300">sin URL — hay que crearla</span>
+                      )}
+
+                      {puedeSubir && (
+                        <button
+                          onClick={() => abrir(n)}
+                          className="mt-1 text-[11px] font-medium text-neutral-500 underline-offset-2 hover:text-[#ff6b00] hover:underline"
+                        >
+                          {abierta === n.id ? "Cerrar" : n.urlDestino ? "Cambiar URL" : "Asignar URL"}
+                        </button>
+                      )}
+
+                      {abierta === n.id && (
+                        <div className="mt-2 rounded-lg border border-neutral-200 bg-neutral-50 p-2">
+                          <input
+                            value={busca}
+                            onChange={(e) => setBusca(e.target.value)}
+                            placeholder="Buscar una URL del sitio, o pegar una entera"
+                            className="w-full rounded-md border border-neutral-300 bg-white px-2 py-1.5 text-xs outline-none focus:border-[#ff6b00]"
+                          />
+
+                          {cargandoUrls && (
+                            <p className="mt-2 text-[11px] text-neutral-400">Leyendo el sitemap…</p>
+                          )}
+
+                          {urls && (
+                            <div className="mt-2 max-h-52 overflow-y-auto rounded-md border border-neutral-200 bg-white">
+                              {filtradas.length === 0 ? (
+                                <p className="px-2 py-3 text-[11px] text-neutral-400">
+                                  Ninguna URL del sitio coincide con esa búsqueda.
+                                </p>
+                              ) : (
+                                filtradas.map((u) => (
+                                  <button
+                                    key={u.url}
+                                    disabled={guardando}
+                                    onClick={() => asignar(n.id, u.url)}
+                                    className="block w-full border-b border-neutral-100 px-2 py-1.5 text-left last:border-0 hover:bg-[#ff6b00]/5 disabled:opacity-40"
+                                  >
+                                    <span className="block truncate text-[11px] font-medium text-neutral-800">
+                                      {u.nombre}
+                                    </span>
+                                    <span className="block truncate text-[10px] text-neutral-400">
+                                      {u.url.replace(/^https?:\/\/[^/]+/, "")}
+                                    </span>
+                                  </button>
+                                ))
+                              )}
+                            </div>
+                          )}
+
+                          <div className="mt-2 flex flex-wrap gap-2">
+                            {/^https?:\/\//.test(busca.trim()) && (
+                              <button
+                                disabled={guardando}
+                                onClick={() => asignar(n.id, busca.trim())}
+                                className="rounded-md bg-neutral-900 px-2.5 py-1 text-[11px] font-semibold text-white disabled:opacity-40"
+                              >
+                                Usar esta URL
+                              </button>
+                            )}
+                            {n.urlDestino && (
+                              <button
+                                disabled={guardando}
+                                onClick={() => asignar(n.id, "")}
+                                className="rounded-md border border-neutral-300 px-2.5 py-1 text-[11px] font-medium text-neutral-600 disabled:opacity-40"
+                              >
+                                Quitar la URL
+                              </button>
+                            )}
+                          </div>
+                        </div>
                       )}
                     </td>
                   </tr>
@@ -265,9 +426,9 @@ export default function Arquitectura({
           </div>
 
           <p className="mt-3 text-xs text-neutral-400">
-            El cruce es automático: coincidencia exacta de slug, y si no, parecido por nombre. Lo que queda
-            entre medias se marca como dudoso en vez de decidirlo por ti — dar por creada una sección que
-            no lo está es peor que dejarla en duda.
+            El cruce va en tres pasos: coincidencia exacta de slug, parecido por nombre, y lo que quede
+            sin resolver lo decide la IA sobre las URLs del sitemap. Lo que ni así queda claro se marca
+            como dudoso en vez de decidirlo por ti, y siempre puedes asignar la URL a mano.
           </p>
         </>
       )}
