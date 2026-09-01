@@ -47,8 +47,14 @@ export default async function Ajustes({
       );
     }
 
-    // Y se prueba contra la API antes de dejarla puesta: guardar una clave
-    // muerta convierte el panel en algo que falla al primer mensaje.
+    // Se prueba contra la API antes de dejarla puesta, pero lo que se comprueba
+    // es si AUTENTICA, no si esta consulta concreta funciona.
+    //
+    // Las claves ligadas a identidad responden 400 pidiendo un identificador de
+    // espacio de trabajo que aquí no viene al caso: la clave es buena y la
+    // petición es la que está incompleta. Y un 400 por saldo agotado también
+    // significa que la clave sirve. Rechazar por el código de estado dejaba
+    // fuera claves perfectamente válidas.
     const r = await fetch("https://api.anthropic.com/v1/models", {
       headers: { "x-api-key": clave, "anthropic-version": "2023-06-01" },
     }).catch(() => null);
@@ -56,10 +62,18 @@ export default async function Ajustes({
     if (!r) {
       redirect("/panel/ajustes?error=" + encodeURIComponent("No se pudo contactar con la API para comprobarla."));
     }
-    if (!r.ok) {
-      const detalle = r.status === 401 ? "la clave no es válida" : `la API respondió ${r.status}`;
-      redirect("/panel/ajustes?error=" + encodeURIComponent(`No se guardó: ${detalle}.`));
+
+    if (r.status === 401 || r.status === 403) {
+      redirect(
+        "/panel/ajustes?error=" +
+          encodeURIComponent("Esa clave no es válida o fue revocada. Genera otra en console.anthropic.com.")
+      );
     }
+
+    // Si ya sabemos que no hay saldo, mejor decirlo al guardar que dejar que
+    // lo descubra en mitad de una conversación.
+    const cuerpo = r.status === 200 ? "" : await r.text().catch(() => "");
+    const sinSaldo = /credit balance is too low/i.test(cuerpo);
 
     await guardarClaveApi(clave);
     await anotar({
@@ -67,7 +81,14 @@ export default async function Ajustes({
       accion: "ajustes",
       resumen: `Clave de API actualizada (…${clave.slice(-4)})`,
     });
-    redirect("/panel/ajustes?ok=" + encodeURIComponent("Clave guardada y comprobada."));
+    redirect(
+      "/panel/ajustes?ok=" +
+        encodeURIComponent(
+          sinSaldo
+            ? "Clave guardada. Ojo: la cuenta no tiene saldo, así que el chat seguirá fallando hasta que recargues."
+            : "Clave guardada y comprobada."
+        )
+    );
   }
 
   async function quitarClave() {
