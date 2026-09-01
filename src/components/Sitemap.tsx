@@ -129,27 +129,27 @@ export default function Sitemap({ clienteId }: { clienteId: string }) {
 
   return (
     <div className="mt-4">
-      <div className="flex flex-wrap items-center gap-2">
-        {TIPOS.map(([id, texto]) => (
-          <button
-            key={id}
-            onClick={() => {
-              setTipo(id);
-              setPagina(1);
-            }}
-            className={`rounded-full px-3 py-1 text-xs font-medium transition ${
-              tipo === id ? "bg-neutral-900 text-white" : "bg-neutral-100 text-neutral-600 hover:bg-neutral-200"
-            }`}
-          >
-            {texto}
-          </button>
-        ))}
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="segmentos">
+          {TIPOS.map(([id, texto]) => (
+            <button
+              key={id}
+              onClick={() => {
+                setTipo(id);
+                setPagina(1);
+              }}
+              className={`segmento ${tipo === id ? "segmento-activo" : ""}`}
+            >
+              {texto}
+            </button>
+          ))}
+        </div>
 
         <input
           value={busqueda}
           onChange={(e) => setBusqueda(e.target.value)}
           placeholder="Filtrar por título o URL…"
-          className="ml-auto w-56 rounded-lg border border-neutral-200 px-3 py-1.5 text-xs outline-none focus:border-[#ff6b00]"
+          className="ml-auto w-60 rounded-full border border-[color:var(--linea-fuerte)] bg-white px-4 py-1.5 text-[13px] outline-none transition focus:border-[color:var(--acento)]"
         />
       </div>
 
@@ -157,7 +157,7 @@ export default function Sitemap({ clienteId }: { clienteId: string }) {
           no aplica, y mostrarlo sería ofrecer algo que no hace nada. */}
       {tipo !== "categorias" && (
         <div className="mt-2 flex flex-wrap items-center gap-1.5">
-          <span className="text-[11px] uppercase tracking-wide text-neutral-400">Estado</span>
+          <span className="rotulo">Estado</span>
           {ESTADOS.map(([id, texto]) => (
             <button
               key={id}
@@ -178,16 +178,16 @@ export default function Sitemap({ clienteId }: { clienteId: string }) {
       {error && <p className="mt-4 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p>}
 
       {cargando ? (
-        <p className="mt-6 flex items-center gap-2 text-sm text-neutral-500">
+        <p className="mt-6 flex items-center gap-2 text-[13px] text-[color:var(--tinta-media)]">
           <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-[#ff6b00]" />
           Leyendo el sitio…
         </p>
       ) : (
         <>
-          <div className="mt-4 overflow-x-auto rounded-xl border border-neutral-200 bg-white">
+          <div className="tarjeta mt-4 overflow-x-auto">
             <table className="w-full min-w-[720px] border-collapse text-sm">
               <thead>
-                <tr className="border-b border-neutral-200 text-left text-[11px] uppercase tracking-wide text-neutral-400">
+                <tr className="border-b border-[color:var(--linea)] text-left">
                   {COLUMNAS.map((c) => (
                     <th
                       key={c.id}
@@ -203,20 +203,20 @@ export default function Sitemap({ clienteId }: { clienteId: string }) {
                   ))}
                 </tr>
               </thead>
-              <tbody className="divide-y divide-neutral-100">
+              <tbody className="divide-y divide-[color:var(--linea)]">
                 {visibles.map((f) => (
-                  <tr key={`${f.subtipo}-${f.id}`} className="align-top hover:bg-neutral-50">
+                  <tr key={`${f.subtipo}-${f.id}`} className="align-top transition hover:bg-black/[0.015]">
                     <td className="max-w-[260px] px-4 py-2.5">
                       <a
                         href={f.url}
                         target="_blank"
                         rel="noopener"
-                        className="block truncate font-medium text-neutral-900 underline-offset-2 hover:text-[#ff6b00] hover:underline"
+                        className="block truncate font-medium underline-offset-2 transition hover:text-[color:var(--acento)] hover:underline"
                         title={f.url}
                       >
                         {f.titulo}
                       </a>
-                      <span className="block truncate text-[11px] text-neutral-400">
+                      <span className="block truncate text-[11px] text-[color:var(--tinta-suave)]">
                         {f.url.replace(/^https?:\/\/[^/]+/, "") || "/"} · {f.subtipo}
                       </span>
                     </td>
@@ -229,25 +229,25 @@ export default function Sitemap({ clienteId }: { clienteId: string }) {
                         {nombreEstado(f.estado)}
                       </span>
                     </td>
-                    <td className="px-3 py-2.5 text-right text-xs tabular-nums text-neutral-600">
+                    <td className="px-3 py-3 text-right text-[13px] tabular-nums text-[color:var(--tinta-media)]">
                       {f.palabras ?? "—"}
                     </td>
-                    <td className="whitespace-nowrap px-3 py-2.5 text-xs tabular-nums text-neutral-600">
+                    <td className="whitespace-nowrap px-3 py-3 text-[13px] tabular-nums text-[color:var(--tinta-media)]">
                       {f.modificado ?? "—"}
                     </td>
-                    <td className="max-w-[280px] px-4 py-2.5 text-xs text-neutral-600">
+                    <td className="max-w-[280px] px-5 py-3 text-[13px] text-[color:var(--tinta-media)]">
                       {f.cambio ? (
                         <>
                           <span className="mr-1.5 rounded bg-[#ff6b00]/10 px-1.5 py-0.5 text-[10px] font-semibold text-[#ff6b00]">
                             {f.cambio.accion}
                           </span>
-                          <span className="text-neutral-500">{f.cambio.resumen}</span>
-                          <span className="ml-1 whitespace-nowrap tabular-nums text-neutral-400">
+                          <span className="text-[color:var(--tinta-media)]">{f.cambio.resumen}</span>
+                          <span className="ml-1 whitespace-nowrap tabular-nums text-[color:var(--tinta-suave)]">
                             · {f.cambio.fecha.slice(5)}
                           </span>
                         </>
                       ) : (
-                        <span className="text-neutral-300">sin operaciones del panel</span>
+                        <span className="text-[color:var(--tinta-suave)]">sin operaciones del panel</span>
                       )}
                     </td>
                   </tr>
@@ -256,7 +256,7 @@ export default function Sitemap({ clienteId }: { clienteId: string }) {
             </table>
           </div>
 
-          <div className="mt-3 flex flex-wrap items-center gap-3 text-xs text-neutral-500">
+          <div className="mt-4 flex flex-wrap items-center gap-3 text-[12px] text-[color:var(--tinta-media)]">
             <span className="tabular-nums">
               {busqueda.trim() ? `${visibles.length} de ${filas.length} en esta página · ` : ""}
               {total.toLocaleString("es-CL")} en total
@@ -266,7 +266,7 @@ export default function Sitemap({ clienteId }: { clienteId: string }) {
                 <button
                   disabled={pagina <= 1}
                   onClick={() => setPagina((p) => p - 1)}
-                  className="rounded-lg border border-neutral-200 px-2.5 py-1 font-medium disabled:opacity-40"
+                  className="boton !px-3 !py-1"
                 >
                   ← Anterior
                 </button>
@@ -276,7 +276,7 @@ export default function Sitemap({ clienteId }: { clienteId: string }) {
                 <button
                   disabled={pagina >= paginas}
                   onClick={() => setPagina((p) => p + 1)}
-                  className="rounded-lg border border-neutral-200 px-2.5 py-1 font-medium disabled:opacity-40"
+                  className="boton !px-3 !py-1"
                 >
                   Siguiente →
                 </button>
@@ -285,7 +285,7 @@ export default function Sitemap({ clienteId }: { clienteId: string }) {
           </div>
 
           {paginas > 1 && (
-            <p className="mt-1.5 text-[11px] text-neutral-400">
+            <p className="mt-1.5 text-[11px] text-[color:var(--tinta-suave)]">
               El orden se aplica sobre la página que estás viendo, no sobre el catálogo entero.
             </p>
           )}
