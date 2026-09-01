@@ -8,7 +8,7 @@
 import { NextRequest } from "next/server";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { conversar, instrucciones, type Turno } from "@/lib/asistente";
+import { conversar, instrucciones, mensajeDeError, type Turno } from "@/lib/asistente";
 import { veTodo } from "@/lib/clientes";
 
 export const runtime = "nodejs";
@@ -178,8 +178,7 @@ export async function POST(req: NextRequest) {
           coste: (r.entrada * 5 + r.salida * 25) / 1e6,
         });
       } catch (e) {
-        const mensajeError = e instanceof Error ? e.message : "Error desconocido";
-        enviar({ tipo: "error", mensaje: mensajeError });
+        enviar({ tipo: "error", mensaje: mensajeDeError(e) });
       } finally {
         control.close();
       }

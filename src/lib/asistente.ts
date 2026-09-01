@@ -61,6 +61,47 @@ Cuando termines algo, resume en una o dos frases qué cambió y dónde verlo.
 ${datos.conDiseno ? CRITERIO_DISENO : ""}`;
 }
 
+/**
+ * Traduce un fallo de la API a algo que se pueda leer y accionar.
+ *
+ * Sin esto, quien usa el panel recibe el JSON crudo de Anthropic: técnicamente
+ * exacto e inútil para decidir qué hacer. Los tres casos que de verdad ocurren
+ * —sin saldo, clave mala, demasiadas peticiones— tienen cada uno una salida
+ * distinta, y conviene nombrarla.
+ */
+export function mensajeDeError(e: unknown): string {
+  const bruto = e instanceof Error ? e.message : String(e);
+
+  if (e instanceof Anthropic.AuthenticationError) {
+    return "La clave de la API no es válida o fue revocada. Hay que revisarla en la configuración del servidor.";
+  }
+
+  if (e instanceof Anthropic.RateLimitError) {
+    return "Demasiadas peticiones seguidas a la API. Espera un momento y vuelve a intentarlo.";
+  }
+
+  // El saldo agotado llega como un 400 corriente, así que no hay una clase de
+  // error propia: hay que mirar el texto.
+  if (/credit balance is too low/i.test(bruto)) {
+    return "Se acabó el saldo de la API de Anthropic. Recárgalo en console.anthropic.com → Plans & Billing y vuelve a intentarlo; no se ha perdido nada de la conversación.";
+  }
+
+  if (/rate_limit|overloaded/i.test(bruto)) {
+    return "La API está saturada en este momento. Espera un minuto y reintenta.";
+  }
+
+  if (e instanceof Anthropic.APIConnectionError) {
+    return "El servidor no pudo alcanzar la API de Anthropic. Puede ser un corte de red pasajero.";
+  }
+
+  if (e instanceof Anthropic.APIError) {
+    // Se recorta el JSON: lo útil está al principio y el resto es ruido.
+    return `Error de la API (${e.status ?? "?"}). ${bruto.slice(0, 180)}`;
+  }
+
+  return bruto.slice(0, 300);
+}
+
 export interface Turno {
   rol: "user" | "assistant";
   contenido: string;
