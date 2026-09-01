@@ -9,13 +9,20 @@ import "server-only";
 import Anthropic from "@anthropic-ai/sdk";
 import { herramientasDe, type Contexto } from "@/lib/herramientas";
 import { CRITERIO_DISENO } from "@/lib/diseno";
+import { claveApi, modelo } from "@/lib/config";
 
-export const MODELO = process.env.ANTHROPIC_MODEL || "claude-opus-5";
-
-function cliente() {
-  const apiKey = process.env.ANTHROPIC_API_KEY || process.env.APP_ANTHROPIC_API_KEY;
+/**
+ * Cliente de la API, con la clave que mande el panel.
+ *
+ * Es asíncrono porque la clave puede venir de la base: se cambia desde la
+ * pantalla de ajustes sin tocar el servidor ni reiniciar nada.
+ */
+async function cliente() {
+  const apiKey = await claveApi();
   if (!apiKey) {
-    throw new Error("Falta ANTHROPIC_API_KEY. Añádela en .env.local.");
+    throw new Error(
+      "No hay clave de la API configurada. Un administrador puede ponerla en Ajustes del panel."
+    );
   }
   return new Anthropic({ apiKey });
 }
@@ -152,10 +159,10 @@ export async function conversar(
   historial: Turno[],
   emitir: (evento: { tipo: string; [k: string]: unknown }) => void
 ) {
-  const anthropic = cliente();
+  const anthropic = await cliente();
 
   const runner = anthropic.beta.messages.toolRunner({
-    model: MODELO,
+    model: await modelo(),
     max_tokens: 32000,
     system: [{ type: "text", text: sistema, cache_control: { type: "ephemeral" } }],
     thinking: { type: "adaptive" },

@@ -186,3 +186,16 @@ model Mensaje {
 
   @@index([conversacionId, creado])
 }
+
+/// Ajustes del panel que se cambian desde la interfaz.
+///
+/// Existe como tabla de clave y valor, y no como columnas, porque son cuatro
+/// ajustes sueltos que van a crecer: una tabla por cada uno sería ceremonia
+/// sin beneficio. Los valores sensibles se guardan cifrados, igual que los
+/// secretos de los clientes.
+model Config {
+  clave     String   @id
+  valor     String
+  cifrado   Boolean  @default(false)
+  tocado    DateTime @updatedAt
+}

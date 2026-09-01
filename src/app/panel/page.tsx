@@ -80,6 +80,14 @@ export default async function Panel() {
           <div className="flex items-center gap-2">
           {rol === "ADMIN" && (
             <Link
+              href="/panel/ajustes"
+              className="rounded-lg border border-neutral-300 px-4 py-2.5 text-sm font-semibold text-neutral-700 transition hover:border-[#ff6b00] hover:text-[#ff6b00]"
+            >
+              Ajustes
+            </Link>
+          )}
+          {rol === "ADMIN" && (
+            <Link
               href="/panel/usuarios"
               className="rounded-lg border border-neutral-300 px-4 py-2.5 text-sm font-semibold text-neutral-700 transition hover:border-[#ff6b00] hover:text-[#ff6b00]"
             >
