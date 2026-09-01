@@ -226,7 +226,7 @@ export default function Arquitectura({
   })();
 
   return (
-    <div className="mt-4">
+    <div className="relative left-1/2 mt-4 w-[calc(100vw-3rem)] max-w-[1400px] -translate-x-1/2">
       <div className="flex flex-wrap items-center gap-3">
         <span className="rounded-full bg-[#ff6b00]/10 px-2.5 py-1 text-[11px] font-semibold text-[#ff6b00]">
           beta
@@ -324,7 +324,7 @@ export default function Arquitectura({
           </div>
 
           <div className="mt-3 overflow-x-auto rounded-xl border border-neutral-200 bg-white">
-            <table className="w-full min-w-[760px] border-collapse text-sm">
+            <table className="w-full min-w-[720px] border-collapse text-sm">
               <thead>
                 <tr className="border-b border-neutral-200 text-left text-[11px] uppercase tracking-wide text-neutral-400">
                   <th className="px-4 py-2.5 font-semibold">Sección prevista</th>
@@ -337,7 +337,7 @@ export default function Arquitectura({
                 {visibles.map((n) => (
                   <Fragment key={n.id}>
                   <tr className="align-top hover:bg-neutral-50">
-                    <td className="max-w-[280px] px-4 py-2.5">
+                    <td className="w-[34%] px-4 py-2.5">
                       {/* La sangría hace visible la jerarquía sin una columna extra. */}
                       <div style={{ paddingLeft: (n.nivel - 1) * 14 }}>
                         <p className="truncate font-medium text-neutral-900">{n.nombre}</p>
@@ -361,7 +361,7 @@ export default function Arquitectura({
                         </span>
                       )}
                     </td>
-                    <td className="max-w-[340px] px-4 py-2.5 text-xs">
+                    <td className="px-4 py-2.5 text-xs">
                       {n.urlDestino ? (
                         <>
                           <a
