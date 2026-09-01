@@ -9,6 +9,8 @@ import {
   guardarClaveApi,
   borrarClaveApi,
   guardarModelo,
+  guardarEspacioTrabajo,
+  espacioTrabajo,
 } from "@/lib/config";
 
 export const metadata = { title: "Ajustes · Panel AppSEO" };
@@ -55,8 +57,13 @@ export default async function Ajustes({
     // petición es la que está incompleta. Y un 400 por saldo agotado también
     // significa que la clave sirve. Rechazar por el código de estado dejaba
     // fuera claves perfectamente válidas.
+    const espacio = await espacioTrabajo();
     const r = await fetch("https://api.anthropic.com/v1/models", {
-      headers: { "x-api-key": clave, "anthropic-version": "2023-06-01" },
+      headers: {
+        "x-api-key": clave,
+        "anthropic-version": "2023-06-01",
+        ...(espacio ? { "anthropic-workspace-id": espacio } : {}),
+      },
     }).catch(() => null);
 
     if (!r) {
@@ -74,6 +81,7 @@ export default async function Ajustes({
     // lo descubra en mitad de una conversación.
     const cuerpo = r.status === 200 ? "" : await r.text().catch(() => "");
     const sinSaldo = /credit balance is too low/i.test(cuerpo);
+    const faltaEspacio = /anthropic-workspace-id is required/i.test(cuerpo);
 
     await guardarClaveApi(clave);
     await anotar({
@@ -84,9 +92,11 @@ export default async function Ajustes({
     redirect(
       "/panel/ajustes?ok=" +
         encodeURIComponent(
-          sinSaldo
-            ? "Clave guardada. Ojo: la cuenta no tiene saldo, así que el chat seguirá fallando hasta que recargues."
-            : "Clave guardada y comprobada."
+          faltaEspacio
+            ? "Clave guardada, pero es de las que exigen un espacio de trabajo. Rellena el campo de abajo con su identificador o el chat seguirá fallando."
+            : sinSaldo
+              ? "Clave guardada. Ojo: la cuenta no tiene saldo, así que el chat seguirá fallando hasta que recargues."
+              : "Clave guardada y comprobada."
         )
     );
   }
@@ -97,6 +107,19 @@ export default async function Ajustes({
     await borrarClaveApi();
     await anotar({ usuarioId: s.user!.id!, accion: "ajustes", resumen: "Clave de API borrada del panel" });
     redirect("/panel/ajustes?ok=" + encodeURIComponent("Clave borrada. Se vuelve a usar la del servidor, si la hay."));
+  }
+
+  async function cambiarEspacio(datos: FormData) {
+    "use server";
+    const s = await exigirAdmin();
+    const v = String(datos.get("espacio") || "").trim();
+    await guardarEspacioTrabajo(v);
+    await anotar({
+      usuarioId: s.user!.id!,
+      accion: "ajustes",
+      resumen: v ? `Espacio de trabajo: ${v}` : "Espacio de trabajo borrado",
+    });
+    redirect("/panel/ajustes?ok=" + encodeURIComponent(v ? "Espacio de trabajo guardado." : "Espacio de trabajo borrado."));
   }
 
   async function cambiarModelo(datos: FormData) {
@@ -184,6 +207,36 @@ export default async function Ajustes({
               </button>
             </form>
           )}
+        </section>
+
+        {/* --- Espacio de trabajo --- */}
+        <section className="mt-5 rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm">
+          <h2 className="text-sm font-semibold text-neutral-900">Espacio de trabajo</h2>
+          <p className="mt-0.5 text-xs text-neutral-500">
+            Solo hace falta si tu clave es de las que van ligadas a una identidad: esas rechazan cualquier
+            petición que no diga en qué espacio actúa, aunque la clave sea válida y haya saldo. Lo
+            encuentras en la URL de la consola de Anthropic al entrar en el espacio, o en sus ajustes.
+          </p>
+
+          <form action={cambiarEspacio} className="mt-3 flex flex-wrap items-end gap-2">
+            <label className="flex min-w-[240px] flex-1 flex-col gap-1.5">
+              <span className="text-xs font-medium uppercase tracking-wide text-neutral-500">
+                Identificador <span className="normal-case text-neutral-400">(vacío para no enviarlo)</span>
+              </span>
+              <input
+                name="espacio"
+                defaultValue={cfg.espacio}
+                placeholder="wrkspc_…"
+                className="rounded-lg border border-neutral-200 px-3 py-2 font-mono text-xs outline-none focus:border-[#ff6b00] focus:ring-2 focus:ring-[#ff6b00]/20"
+              />
+            </label>
+            <button
+              type="submit"
+              className="rounded-lg border border-neutral-300 px-4 py-2 text-sm font-semibold text-neutral-700 transition hover:border-[#ff6b00] hover:text-[#ff6b00]"
+            >
+              Guardar
+            </button>
+          </form>
         </section>
 
         {/* --- Modelo --- */}

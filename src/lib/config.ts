@@ -61,6 +61,27 @@ export async function borrarClaveApi() {
   await db.config.deleteMany({ where: { clave: "anthropic_api_key" } });
 }
 
+/**
+ * Identificador del espacio de trabajo.
+ *
+ * Las claves ligadas a identidad exigen que cada petición diga en qué espacio
+ * actúa; sin esto responden 400 aunque la clave sea perfectamente válida y
+ * haya saldo de sobra. Las claves normales lo ignoran, así que mandarlo cuando
+ * existe no rompe nada.
+ */
+export async function espacioTrabajo(): Promise<string | null> {
+  return (await leer("workspace_id")) || process.env.ANTHROPIC_WORKSPACE_ID || null;
+}
+
+export async function guardarEspacioTrabajo(valor: string) {
+  const v = valor.trim();
+  if (!v) {
+    await db.config.deleteMany({ where: { clave: "workspace_id" } });
+    return;
+  }
+  await escribir("workspace_id", v, false);
+}
+
 /** Modelo con el que responde el asistente. */
 export async function modelo(): Promise<string> {
   const guardado = await leer("modelo");
@@ -91,5 +112,6 @@ export async function estadoConfig() {
     rastro: clave ? `${clave.slice(0, 10)}…${clave.slice(-4)}` : "",
     modelo: await modelo(),
     modeloEnPanel: Boolean(await leer("modelo")),
+    espacio: (await espacioTrabajo()) ?? "",
   };
 }

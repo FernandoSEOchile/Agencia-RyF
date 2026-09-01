@@ -9,7 +9,7 @@ import "server-only";
 import Anthropic from "@anthropic-ai/sdk";
 import { herramientasDe, type Contexto } from "@/lib/herramientas";
 import { CRITERIO_DISENO } from "@/lib/diseno";
-import { claveApi, modelo } from "@/lib/config";
+import { claveApi, modelo, espacioTrabajo } from "@/lib/config";
 
 /**
  * Cliente de la API, con la clave que mande el panel.
@@ -24,7 +24,15 @@ async function cliente() {
       "No hay clave de la API configurada. Un administrador puede ponerla en Ajustes del panel."
     );
   }
-  return new Anthropic({ apiKey });
+  // Las claves ligadas a identidad rechazan cualquier petición que no diga en
+  // qué espacio de trabajo actúa. Las demás ignoran la cabecera, así que
+  // mandarla siempre que esté configurada es seguro.
+  const espacio = await espacioTrabajo();
+
+  return new Anthropic({
+    apiKey,
+    defaultHeaders: espacio ? { "anthropic-workspace-id": espacio } : undefined,
+  });
 }
 
 /**
