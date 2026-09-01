@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { Fragment, useState } from "react";
 
 export interface NodoVista {
   id: string;
@@ -52,6 +52,24 @@ function etiqueta(estado: string) {
   return estado;
 }
 
+/** Texto comparable: sin tildes, sin mayúsculas, sin barras ni guiones. */
+function limpiar(t: string) {
+  return t
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
+}
+
+/** Palabras útiles de un texto, en singular aproximado. */
+function trocear(t: string) {
+  return limpiar(t)
+    .split(" ")
+    .filter((w) => w.length > 2)
+    .map((w) => (w.endsWith("s") ? w.slice(0, -1) : w));
+}
+
 /** Cómo se llegó a esa URL, para que nadie confunda un acierto de la IA con un dato comprobado. */
 function origen(como: string | null) {
   if (como === "slug") return "por slug";
@@ -77,7 +95,7 @@ export default function Arquitectura({
 
   // Asignación manual: qué fila está abierta, qué se busca, y el catálogo del
   // sitio, que se pide una sola vez y se reutiliza mientras dure la pantalla.
-  const [abierta, setAbierta] = useState<string | null>(null);
+  const [abierta, setAbierta] = useState<NodoVista | null>(null);
   const [busca, setBusca] = useState("");
   const [urls, setUrls] = useState<UrlSitio[] | null>(null);
   const [cargandoUrls, setCargandoUrls] = useState(false);
@@ -130,14 +148,16 @@ export default function Arquitectura({
 
   /** Abre el selector de una fila y, la primera vez, trae las URLs del sitio. */
   async function abrir(nodo: NodoVista) {
-    if (abierta === nodo.id) {
+    if (abierta?.id === nodo.id) {
       setAbierta(null);
       return;
     }
-    setAbierta(nodo.id);
-    // Se propone el nombre de la sección como búsqueda inicial: casi siempre
-    // deja la URL correcta a la vista sin escribir nada.
-    setBusca(nodo.nombre);
+    setAbierta(nodo);
+    // La caja arranca vacía a propósito: la lista ya viene ordenada por
+    // cercanía a esta sección, así que escribir suele sobrar. Rellenarla con
+    // el nombre solo conseguía que no casara nada y pareciera que el sitemap
+    // estaba vacío.
+    setBusca("");
 
     if (urls || cargandoUrls) return;
     setCargandoUrls(true);
@@ -177,17 +197,32 @@ export default function Arquitectura({
   const cuenta = (e: string) => nodos.filter((n) => n.estado === e).length;
   const volumenPerdido = nodos.filter((n) => n.estado === "falta").reduce((s, n) => s + n.volumen, 0);
 
-  const filtradas = (() => {
-    if (!urls) return [];
-    const q = busca.trim().toLowerCase();
-    if (!q) return urls.slice(0, 40);
-    const partes = q.split(/\s+/);
-    return urls
-      .filter((u) => {
-        const texto = (u.nombre + " " + u.url).toLowerCase();
+  const listadas = (() => {
+    if (!urls || !abierta) return [];
+
+    // Se puntúa cada URL por las palabras que comparte con la sección, y se
+    // ordena por eso. Así la lista es un desplegable del sitemap entero donde
+    // lo probable está arriba, en vez de un filtro que puede dejarlo vacío.
+    const palabras = trocear(abierta.nombre + " " + abierta.slug);
+    const puntuadas = urls
+      .map((u) => {
+        const texto = limpiar(u.nombre + " " + u.url);
+        let punto = 0;
+        for (const w of palabras) if (texto.includes(w)) punto++;
+        return { u, punto };
+      })
+      .sort((a, b) => b.punto - a.punto);
+
+    const q = busca.trim();
+    if (!q) return puntuadas.map((x) => x.u);
+
+    const partes = trocear(q);
+    return puntuadas
+      .filter(({ u }) => {
+        const texto = limpiar(u.nombre + " " + u.url);
         return partes.every((p) => texto.includes(p));
       })
-      .slice(0, 40);
+      .map((x) => x.u);
   })();
 
   return (
@@ -300,7 +335,8 @@ export default function Arquitectura({
               </thead>
               <tbody className="divide-y divide-neutral-100">
                 {visibles.map((n) => (
-                  <tr key={n.id} className="align-top hover:bg-neutral-50">
+                  <Fragment key={n.id}>
+                  <tr className="align-top hover:bg-neutral-50">
                     <td className="max-w-[280px] px-4 py-2.5">
                       {/* La sangría hace visible la jerarquía sin una columna extra. */}
                       <div style={{ paddingLeft: (n.nivel - 1) * 14 }}>
@@ -351,75 +387,102 @@ export default function Arquitectura({
                       {puedeSubir && (
                         <button
                           onClick={() => abrir(n)}
-                          className="mt-1 text-[11px] font-medium text-neutral-500 underline-offset-2 hover:text-[#ff6b00] hover:underline"
+                          className="mt-1 block text-[11px] font-medium text-neutral-500 underline-offset-2 hover:text-[#ff6b00] hover:underline"
                         >
-                          {abierta === n.id ? "Cerrar" : n.urlDestino ? "Cambiar URL" : "Asignar URL"}
+                          {abierta?.id === n.id ? "Cerrar" : n.urlDestino ? "Cambiar URL" : "Asignar URL"}
                         </button>
                       )}
+                    </td>
+                  </tr>
 
-                      {abierta === n.id && (
-                        <div className="mt-2 rounded-lg border border-neutral-200 bg-neutral-50 p-2">
-                          <input
-                            value={busca}
-                            onChange={(e) => setBusca(e.target.value)}
-                            placeholder="Buscar una URL del sitio, o pegar una entera"
-                            className="w-full rounded-md border border-neutral-300 bg-white px-2 py-1.5 text-xs outline-none focus:border-[#ff6b00]"
-                          />
+                  {/* El selector va en su propia fila y a todo lo ancho: dentro
+                      de la celda de URL se quedaba en 340 px y no cabía. */}
+                  {abierta?.id === n.id && (
+                    <tr>
+                      <td colSpan={4} className="bg-neutral-50 px-4 pb-4 pt-1">
+                        <input
+                          autoFocus
+                          value={busca}
+                          onChange={(e) => setBusca(e.target.value)}
+                          placeholder="Filtrar las URLs del sitio, o pegar una entera"
+                          className="w-full rounded-md border border-neutral-300 bg-white px-3 py-2 text-xs outline-none focus:border-[#ff6b00]"
+                        />
 
-                          {cargandoUrls && (
-                            <p className="mt-2 text-[11px] text-neutral-400">Leyendo el sitemap…</p>
-                          )}
+                        {cargandoUrls && (
+                          <p className="mt-2 text-[11px] text-neutral-400">
+                            Leyendo el sitemap del sitio…
+                          </p>
+                        )}
 
-                          {urls && (
-                            <div className="mt-2 max-h-52 overflow-y-auto rounded-md border border-neutral-200 bg-white">
-                              {filtradas.length === 0 ? (
-                                <p className="px-2 py-3 text-[11px] text-neutral-400">
-                                  Ninguna URL del sitio coincide con esa búsqueda.
+                        {urls && (
+                          <>
+                            <p className="mt-2 text-[11px] text-neutral-400">
+                              {listadas.length === urls.length
+                                ? `${urls.length} URLs del sitio, las más parecidas a «${n.nombre}» arriba`
+                                : `${listadas.length} de ${urls.length} URLs`}
+                            </p>
+                            <div className="mt-1 max-h-72 overflow-y-auto rounded-md border border-neutral-200 bg-white">
+                              {listadas.length === 0 ? (
+                                <p className="px-3 py-4 text-[11px] text-neutral-400">
+                                  Ninguna URL del sitio coincide con ese filtro. Borra el texto para ver
+                                  el sitemap completo.
                                 </p>
                               ) : (
-                                filtradas.map((u) => (
+                                listadas.map((u) => (
                                   <button
                                     key={u.url}
                                     disabled={guardando}
                                     onClick={() => asignar(n.id, u.url)}
-                                    className="block w-full border-b border-neutral-100 px-2 py-1.5 text-left last:border-0 hover:bg-[#ff6b00]/5 disabled:opacity-40"
+                                    className="flex w-full items-baseline gap-3 border-b border-neutral-100 px-3 py-2 text-left last:border-0 hover:bg-[#ff6b00]/5 disabled:opacity-40"
                                   >
-                                    <span className="block truncate text-[11px] font-medium text-neutral-800">
-                                      {u.nombre}
+                                    <span className="min-w-0 flex-1">
+                                      <span className="block truncate text-xs font-medium text-neutral-800">
+                                        {u.nombre}
+                                      </span>
+                                      <span className="block truncate font-mono text-[10px] text-neutral-400">
+                                        {u.url.replace(/^https?:\/\/[^/]+/, "")}
+                                      </span>
                                     </span>
-                                    <span className="block truncate text-[10px] text-neutral-400">
-                                      {u.url.replace(/^https?:\/\/[^/]+/, "")}
+                                    <span className="shrink-0 rounded-full bg-neutral-100 px-2 py-0.5 text-[10px] text-neutral-500">
+                                      {u.tipo === "product_cat"
+                                        ? "categoría"
+                                        : u.tipo === "page"
+                                        ? "página"
+                                        : u.tipo === "post"
+                                        ? "entrada"
+                                        : "sitemap"}
                                     </span>
                                   </button>
                                 ))
                               )}
                             </div>
-                          )}
+                          </>
+                        )}
 
-                          <div className="mt-2 flex flex-wrap gap-2">
-                            {/^https?:\/\//.test(busca.trim()) && (
-                              <button
-                                disabled={guardando}
-                                onClick={() => asignar(n.id, busca.trim())}
-                                className="rounded-md bg-neutral-900 px-2.5 py-1 text-[11px] font-semibold text-white disabled:opacity-40"
-                              >
-                                Usar esta URL
-                              </button>
-                            )}
-                            {n.urlDestino && (
-                              <button
-                                disabled={guardando}
-                                onClick={() => asignar(n.id, "")}
-                                className="rounded-md border border-neutral-300 px-2.5 py-1 text-[11px] font-medium text-neutral-600 disabled:opacity-40"
-                              >
-                                Quitar la URL
-                              </button>
-                            )}
-                          </div>
+                        <div className="mt-2 flex flex-wrap gap-2">
+                          {/^https?:\/\//.test(busca.trim()) && (
+                            <button
+                              disabled={guardando}
+                              onClick={() => asignar(n.id, busca.trim())}
+                              className="rounded-md bg-neutral-900 px-3 py-1.5 text-[11px] font-semibold text-white disabled:opacity-40"
+                            >
+                              Usar «{busca.trim()}»
+                            </button>
+                          )}
+                          {n.urlDestino && (
+                            <button
+                              disabled={guardando}
+                              onClick={() => asignar(n.id, "")}
+                              className="rounded-md border border-neutral-300 px-3 py-1.5 text-[11px] font-medium text-neutral-600 disabled:opacity-40"
+                            >
+                              Quitar la URL
+                            </button>
+                          )}
                         </div>
-                      )}
-                    </td>
-                  </tr>
+                      </td>
+                    </tr>
+                  )}
+                  </Fragment>
                 ))}
               </tbody>
             </table>
