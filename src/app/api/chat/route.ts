@@ -87,11 +87,21 @@ export async function POST(req: NextRequest) {
     { rol: "user" as const, contenido: mensaje },
   ];
 
+  // El criterio de diseño son casi mil palabras: se cargan cuando el hilo
+  // habla de maquetación, y una vez cargadas se quedan para el resto de la
+  // conversación —a mitad de un rediseño nadie quiere que el asistente pierda
+  // el criterio porque el último mensaje fue «sí, dale».
+  const PALABRAS_DISENO =
+    /diseñ|maqueta|elementor|landing|página de (venta|servicio|inicio)|home|plantilla|sección|hero|cta|convertir|conversión|cro|banner|columna|botón/i;
+  const conDiseno =
+    PALABRAS_DISENO.test(mensaje) || previos.some((m) => PALABRAS_DISENO.test(m.contenido));
+
   const sistema = instrucciones({
     nombre: cliente.nombre,
     dominio: cliente.dominio,
     version: cliente.version,
     puedeEscribir,
+    conDiseno,
   });
 
   const codificador = new TextEncoder();

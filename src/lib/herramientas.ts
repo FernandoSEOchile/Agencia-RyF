@@ -199,6 +199,111 @@ export function herramientasDe(ctx: Contexto) {
     },
   });
 
+  const leerContenido = betaZodTool({
+    name: "leer_contenido",
+    description:
+      "Devuelve una página o entrada completa: su HTML, su editor (gutenberg o elementor), y si es de Elementor, el JSON de su diseño. Léela antes de rediseñar: nunca escribas encima de una maqueta que no has visto.",
+    inputSchema: z.object({ id: z.number().int() }),
+    run: async (i) => {
+      const r = await api<{ elementor?: { bytes: number; datos: string } }>(
+        ctx.clienteId,
+        "GET",
+        `/content/${i.id}`
+      );
+      if (!r.ok) return problema(r.mensaje || r.codigo || `HTTP ${r.estado}`);
+      const d = r.datos as Record<string, unknown> & { elementor?: { bytes: number; datos: string } };
+      // Un diseño grande llenaría la conversación y se pagaría en cada turno
+      // posterior: se avisa del tamaño en vez de traerlo entero sin pedirlo.
+      if (d.elementor && d.elementor.bytes > 60000) {
+        return JSON.stringify({
+          ...d,
+          elementor: {
+            ...d.elementor,
+            datos: "",
+            aviso: `El diseño ocupa ${d.elementor.bytes} bytes y no se ha traído. Usa leer_diseno_elementor si de verdad necesitas el JSON completo.`,
+          },
+        });
+      }
+      return JSON.stringify(d);
+    },
+  });
+
+  const leerDisenoElementor = betaZodTool({
+    name: "leer_diseno_elementor",
+    description:
+      "El JSON completo del diseño de Elementor de una página. Solo cuando vayas a editar una maqueta existente y leer_contenido te haya avisado de que era grande.",
+    inputSchema: z.object({ id: z.number().int() }),
+    run: async (i) => {
+      const r = await api<{ elementor?: { datos: string } }>(ctx.clienteId, "GET", `/content/${i.id}`);
+      if (!r.ok) return problema(r.mensaje || r.codigo || `HTTP ${r.estado}`);
+      return r.datos?.elementor?.datos || problema("Esa página no está maquetada con Elementor.");
+    },
+  });
+
+  const disenarElementor = betaZodTool({
+    name: "disenar_con_elementor",
+    description:
+      "Crea o rediseña una página con Elementor, escribiendo su maqueta directamente. Recibe la estructura como JSON de Elementor. Úsala cuando el sitio use Elementor y el encargo sea de diseño —una landing, una página de servicio, una home—, no cuando sea solo texto.",
+    inputSchema: z.object({
+      id: z.number().int().optional().describe("Sin id crea una página nueva; con id rediseña la existente."),
+      titulo: z.string().optional(),
+      slug: z.string().optional(),
+      estado: z.enum(["draft", "publish"]).default("draft"),
+      diseno: z
+        .string()
+        .describe(
+          "JSON de Elementor: un array de secciones. Cada sección lleva elType 'section' con 'elements' de elType 'column', y dentro widgets con widgetType y settings. Debe ser JSON válido, sin envolver en markdown."
+        ),
+      meta: z.record(z.string(), z.string()).optional().describe("Metadatos de Yoast."),
+    }),
+    run: async (i) => {
+      if (!ctx.puedeEscribir) return soloLectura();
+
+      // Se valida aquí y no en el sitio: un JSON roto guardado en
+      // `_elementor_data` deja la página en blanco y solo se nota al abrirla.
+      let estructura: unknown;
+      try {
+        estructura = JSON.parse(i.diseno);
+      } catch (e) {
+        return problema(
+          "El diseño no es JSON válido: " + (e instanceof Error ? e.message : "error de sintaxis")
+        );
+      }
+      if (!Array.isArray(estructura)) {
+        return problema("El diseño debe ser un array de secciones de Elementor, no un objeto suelto.");
+      }
+
+      const r = await api<{ id: number; url: string }>(ctx.clienteId, "POST", "/content", {
+        id: i.id,
+        tipo: "page",
+        titulo: i.titulo,
+        slug: i.slug,
+        estado: i.estado,
+        meta: {
+          ...(i.meta ?? {}),
+          _elementor_edit_mode: "builder",
+          _elementor_data: JSON.stringify(estructura),
+          // Sin plantilla asignada Elementor renderiza con la del tema y la
+          // maqueta aparece encajonada dentro del contenido.
+          _wp_page_template: "elementor_header_footer",
+        },
+      });
+
+      if (!r.ok) return problema(r.mensaje || r.codigo || `HTTP ${r.estado}`);
+      await anotar({
+        usuarioId: ctx.usuarioId,
+        clienteId: ctx.clienteId,
+        accion: i.id ? "diseno_editar" : "diseno_crear",
+        resumen: `${i.titulo ?? "#" + i.id} · ${(estructura as unknown[]).length} secciones`,
+      });
+      return JSON.stringify({
+        ...r.datos,
+        aviso:
+          "Elementor guarda su propia caché de CSS. Si la página se ve sin estilos, hay que regenerarla desde Elementor → Herramientas.",
+      });
+    },
+  });
+
   const leerCss = betaZodTool({
     name: "leer_css",
     description: "CSS adicional del sitio, el del personalizador de WordPress.",
@@ -257,6 +362,9 @@ export function herramientasDe(ctx: Contexto) {
   return [
     salud,
     auditar,
+    leerContenido,
+    leerDisenoElementor,
+    disenarElementor,
     listarProductos,
     leerProducto,
     escribirProducto,

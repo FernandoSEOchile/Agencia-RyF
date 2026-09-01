@@ -8,6 +8,7 @@
 import "server-only";
 import Anthropic from "@anthropic-ai/sdk";
 import { herramientasDe, type Contexto } from "@/lib/herramientas";
+import { CRITERIO_DISENO } from "@/lib/diseno";
 
 export const MODELO = process.env.ANTHROPIC_MODEL || "claude-opus-5";
 
@@ -31,6 +32,9 @@ export function instrucciones(datos: {
   dominio: string;
   version: string | null;
   puedeEscribir: boolean;
+  /** Se añade el criterio de diseño solo si el encargo lo pide: son ~900
+   *  palabras que se pagarían en cada turno de cualquier conversación. */
+  conDiseno?: boolean;
 }) {
   return `Eres el asistente de AppSEO para el sitio ${datos.nombre} (${datos.dominio}), un WordPress con el conector AppSEO RyF v${datos.version ?? "?"}.
 
@@ -52,7 +56,9 @@ No te inventes especificaciones de producto —materiales, medidas, plazos de en
 SOBRE EL COSTE
 Cada mensaje cuesta dinero real. Trae solo los datos que necesitas: listar_productos devuelve metadatos, no descripciones completas, y leer_producto es para cuando de verdad vas a trabajar sobre ese producto.
 
-Cuando termines algo, resume en una o dos frases qué cambió y dónde verlo.`;
+Cuando termines algo, resume en una o dos frases qué cambió y dónde verlo.
+
+${datos.conDiseno ? CRITERIO_DISENO : ""}`;
 }
 
 export interface Turno {

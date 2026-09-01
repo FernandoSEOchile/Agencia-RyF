@@ -38,7 +38,11 @@ export async function GET(req: NextRequest) {
 
   const q = req.nextUrl.searchParams;
   const clienteId = q.get("cliente") || "";
-  const tipo = q.get("tipo") || "contenido";
+  const tipo = q.get("tipo") || "productos";
+  // El filtro de estado lo decide la interfaz: `publish` por defecto porque es
+  // lo que existe para Google, pero los borradores son parte del trabajo
+  // pendiente y hay que poder verlos.
+  const estado = q.get("estado") || "publish";
   const pagina = Math.max(1, parseInt(q.get("pagina") || "1", 10) || 1);
 
   const rol = (sesion.user as { rol?: string }).rol ?? "LECTOR";
@@ -69,9 +73,10 @@ export async function GET(req: NextRequest) {
 
   if (tipo === "productos") {
     interface P { id: number; nombre: string; url: string; estado: string; palabras_desc: number; modificado: string; seo?: { metadesc?: string } }
-    // Solo lo publicado: los borradores no existen para Google ni para el cliente.
     const r = await api<{ productos: P[]; total: number; paginas: number }>(
-      clienteId, "GET", `/products?pagina=${pagina}&estado=publish`
+      clienteId,
+      "GET",
+      `/products?pagina=${pagina}` + (estado === "todo" ? "" : `&estado=${encodeURIComponent(estado)}`)
     );
     if (!r.ok) return Response.json({ error: r.mensaje || r.codigo }, { status: 502 });
 
@@ -118,7 +123,7 @@ export async function GET(req: NextRequest) {
 
   const claseWp = tipo === "paginas" ? "page" : "post";
   const filas: Fila[] = (r.datos?.content ?? [])
-    .filter((c) => c.estado === "publish" && c.tipo === claseWp)
+    .filter((c) => c.tipo === claseWp && (estado === "todo" || c.estado === estado))
     .map((c) => ({
     id: c.id,
     titulo: c.titulo || "(sin título)",

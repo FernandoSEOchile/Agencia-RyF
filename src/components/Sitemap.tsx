@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 interface Fila {
   id: number;
@@ -20,6 +20,22 @@ const TIPOS = [
   ["paginas", "Páginas"],
 ] as const;
 
+const ESTADOS = [
+  ["publish", "Publicados"],
+  ["draft", "Borradores"],
+  ["todo", "Todos"],
+] as const;
+
+type Columna = "titulo" | "estado" | "palabras" | "modificado" | "cambio";
+
+const COLUMNAS: { id: Columna; texto: string; alineado?: string }[] = [
+  { id: "titulo", texto: "URL" },
+  { id: "estado", texto: "Estado" },
+  { id: "palabras", texto: "Palabras", alineado: "text-right" },
+  { id: "modificado", texto: "Modificado" },
+  { id: "cambio", texto: "Último cambio registrado" },
+];
+
 /** Estados que conviene resaltar: lo publicado manda, lo demás es aviso. */
 function colorEstado(estado: string) {
   if (estado === "publish" || estado === "con descripción") return "bg-emerald-50 text-emerald-700";
@@ -27,8 +43,17 @@ function colorEstado(estado: string) {
   return "bg-neutral-100 text-neutral-600";
 }
 
+function nombreEstado(estado: string) {
+  if (estado === "publish") return "publicado";
+  if (estado === "draft") return "borrador";
+  if (estado === "pending") return "pendiente";
+  if (estado === "private") return "privado";
+  return estado;
+}
+
 export default function Sitemap({ clienteId }: { clienteId: string }) {
   const [tipo, setTipo] = useState<(typeof TIPOS)[number][0]>("productos");
+  const [estado, setEstado] = useState<(typeof ESTADOS)[number][0]>("publish");
   const [pagina, setPagina] = useState(1);
   const [filas, setFilas] = useState<Fila[]>([]);
   const [total, setTotal] = useState(0);
@@ -37,12 +62,16 @@ export default function Sitemap({ clienteId }: { clienteId: string }) {
   const [error, setError] = useState<string | null>(null);
   const [busqueda, setBusqueda] = useState("");
 
+  // Por defecto lo más reciente arriba: es la pregunta que trae a esta tabla.
+  const [orden, setOrden] = useState<Columna>("modificado");
+  const [desc, setDesc] = useState(true);
+
   useEffect(() => {
     let vivo = true;
     setCargando(true);
     setError(null);
 
-    fetch(`/api/sitemap?cliente=${clienteId}&tipo=${tipo}&pagina=${pagina}`)
+    fetch(`/api/sitemap?cliente=${clienteId}&tipo=${tipo}&estado=${estado}&pagina=${pagina}`)
       .then(async (r) => {
         const j = await r.json();
         if (!r.ok) throw new Error(j.error || "No se pudo cargar.");
@@ -57,12 +86,46 @@ export default function Sitemap({ clienteId }: { clienteId: string }) {
     return () => {
       vivo = false;
     };
-  }, [clienteId, tipo, pagina]);
+  }, [clienteId, tipo, estado, pagina]);
 
-  const q = busqueda.trim().toLowerCase();
-  const visibles = q
-    ? filas.filter((f) => f.titulo.toLowerCase().includes(q) || f.url.toLowerCase().includes(q))
-    : filas;
+  const visibles = useMemo(() => {
+    const q = busqueda.trim().toLowerCase();
+    const filtradas = q
+      ? filas.filter((f) => f.titulo.toLowerCase().includes(q) || f.url.toLowerCase().includes(q))
+      : filas;
+
+    const valor = (f: Fila): string | number | null => {
+      if (orden === "titulo") return f.titulo.toLowerCase();
+      if (orden === "estado") return f.estado;
+      if (orden === "palabras") return f.palabras;
+      if (orden === "modificado") return f.modificado;
+      return f.cambio ? f.cambio.fecha : null;
+    };
+
+    // Las filas sin valor van siempre al final, se ordene como se ordene:
+    // ausencia de dato no es un dato pequeño.
+    return [...filtradas].sort((a, b) => {
+      const va = valor(a);
+      const vb = valor(b);
+      if (va === null || va === undefined) return vb === null || vb === undefined ? 0 : 1;
+      if (vb === null || vb === undefined) return -1;
+      const cmp =
+        typeof va === "number" && typeof vb === "number"
+          ? va - vb
+          : String(va).localeCompare(String(vb));
+      return desc ? -cmp : cmp;
+    });
+  }, [filas, busqueda, orden, desc]);
+
+  function ordenarPor(c: Columna) {
+    if (c === orden) {
+      setDesc((d) => !d);
+      return;
+    }
+    setOrden(c);
+    // Texto arranca de la A a la Z; fechas y números, de mayor a menor.
+    setDesc(c !== "titulo" && c !== "estado");
+  }
 
   return (
     <div className="mt-4">
@@ -90,6 +153,28 @@ export default function Sitemap({ clienteId }: { clienteId: string }) {
         />
       </div>
 
+      {/* Las categorías no tienen estado de publicación en WordPress: el filtro
+          no aplica, y mostrarlo sería ofrecer algo que no hace nada. */}
+      {tipo !== "categorias" && (
+        <div className="mt-2 flex flex-wrap items-center gap-1.5">
+          <span className="text-[11px] uppercase tracking-wide text-neutral-400">Estado</span>
+          {ESTADOS.map(([id, texto]) => (
+            <button
+              key={id}
+              onClick={() => {
+                setEstado(id);
+                setPagina(1);
+              }}
+              className={`rounded-full px-2.5 py-0.5 text-[11px] font-medium transition ${
+                estado === id ? "bg-[#ff6b00]/10 text-[#ff6b00]" : "text-neutral-500 hover:bg-neutral-100"
+              }`}
+            >
+              {texto}
+            </button>
+          ))}
+        </div>
+      )}
+
       {error && <p className="mt-4 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p>}
 
       {cargando ? (
@@ -103,12 +188,19 @@ export default function Sitemap({ clienteId }: { clienteId: string }) {
             <table className="w-full min-w-[720px] border-collapse text-sm">
               <thead>
                 <tr className="border-b border-neutral-200 text-left text-[11px] uppercase tracking-wide text-neutral-400">
-                  <th className="px-4 py-2.5 font-semibold">URL</th>
-                  <th className="px-3 py-2.5 font-semibold">Tipo</th>
-                  <th className="px-3 py-2.5 font-semibold">Estado</th>
-                  <th className="px-3 py-2.5 text-right font-semibold">Palabras</th>
-                  <th className="px-3 py-2.5 font-semibold">Modificado</th>
-                  <th className="px-4 py-2.5 font-semibold">Último cambio registrado</th>
+                  {COLUMNAS.map((c) => (
+                    <th
+                      key={c.id}
+                      onClick={() => ordenarPor(c.id)}
+                      title="Ordenar por esta columna"
+                      className={`cursor-pointer select-none px-3 py-2.5 font-semibold first:pl-4 last:pr-4 hover:text-neutral-700 ${
+                        c.alineado ?? ""
+                      } ${orden === c.id ? "text-[#ff6b00]" : ""}`}
+                    >
+                      {c.texto}
+                      {orden === c.id && <span className="ml-1">{desc ? "↓" : "↑"}</span>}
+                    </th>
+                  ))}
                 </tr>
               </thead>
               <tbody className="divide-y divide-neutral-100">
@@ -125,13 +217,16 @@ export default function Sitemap({ clienteId }: { clienteId: string }) {
                         {f.titulo}
                       </a>
                       <span className="block truncate text-[11px] text-neutral-400">
-                        {f.url.replace(/^https?:\/\/[^/]+/, "") || "/"}
+                        {f.url.replace(/^https?:\/\/[^/]+/, "") || "/"} · {f.subtipo}
                       </span>
                     </td>
-                    <td className="whitespace-nowrap px-3 py-2.5 text-xs text-neutral-600">{f.subtipo}</td>
                     <td className="px-3 py-2.5">
-                      <span className={`whitespace-nowrap rounded-full px-2 py-0.5 text-[11px] font-semibold ${colorEstado(f.estado)}`}>
-                        {f.estado}
+                      <span
+                        className={`whitespace-nowrap rounded-full px-2 py-0.5 text-[11px] font-semibold ${colorEstado(
+                          f.estado
+                        )}`}
+                      >
+                        {nombreEstado(f.estado)}
                       </span>
                     </td>
                     <td className="px-3 py-2.5 text-right text-xs tabular-nums text-neutral-600">
@@ -163,7 +258,7 @@ export default function Sitemap({ clienteId }: { clienteId: string }) {
 
           <div className="mt-3 flex flex-wrap items-center gap-3 text-xs text-neutral-500">
             <span className="tabular-nums">
-              {q ? `${visibles.length} de ${filas.length} en esta página · ` : ""}
+              {busqueda.trim() ? `${visibles.length} de ${filas.length} en esta página · ` : ""}
               {total.toLocaleString("es-CL")} en total
             </span>
             {paginas > 1 && (
@@ -188,6 +283,12 @@ export default function Sitemap({ clienteId }: { clienteId: string }) {
               </span>
             )}
           </div>
+
+          {paginas > 1 && (
+            <p className="mt-1.5 text-[11px] text-neutral-400">
+              El orden se aplica sobre la página que estás viendo, no sobre el catálogo entero.
+            </p>
+          )}
         </>
       )}
     </div>
