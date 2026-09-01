@@ -75,10 +75,22 @@ export async function espacioTrabajo(): Promise<string | null> {
 
 export async function guardarEspacioTrabajo(valor: string) {
   const v = valor.trim();
+
   if (!v) {
     await db.config.deleteMany({ where: { clave: "workspace_id" } });
     return;
   }
+
+  // Se valida la forma porque este valor viaja como cabecera en CADA petición:
+  // un texto suelto como «default» hace que la API rechace todo, y el error
+  // que devuelve habla de créditos, así que el fallo se disfraza de problema
+  // de facturación y cuesta horas encontrarlo.
+  if (!/^wrkspc_[A-Za-z0-9]+$/.test(v)) {
+    throw new Error(
+      "El identificador debe empezar por «wrkspc_». Si no tienes uno, deja el campo vacío: la mayoría de las claves no lo necesitan."
+    );
+  }
+
   await escribir("workspace_id", v, false);
 }
 

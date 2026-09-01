@@ -113,7 +113,13 @@ export default async function Ajustes({
     "use server";
     const s = await exigirAdmin();
     const v = String(datos.get("espacio") || "").trim();
-    await guardarEspacioTrabajo(v);
+    try {
+      await guardarEspacioTrabajo(v);
+    } catch (e) {
+      redirect(
+        "/panel/ajustes?error=" + encodeURIComponent(e instanceof Error ? e.message : "Valor no válido.")
+      );
+    }
     await anotar({
       usuarioId: s.user!.id!,
       accion: "ajustes",
