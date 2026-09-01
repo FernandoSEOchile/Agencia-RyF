@@ -58,7 +58,6 @@ export default function FichaCliente({
   datos,
   conversaciones,
   borrar,
-  betaArquitectura,
   arquitectura,
   puedeSubir,
 }: {
@@ -72,7 +71,6 @@ export default function FichaCliente({
   conversaciones: ResumenConversacion[];
   borrar: (datos: FormData) => Promise<void>;
   /** La arquitectura es beta: si el cliente no la tiene, la pestaña no existe. */
-  betaArquitectura: boolean;
   arquitectura: ArquitecturaVista | null;
   puedeSubir: boolean;
 }) {
@@ -86,7 +84,7 @@ export default function FichaCliente({
   return (
     <div className="mt-5">
       <div className="flex gap-1 border-b border-neutral-200">
-        {PESTAÑAS.filter((p) => p.id !== "arquitectura" || betaArquitectura).map((p) => (
+        {PESTAÑAS.map((p) => (
           <button
             key={p.id}
             onClick={() => setActiva(p.id)}
@@ -183,7 +181,7 @@ export default function FichaCliente({
         </div>
       )}
 
-      {betaArquitectura && activa === "arquitectura" && (
+      {activa === "arquitectura" && (
         <Arquitectura clienteId={clienteId} actual={arquitectura} puedeSubir={puedeSubir} />
       )}
 

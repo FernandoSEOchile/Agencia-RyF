@@ -33,10 +33,6 @@ async function permiso(clienteId: string) {
 
   const cliente = await db.cliente.findUnique({ where: { id: clienteId } });
   if (!cliente) return { error: "Ese cliente no existe.", codigo: 404 as const };
-  if (!cliente.betaArquitectura) {
-    return { error: "Este cliente no tiene activada la función de arquitectura.", codigo: 403 as const };
-  }
-
   return { usuarioId: sesion.user.id, dominio: cliente.dominio };
 }
 
