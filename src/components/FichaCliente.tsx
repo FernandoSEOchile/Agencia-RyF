@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Chat from "@/components/Chat";
 import Sitemap from "@/components/Sitemap";
+import Arquitectura, { type ArquitecturaVista } from "@/components/Arquitectura";
 
 export interface Suceso {
   fecha: string;
@@ -31,6 +32,7 @@ export interface ResumenConversacion {
 const PESTAÑAS = [
   { id: "chat", etiqueta: "Conversación" },
   { id: "sitemap", etiqueta: "Sitemap" },
+  { id: "arquitectura", etiqueta: "Arquitectura" },
   { id: "registro", etiqueta: "Registro" },
   { id: "datos", etiqueta: "Datos" },
 ] as const;
@@ -56,6 +58,9 @@ export default function FichaCliente({
   datos,
   conversaciones,
   borrar,
+  betaArquitectura,
+  arquitectura,
+  puedeSubir,
 }: {
   clienteId: string;
   nombre: string;
@@ -66,6 +71,10 @@ export default function FichaCliente({
   datos: { etiqueta: string; valor: string }[];
   conversaciones: ResumenConversacion[];
   borrar: (datos: FormData) => Promise<void>;
+  /** La arquitectura es beta: si el cliente no la tiene, la pestaña no existe. */
+  betaArquitectura: boolean;
+  arquitectura: ArquitecturaVista | null;
+  puedeSubir: boolean;
 }) {
   const [activa, setActiva] = useState<Pestaña>("chat");
   const [sitemapVisto, setSitemapVisto] = useState(false);
@@ -77,7 +86,7 @@ export default function FichaCliente({
   return (
     <div className="mt-5">
       <div className="flex gap-1 border-b border-neutral-200">
-        {PESTAÑAS.map((p) => (
+        {PESTAÑAS.filter((p) => p.id !== "arquitectura" || betaArquitectura).map((p) => (
           <button
             key={p.id}
             onClick={() => setActiva(p.id)}
@@ -172,6 +181,10 @@ export default function FichaCliente({
         <div className={activa === "sitemap" ? "block" : "hidden"}>
           <Sitemap clienteId={clienteId} />
         </div>
+      )}
+
+      {betaArquitectura && activa === "arquitectura" && (
+        <Arquitectura clienteId={clienteId} actual={arquitectura} puedeSubir={puedeSubir} />
       )}
 
       {activa === "registro" && (

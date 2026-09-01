@@ -54,9 +54,14 @@ model Cliente {
   ultimaSonda  DateTime?
   estadoSonda  String?
 
+  /// Función en pruebas: no todos los proyectos la necesitan, así que se
+  /// activa cliente a cliente en vez de aparecerle a todo el mundo.
+  betaArquitectura Boolean @default(false)
+
   accesos  Acceso[]
   registro Registro[]
   trabajos Trabajo[]
+  arquitecturas Arquitectura[]
 }
 
 /// Qué usuario puede trabajar sobre qué cliente.
@@ -198,4 +203,55 @@ model Config {
   valor     String
   cifrado   Boolean  @default(false)
   tocado    DateTime @updatedAt
+}
+
+/// Arquitectura SEO transaccional de un cliente, leída de su Excel AST.
+model Arquitectura {
+  id        String   @id @default(cuid())
+  cliente   Cliente  @relation(fields: [clienteId], references: [id], onDelete: Cascade)
+  clienteId String
+
+  nombre    String
+  archivo   String
+  subidoPor String?
+  creado    DateTime @default(now())
+  cotejado  DateTime?
+
+  nodos     NodoArquitectura[]
+
+  @@index([clienteId, creado])
+}
+
+/// Una sección de la arquitectura: una categoría, subcategoría o página
+/// prevista, con las keywords que debería atacar.
+model NodoArquitectura {
+  id             String       @id @default(cuid())
+  arquitectura   Arquitectura @relation(fields: [arquitecturaId], references: [id], onDelete: Cascade)
+  arquitecturaId String
+
+  slug     String
+  nombre   String
+  nivel    Int
+  orden    Int    @default(0)
+  padreId  String?
+
+  /// Keywords objetivo en JSON, con su volumen.
+  keywords String @default("[]")
+  volumen  Int    @default(0)
+
+  // --- Resultado del cotejo contra el sitio ---
+  //
+  // `dudosa` existe a propósito: forzar cada sección a creada o falta
+  // convertiría en «falta» cosas que existen con otro nombre, y en «creada»
+  // coincidencias que no lo son. Lo dudoso se revisa, no se adivina.
+  estado     String  @default("pendiente") // pendiente | creada | dudosa | falta
+  urlDestino String?
+  objetoId   Int?
+  tipoObjeto String?
+  confianza  Int?
+  nota       String?
+  comoSeCotejo String? // slug | nombre | ia
+
+  @@index([arquitecturaId, estado])
+  @@index([arquitecturaId, orden])
 }

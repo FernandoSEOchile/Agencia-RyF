@@ -16,6 +16,7 @@
     "@anthropic-ai/sdk": "^0.122.0",
     "@prisma/client": "^6.16.2",
     "bcryptjs": "^3.0.3",
+    "exceljs": "^4.4.0",
     "next": "^15.5.19",
     "next-auth": "^5.0.0-beta.32",
     "prisma": "^6.16.2",

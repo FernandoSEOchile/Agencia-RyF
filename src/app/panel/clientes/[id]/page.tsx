@@ -44,6 +44,16 @@ export default async function Ficha({
 
   const puedeEscribir = rol !== "LECTOR" && cliente.soloLectura === false;
 
+  // La arquitectura se carga solo si el cliente tiene la beta: leerla para
+  // todos sería una consulta por cada ficha que nadie va a mirar.
+  const arq = cliente.betaArquitectura
+    ? await db.arquitectura.findFirst({
+        where: { clienteId: id },
+        orderBy: { creado: "desc" },
+        include: { nodos: { orderBy: { orden: "asc" } } },
+      })
+    : null;
+
   // Se piden en paralelo y ningún fallo bloquea al resto: un endpoint que la
   // versión instalada del conector no tiene no debe vaciar la ficha entera.
   const [log, productos, terminos, registroPanel, conversaciones] = await Promise.all([
@@ -142,6 +152,28 @@ export default async function Ficha({
     redirect(`/panel/clientes/${id}`);
   }
 
+  /** Activa o desactiva la beta de arquitectura en este cliente. */
+  async function alternarBeta() {
+    "use server";
+    const s = await auth();
+    if (!s?.user?.id) redirect("/entrar");
+    const r = (s.user as { rol?: string }).rol;
+    if (r !== "ADMIN" && r !== "GESTOR") redirect(`/panel/clientes/${id}`);
+
+    const c = await db.cliente.findUnique({ where: { id }, select: { betaArquitectura: true } });
+    await db.cliente.update({
+      where: { id },
+      data: { betaArquitectura: !c?.betaArquitectura },
+    });
+    await anotar({
+      usuarioId: s.user.id,
+      clienteId: id,
+      accion: "beta",
+      resumen: c?.betaArquitectura ? "Arquitectura desactivada" : "Arquitectura activada",
+    });
+    redirect(`/panel/clientes/${id}`);
+  }
+
   async function nuevaConversacion() {
     "use server";
     const s = await auth();
@@ -194,6 +226,20 @@ export default async function Ficha({
               Comprobar
             </button>
           </form>
+          {(rol === "ADMIN" || rol === "GESTOR") && (
+            <form action={alternarBeta}>
+              <button
+                title="Función en pruebas: cotejar la arquitectura SEO contra lo que existe en el sitio"
+                className={`rounded-lg border px-3 py-1.5 text-xs font-medium transition ${
+                  cliente.betaArquitectura
+                    ? "border-[#ff6b00] bg-[#ff6b00]/10 text-[#ff6b00]"
+                    : "border-neutral-200 text-neutral-500 hover:border-neutral-300"
+                }`}
+              >
+                Arquitectura {cliente.betaArquitectura ? "activada" : "desactivada"}
+              </button>
+            </form>
+          )}
         </div>
       </header>
 
@@ -209,6 +255,32 @@ export default async function Ficha({
         puedeEscribir={puedeEscribir}
         historialInicial={historial}
         conversacionInicial={conversacion?.id ?? null}
+        betaArquitectura={cliente.betaArquitectura}
+        puedeSubir={rol !== "LECTOR"}
+        arquitectura={
+          arq
+            ? {
+                id: arq.id,
+                nombre: arq.nombre,
+                archivo: arq.archivo,
+                creado: arq.creado.toISOString(),
+                cotejado: arq.cotejado ? arq.cotejado.toISOString() : null,
+                nodos: arq.nodos.map((n) => ({
+                  id: n.id,
+                  slug: n.slug,
+                  nombre: n.nombre,
+                  nivel: n.nivel,
+                  volumen: n.volumen,
+                  keywords: (JSON.parse(n.keywords) as unknown[]).length,
+                  estado: n.estado,
+                  urlDestino: n.urlDestino,
+                  confianza: n.confianza,
+                  nota: n.nota,
+                  comoSeCotejo: n.comoSeCotejo,
+                })),
+              }
+            : null
+        }
         conversaciones={conversaciones.map((x) => ({
           id: x.id,
           titulo: x.titulo,
