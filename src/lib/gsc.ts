@@ -50,42 +50,20 @@ export function urlRedireccion(): string {
   return `${base}/api/gsc/callback`;
 }
 
-/** Credenciales de la aplicación de Google, o null si nadie las configuró. */
+/**
+ * Credenciales de la aplicación de Google.
+ *
+ * Van en el entorno del servidor y no en la base: son del producto, no de cada
+ * cliente. Todas las instalaciones usan la misma aplicación de Google, así que
+ * pedirlas por pantalla convertía en tarea de configuración algo que se decide
+ * una vez y no se vuelve a tocar.
+ */
 export async function aplicacion(): Promise<Aplicacion | null> {
-  const filas = await db.config.findMany({
-    where: { clave: { in: ["gsc_client_id", "gsc_client_secret"] } },
-  });
+  const id = process.env.GSC_CLIENT_ID?.trim();
+  const secreto = process.env.GSC_CLIENT_SECRET?.trim();
+  if (!id || !secreto) return null;
 
-  const id = filas.find((f) => f.clave === "gsc_client_id")?.valor;
-  const bruto = filas.find((f) => f.clave === "gsc_client_secret");
-  if (!id || !bruto) return null;
-
-  try {
-    return {
-      id,
-      secreto: bruto.cifrado ? descifrar(bruto.valor) : bruto.valor,
-      redireccion: urlRedireccion(),
-    };
-  } catch {
-    return null;
-  }
-}
-
-export async function guardarAplicacion(id: string, secreto: string) {
-  await db.config.upsert({
-    where: { clave: "gsc_client_id" },
-    update: { valor: id.trim(), cifrado: false },
-    create: { clave: "gsc_client_id", valor: id.trim(), cifrado: false },
-  });
-  await db.config.upsert({
-    where: { clave: "gsc_client_secret" },
-    update: { valor: cifrar(secreto.trim()), cifrado: true },
-    create: { clave: "gsc_client_secret", valor: cifrar(secreto.trim()), cifrado: true },
-  });
-}
-
-export async function borrarAplicacion() {
-  await db.config.deleteMany({ where: { clave: { in: ["gsc_client_id", "gsc_client_secret"] } } });
+  return { id, secreto, redireccion: urlRedireccion() };
 }
 
 /**

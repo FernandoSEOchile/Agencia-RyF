@@ -53,6 +53,11 @@ services:
       APPSEO_CLAVE_CIFRADO: ${APPSEO_CLAVE_CIFRADO:?falta APPSEO_CLAVE_CIFRADO en .env}
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:?falta ANTHROPIC_API_KEY en .env}
       ANTHROPIC_MODEL: ${ANTHROPIC_MODEL:-claude-opus-5}
+      # Aplicación de Google para Search Console. Es la misma para todo el
+      # panel, así que vive aquí y no en la base: no es configuración de
+      # cliente, es del producto.
+      GSC_CLIENT_ID: ${GSC_CLIENT_ID:-}
+      GSC_CLIENT_SECRET: ${GSC_CLIENT_SECRET:-}
     expose:
       - "3000"
 

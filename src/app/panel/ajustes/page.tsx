@@ -16,7 +16,7 @@ import {
   espacioTrabajo,
 } from "@/lib/config";
 import { credenciales, guardarCredenciales, borrarCredenciales, saldo, estadoCuenta } from "@/lib/dataforseo";
-import { aplicacion, guardarAplicacion, borrarAplicacion, urlRedireccion } from "@/lib/gsc";
+import { aplicacion, urlRedireccion } from "@/lib/gsc";
 
 export const metadata = { title: "Ajustes · Panel AppSEO" };
 export const dynamic = "force-dynamic";
@@ -79,29 +79,6 @@ export default async function Ajustes({
   const atrasados = plugin
     ? clientes.filter((c) => c.version && c.version !== plugin.version)
     : [];
-
-  async function conectarGsc(datos: FormData) {
-    "use server";
-    const s = await exigirAdmin();
-    const id = String(datos.get("clientId") || "").trim();
-    const secreto = String(datos.get("clientSecret") || "").trim();
-
-    if (!id || !secreto) {
-      redirect("/panel/ajustes?error=" + encodeURIComponent("Faltan el ID o el secreto de cliente."));
-    }
-
-    await guardarAplicacion(id, secreto);
-    await anotar({ usuarioId: s.user!.id, accion: "ajustes", resumen: "Credenciales OAuth de Search Console guardadas" });
-    redirect("/panel/ajustes?ok=" + encodeURIComponent("Search Console configurado. Ahora conéctalo desde cada cliente."));
-  }
-
-  async function desconectarGsc() {
-    "use server";
-    const s = await exigirAdmin();
-    await borrarAplicacion();
-    await anotar({ usuarioId: s.user!.id, accion: "ajustes", resumen: "Credenciales OAuth de Search Console borradas" });
-    redirect("/panel/ajustes?ok=" + encodeURIComponent("Search Console desconectado."));
-  }
 
   async function guardarDataForSeo(datos: FormData) {
     "use server";
@@ -407,55 +384,34 @@ export default async function Ajustes({
           <h2 className="text-[15px] font-semibold">Search Console</h2>
           <p className="mt-1 text-[13px] text-[color:var(--tinta-media)]">
             Las posiciones reales de lo que cada sitio ya posiciona, gratis y directamente de Google.
-            Aquí van las credenciales de la aplicación; después, cada usuario autoriza su propia cuenta
-            desde la ficha del cliente y solo ve sus propias propiedades.
+            La aplicación de Google se configura en el servidor y no aquí: es la misma para todo el
+            panel y no cambia nunca. Cada persona autoriza su cuenta desde la ficha del cliente.
           </p>
 
           <p className="mt-3 flex flex-wrap items-center gap-2 text-[13px]">
             {gsc ? (
               <>
-                <span className="pastilla bg-emerald-50 text-emerald-700">configurado</span>
+                <span className="pastilla bg-emerald-50 text-emerald-700">activo</span>
                 <span className="break-all font-mono text-[12px] text-[color:var(--tinta-media)]">
                   {gsc.id}
                 </span>
               </>
             ) : (
-              <span className="text-[color:var(--tinta-suave)]">Sin configurar.</span>
+              <span className="pastilla bg-amber-50 text-amber-700">sin configurar en el servidor</span>
             )}
           </p>
 
-          <div className="mt-3 rounded-xl bg-black/[0.03] px-4 py-3">
-            <p className="rotulo">URI de redirección autorizada</p>
-            <p className="mt-1 break-all font-mono text-[12px]">{urlRedireccion()}</p>
-            <p className="mt-1.5 text-[12px] text-[color:var(--tinta-suave)]">
-              Pégala tal cual en Google Cloud, en el cliente OAuth. Si no coincide carácter por
-              carácter, Google rechaza la autorización.
+          {!gsc && (
+            <p className="mt-3 rounded-xl bg-black/[0.03] px-4 py-3 text-[12px] leading-relaxed text-[color:var(--tinta-media)]">
+              Faltan <code className="font-mono">GSC_CLIENT_ID</code> y{" "}
+              <code className="font-mono">GSC_CLIENT_SECRET</code> en el entorno del servidor.
             </p>
-          </div>
+          )}
 
-          <form action={conectarGsc} className="mt-4 flex flex-wrap items-end gap-2">
-            <label className="flex min-w-[240px] flex-1 flex-col gap-1.5">
-              <span className="rotulo">ID de cliente</span>
-              <input
-                name="clientId"
-                defaultValue={gsc?.id ?? ""}
-                placeholder="…apps.googleusercontent.com"
-                className="rounded-xl border border-[color:var(--linea-fuerte)] bg-white px-3.5 py-2 font-mono text-[12px] outline-none transition focus:border-[color:var(--acento)]"
-              />
-            </label>
-            <label className="flex min-w-[200px] flex-1 flex-col gap-1.5">
-              <span className="rotulo">Secreto de cliente</span>
-              <input
-                name="clientSecret"
-                type="password"
-                placeholder="••••••••"
-                className="rounded-xl border border-[color:var(--linea-fuerte)] bg-white px-3.5 py-2 text-[13px] outline-none transition focus:border-[color:var(--acento)]"
-              />
-            </label>
-            <button type="submit" className="boton-fuerte">
-              Guardar
-            </button>
-          </form>
+          <div className="mt-3 rounded-xl bg-black/[0.03] px-4 py-3">
+            <p className="rotulo">URI de redirección autorizada en Google</p>
+            <p className="mt-1 break-all font-mono text-[12px]">{urlRedireccion()}</p>
+          </div>
 
           {cuentasGsc.length > 0 && (
             <div className="mt-5 border-t border-[color:var(--linea)] pt-4">
@@ -471,14 +427,6 @@ export default async function Ajustes({
                 ))}
               </ul>
             </div>
-          )}
-
-          {gsc && (
-            <form action={desconectarGsc} className="mt-3 border-t border-[color:var(--linea)] pt-3">
-              <button className="text-[12px] text-[color:var(--tinta-suave)] transition hover:text-red-600">
-                Borrar las credenciales de la aplicación
-              </button>
-            </form>
           )}
         </section>
 
