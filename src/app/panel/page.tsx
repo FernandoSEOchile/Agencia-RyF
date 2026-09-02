@@ -67,7 +67,7 @@ export default async function Panel() {
       <main className="contenedor py-14">
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
-            <h1 className="titulo-panel text-[30px] sm:text-[36px]">Clientes</h1>
+            <h1 className="text-[32px] font-semibold leading-tight">Clientes</h1>
             <p className="mt-1 text-[15px] text-[color:var(--tinta-media)]">
               {clientes.length} {clientes.length === 1 ? "sitio conectado" : "sitios conectados"}
               {conEscritura > 0 && ` · ${conEscritura} con escritura`}

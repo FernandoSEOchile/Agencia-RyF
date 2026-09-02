@@ -117,7 +117,7 @@ export default async function Usuarios({
           ← Clientes
         </Link>
 
-        <h1 className="titulo-panel text-[30px] sm:text-[36px]">Usuarios</h1>
+        <h1 className="text-[30px] font-semibold leading-tight">Usuarios</h1>
         <p className="mt-0.5 text-sm text-neutral-500">
           Quién entra al panel y qué puede hacer. Solo los administradores ven esta pantalla.
         </p>

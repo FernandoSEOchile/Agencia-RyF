@@ -256,7 +256,7 @@ export default async function Ajustes({
           ← Clientes
         </Link>
 
-        <h1 className="titulo-panel text-[30px] sm:text-[36px]">Ajustes</h1>
+        <h1 className="text-[30px] font-semibold leading-tight">Ajustes</h1>
         <p className="mt-0.5 text-sm text-neutral-500">
           La clave de la API y el modelo con el que responde el asistente. Solo lo ven los administradores.
         </p>

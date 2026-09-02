@@ -186,7 +186,7 @@ export default async function Ficha({
 
       <header className="mt-4 flex flex-wrap items-center justify-between gap-3">
         <div className="min-w-0">
-          <h1 className="titulo-cliente truncate text-[28px] leading-tight">{cliente.nombre}</h1>
+          <h1 className="truncate text-[28px] font-semibold leading-tight">{cliente.nombre}</h1>
           <p className="mt-0.5 flex flex-wrap items-center gap-2 text-[13px] text-[color:var(--tinta-media)]">
             <a
               href={`https://${cliente.dominio}`}
