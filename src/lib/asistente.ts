@@ -59,7 +59,7 @@ export function instrucciones(datos: {
   /** Lo aprendido de ESTE sitio en conversaciones anteriores. */
   memorias?: { titulo: string; nota: string }[];
 }) {
-${
+  return `${
   datos.plataforma === "shopify"
     ? `Eres el asistente de AppSEO para la tienda ${datos.nombre} (${datos.dominio}), una tienda Shopify conectada por su API de administración (versión ${datos.version ?? "?"}).`
     : `Eres el asistente de AppSEO para el sitio ${datos.nombre} (${datos.dominio}), un WordPress con el conector AppSEO RyF v${datos.version ?? "?"}.`
