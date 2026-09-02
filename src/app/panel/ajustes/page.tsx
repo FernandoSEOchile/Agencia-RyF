@@ -1,5 +1,3 @@
-import { readFile, stat } from "node:fs/promises";
-import { join } from "node:path";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
@@ -29,31 +27,6 @@ async function exigirAdmin() {
   return sesion;
 }
 
-/**
- * Datos del paquete que se sirve a los clientes.
- *
- * Se leen del disco en vez de guardarlos en la base: la fuente de verdad es el
- * archivo que realmente se descarga, y así no pueden desincronizarse.
- */
-async function paquetePublicado() {
-  try {
-    const carpeta = join(process.cwd(), "public", "plugin");
-    const [meta, info] = await Promise.all([
-      readFile(join(carpeta, "version.json"), "utf8"),
-      stat(join(carpeta, "appseo-ryf.zip")),
-    ]);
-    const d = JSON.parse(meta) as { version: string; notas?: string; publicado?: string };
-    return {
-      version: d.version,
-      notas: d.notas ?? "",
-      publicado: d.publicado ? new Date(d.publicado) : null,
-      kb: Math.round(info.size / 1024),
-    };
-  } catch {
-    return null;
-  }
-}
-
 export default async function Ajustes({
   searchParams,
 }: {
@@ -69,17 +42,6 @@ export default async function Ajustes({
     select: { correo: true, creado: true, _count: { select: { clientes: true } } },
     orderBy: { creado: "asc" },
   });
-  const plugin = await paquetePublicado();
-  const clientes = await db.cliente.findMany({
-    where: { activo: true },
-    select: { nombre: true, dominio: true, version: true },
-    orderBy: { nombre: "asc" },
-  });
-
-  const atrasados = plugin
-    ? clientes.filter((c) => c.version && c.version !== plugin.version)
-    : [];
-
   async function guardarDataForSeo(datos: FormData) {
     "use server";
     const s = await exigirAdmin();
@@ -296,56 +258,6 @@ export default async function Ajustes({
                 Borrar la clave del panel
               </button>
             </form>
-          )}
-        </section>
-
-        {/* --- Plugin --- */}
-        <section className="mt-5 rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm">
-          <h2 className="text-sm font-semibold text-neutral-900">Plugin del conector</h2>
-
-          {plugin ? (
-            <>
-              <div className="mt-3 flex flex-wrap items-center gap-3">
-                <a
-                  href="/api/plugin/descargar"
-                  className="rounded-lg bg-[#111111] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#ff6b00]"
-                >
-                  Descargar v{plugin.version}
-                </a>
-                <span className="text-xs tabular-nums text-neutral-500">
-                  {plugin.kb} KB
-                  {plugin.publicado &&
-                    ` · publicado ${plugin.publicado.toISOString().slice(0, 10)}`}
-                </span>
-              </div>
-
-              {plugin.notas && <p className="mt-2 text-xs text-neutral-500">{plugin.notas}</p>}
-
-              <p className="mt-3 border-t border-neutral-100 pt-3 text-xs text-neutral-500">
-                Los sitios con la actualización automática activada se ponen al día solos. Este ZIP es
-                para instalarlo por primera vez o cuando haya que hacerlo a mano.
-              </p>
-
-              {atrasados.length > 0 && (
-                <div className="mt-3">
-                  <p className="text-[11px] font-semibold uppercase tracking-wide text-amber-700">
-                    {atrasados.length} {atrasados.length === 1 ? "cliente" : "clientes"} sin actualizar
-                  </p>
-                  <ul className="mt-1.5 flex flex-wrap gap-x-4 gap-y-1 text-xs text-neutral-600">
-                    {atrasados.map((c) => (
-                      <li key={c.dominio} className="tabular-nums">
-                        {c.nombre} <span className="text-neutral-400">v{c.version}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-            </>
-          ) : (
-            <p className="mt-2 text-xs text-neutral-500">
-              No hay ningún paquete publicado todavía. Se publica desde el proyecto con{" "}
-              <code className="font-mono">npm run plugin:publicar</code>.
-            </p>
           )}
         </section>
 
