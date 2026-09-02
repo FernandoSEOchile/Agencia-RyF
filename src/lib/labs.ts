@@ -138,7 +138,12 @@ export async function explorarDominio(dominio: string, pais = 2152): Promise<Pan
 
   const [resumen, historico, keywords, competidores] = await Promise.all([
     pedir(c, "domain_rank_overview", comun),
-    pedir(c, "historical_rank_overview", comun),
+    // Sin fecha de inicio devuelve solo los últimos meses. Se le piden tres
+    // años: la curva de visibilidad no dice nada con seis puntos.
+    pedir(c, "historical_rank_overview", {
+      ...comun,
+      date_from: new Date(Date.now() - 1095 * 86_400_000).toISOString().slice(0, 10),
+    }),
     pedir(c, "ranked_keywords", {
       ...comun,
       limit: 200,

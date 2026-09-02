@@ -60,7 +60,14 @@ const MESES_CORTOS = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "s
 
 /** Curva de visibilidad, dibujada a mano: es una línea, no hace falta librería. */
 function Curva({ datos }: { datos: { mes: string; trafico: number }[] }) {
-  if (datos.length < 2) return null;
+  if (datos.length < 2) {
+    return (
+      <p className="mt-3 rounded-2xl bg-black/[0.03] px-4 py-3 text-[13px] text-[color:var(--tinta-media)]">
+        El proveedor no tiene histórico de este dominio. Suele pasar con sitios pequeños o recientes:
+        su base los empieza a seguir cuando aparecen en suficientes búsquedas.
+      </p>
+    );
+  }
 
   const ancho = 700;
   const alto = 130;
@@ -82,7 +89,7 @@ function Curva({ datos }: { datos: { mes: string; trafico: number }[] }) {
       <div className="flex flex-wrap items-baseline gap-2">
         <p className="rotulo">Tráfico orgánico estimado</p>
         <p className="text-[12px] text-[color:var(--tinta-suave)]">
-          máximo {numero(cima)} visitas al mes
+          {datos.length} {datos.length === 1 ? "mes" : "meses"} · máximo {numero(cima)} visitas al mes
         </p>
       </div>
 
