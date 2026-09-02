@@ -8,7 +8,21 @@ interface Fila {
   impresiones: number;
   ctr: number;
   posicion: number;
+  pagina: string | null;
+  paginas: number;
 }
+
+/** Columnas ordenables. El sentido inicial de cada una es el útil por defecto. */
+const COLUMNAS = [
+  { id: "consulta", texto: "Consulta", ancho: "", num: false },
+  { id: "pagina", texto: "URL que posiciona", ancho: "", num: false },
+  { id: "posicion", texto: "Posición", ancho: "text-right", num: true },
+  { id: "clics", texto: "Clics", ancho: "text-right", num: true },
+  { id: "impresiones", texto: "Impresiones", ancho: "text-right", num: true },
+  { id: "ctr", texto: "CTR", ancho: "text-right", num: true },
+] as const;
+
+type Columna = (typeof COLUMNAS)[number]["id"];
 
 interface Respuesta {
   configurado: boolean;
@@ -57,6 +71,20 @@ export default function SearchConsole({
   const [dias, setDias] = useState<number>(28);
   const [vista, setVista] = useState<(typeof VISTAS)[number][0]>("oportunidades");
   const [busca, setBusca] = useState("");
+  const [orden, setOrden] = useState<{ col: Columna; asc: boolean }>({
+    col: "impresiones",
+    asc: false,
+  });
+
+  /** Al cambiar de columna se arranca por lo interesante: lo alto en números,
+   *  alfabético en textos. Volver a pulsar invierte. */
+  function ordenar(col: Columna) {
+    setOrden((o) =>
+      o.col === col
+        ? { col, asc: !o.asc }
+        : { col, asc: !COLUMNAS.find((c) => c.id === col)!.num }
+    );
+  }
 
   async function cargar(d: number) {
     setCargando(true);
@@ -213,9 +241,22 @@ export default function SearchConsole({
   const oportunidades = filas.filter(esOportunidad);
 
   const visibles = (vista === "oportunidades" ? oportunidades : filas)
-    .filter((f) => !busca.trim() || f.consulta.includes(busca.trim().toLowerCase()))
-    .sort((a, b) => b.impresiones - a.impresiones)
-    .slice(0, 100);
+    .filter(
+      (f) =>
+        !busca.trim() ||
+        f.consulta.includes(busca.trim().toLowerCase()) ||
+        (f.pagina ?? "").toLowerCase().includes(busca.trim().toLowerCase())
+    )
+    .sort((a, b) => {
+      const x = a[orden.col] ?? "";
+      const y = b[orden.col] ?? "";
+      const cmp =
+        typeof x === "number" && typeof y === "number"
+          ? x - y
+          : String(x).localeCompare(String(y), "es");
+      return orden.asc ? cmp : -cmp;
+    })
+    .slice(0, 200);
 
   const clics = filas.reduce((s, f) => s + f.clics, 0);
   const impresiones = filas.reduce((s, f) => s + f.impresiones, 0);
@@ -300,21 +341,31 @@ export default function SearchConsole({
       </div>
 
       <div className="tarjeta mt-3 overflow-x-auto">
-        <table className="w-full min-w-[680px] border-collapse text-[13px]">
+        <table className="w-full min-w-[840px] border-collapse text-[13px]">
           <thead>
             <tr className="border-b border-[color:var(--linea)] text-left">
-              <th className="rotulo px-5 py-3">Consulta</th>
-              <th className="rotulo px-3 py-3 text-right">Posición</th>
-              <th className="rotulo px-3 py-3 text-right">Clics</th>
-              <th className="rotulo px-3 py-3 text-right">Impresiones</th>
-              <th className="rotulo px-3 py-3 text-right">CTR</th>
+              {COLUMNAS.map((c) => (
+                <th key={c.id} className={`rotulo px-3 py-3 first:px-5 ${c.ancho}`}>
+                  <button
+                    onClick={() => ordenar(c.id)}
+                    className={`rotulo transition hover:text-[color:var(--tinta)] ${
+                      orden.col === c.id ? "!text-[color:var(--tinta)]" : ""
+                    }`}
+                  >
+                    {c.texto}
+                    <span className="ml-1 inline-block w-2 text-[9px]">
+                      {orden.col === c.id ? (orden.asc ? "▲" : "▼") : ""}
+                    </span>
+                  </button>
+                </th>
+              ))}
               <th className="rotulo px-3 py-3"></th>
             </tr>
           </thead>
           <tbody className="divide-y divide-[color:var(--linea)]">
             {visibles.length === 0 ? (
               <tr>
-                <td colSpan={6} className="px-5 py-8 text-center text-[13px] text-[color:var(--tinta-suave)]">
+                <td colSpan={7} className="px-5 py-8 text-center text-[13px] text-[color:var(--tinta-suave)]">
                   {vista === "oportunidades"
                     ? "No hay consultas entre los puestos 4 y 20 con impresiones suficientes."
                     : "Search Console no devolvió datos para este periodo."}
@@ -322,8 +373,33 @@ export default function SearchConsole({
               </tr>
             ) : (
               visibles.map((f) => (
-                <tr key={f.consulta} className="transition hover:bg-black/[0.015]">
-                  <td className="px-5 py-2.5">{f.consulta}</td>
+                <tr key={f.consulta} className="align-top transition hover:bg-black/[0.015]">
+                  <td className="px-5 py-2.5">
+                    {f.consulta}
+                    {f.paginas > 1 && (
+                      <span
+                        className="ml-2 pastilla bg-amber-50 text-amber-700"
+                        title={`${f.paginas} páginas del sitio compiten por esta consulta`}
+                      >
+                        {f.paginas} URLs
+                      </span>
+                    )}
+                  </td>
+                  <td className="px-3 py-2.5">
+                    {f.pagina ? (
+                      <a
+                        href={f.pagina}
+                        target="_blank"
+                        rel="noopener"
+                        className="block max-w-[260px] truncate underline-offset-2 transition hover:text-[color:var(--acento)] hover:underline"
+                        title={f.pagina}
+                      >
+                        {f.pagina.replace(/^https?:\/\/[^/]+/, "") || "/"}
+                      </a>
+                    ) : (
+                      <span className="text-[color:var(--tinta-suave)]">—</span>
+                    )}
+                  </td>
                   <td
                     className={`px-3 py-2.5 text-right font-semibold tabular-nums ${
                       f.posicion <= 3

@@ -37,6 +37,10 @@ export interface FilaConsulta {
   impresiones: number;
   ctr: number;
   posicion: number;
+  /** La página que Google muestra más veces para esta consulta. */
+  pagina: string | null;
+  /** Cuántas páginas del sitio aparecen para ella. Más de una es canibalización. */
+  paginas: number;
 }
 
 export interface Propiedad {
@@ -249,7 +253,7 @@ export async function consultas(
   conexionId: string,
   propiedad: string,
   dias = 28,
-  limite = 500
+  limite = 2000
 ): Promise<FilaConsulta[]> {
   const t = await token(conexionId);
 
@@ -259,7 +263,10 @@ export async function consultas(
     body: JSON.stringify({
       startDate: haceDias(dias + 3),
       endDate: haceDias(3),
-      dimensions: ["query"],
+      // Consulta y página a la vez: sin la segunda no se sabe qué URL está
+      // rankeando, que es justo lo que hace falta para decidir dónde tocar. Y
+      // de paso deja ver cuándo hay dos páginas peleando por lo mismo.
+      dimensions: ["query", "page"],
       rowLimit: limite,
       type: "web",
     }),
@@ -274,15 +281,46 @@ export async function consultas(
 
   const j = await r.json();
 
-  return (j.rows ?? []).map(
-    (f: { keys: string[]; clicks: number; impressions: number; ctr: number; position: number }) => ({
-      consulta: f.keys[0],
-      clics: f.clicks,
-      impresiones: f.impressions,
-      ctr: f.ctr,
-      // Un decimal basta: es un promedio, y dos decimales darían una falsa
-      // sensación de precisión.
-      posicion: Math.round(f.position * 10) / 10,
-    })
-  );
+  type Cruda = { keys: string[]; clicks: number; impressions: number; ctr: number; position: number };
+
+  // Vienen tantas filas como combinaciones de consulta y página, así que hay
+  // que juntarlas: una consulta es una fila, con la página que más veces se
+  // muestra y la cuenta de cuántas compiten.
+  const porConsulta = new Map<
+    string,
+    { clics: number; impresiones: number; suma: number; paginas: Map<string, number> }
+  >();
+
+  for (const f of (j.rows ?? []) as Cruda[]) {
+    const [consulta, pagina] = f.keys;
+    const acc =
+      porConsulta.get(consulta) ??
+      { clics: 0, impresiones: 0, suma: 0, paginas: new Map<string, number>() };
+
+    acc.clics += f.clicks;
+    acc.impresiones += f.impressions;
+    // La posición se pondera por impresiones: promediar a secas daría el mismo
+    // peso a una página que sale mil veces y a otra que sale tres.
+    acc.suma += f.position * f.impressions;
+    acc.paginas.set(pagina, (acc.paginas.get(pagina) ?? 0) + f.impressions);
+
+    porConsulta.set(consulta, acc);
+  }
+
+  return [...porConsulta.entries()].map(([consulta, a]) => {
+    const ordenadas = [...a.paginas.entries()].sort((x, y) => y[1] - x[1]);
+    return {
+      consulta,
+      clics: a.clics,
+      impresiones: a.impresiones,
+      ctr: a.impresiones ? a.clics / a.impresiones : 0,
+      // Un decimal basta: es un promedio, y dos darían una falsa sensación de
+      // precisión.
+      posicion: a.impresiones ? Math.round((a.suma / a.impresiones) * 10) / 10 : 0,
+      pagina: ordenadas[0]?.[0] ?? null,
+      // Solo cuentan las páginas con impresiones reales: una con dos apariciones
+      // sueltas no es canibalización, es ruido.
+      paginas: ordenadas.filter(([, imp]) => imp >= 3).length,
+    };
+  });
 }
