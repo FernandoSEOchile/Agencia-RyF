@@ -10,6 +10,13 @@ import { NextRequest } from "next/server";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { api, veTodo } from "@/lib/clientes";
+import {
+  tiendaDe,
+  listarProductos,
+  listarColecciones,
+  listarPaginas,
+  listarArticulos,
+} from "@/lib/shopify";
 
 export const runtime = "nodejs";
 
@@ -22,7 +29,7 @@ interface EntradaLog {
 }
 
 export interface Fila {
-  id: number;
+  id: number | string;
   titulo: string;
   url: string;
   subtipo: string;
@@ -51,6 +58,16 @@ export async function GET(req: NextRequest) {
       where: { usuarioId_clienteId: { usuarioId: sesion.user.id, clienteId } },
     });
     if (!acceso) return Response.json({ error: "Sin acceso." }, { status: 403 });
+  }
+
+  const cliente = await db.cliente.findUnique({
+    where: { id: clienteId },
+    select: { plataforma: true, tienda: true, secreto: true },
+  });
+  if (!cliente) return Response.json({ error: "Ese cliente no existe." }, { status: 404 });
+
+  if (cliente.plataforma === "shopify") {
+    return inventarioShopify(cliente, clienteId, tipo);
   }
 
   // El registro del sitio, indexado por objeto. Solo la operación más
@@ -135,4 +152,101 @@ export async function GET(req: NextRequest) {
     cambio: cambioDe(["post", "page", "contenido"], c.id),
   }));
   return Response.json({ filas, total: filas.length, paginas: 1, pagina: 1 });
+}
+
+
+/**
+ * El mismo inventario, para tiendas Shopify.
+ *
+ * Va aparte y no adaptando el de WordPress porque las fuentes no se parecen:
+ * allí el propio sitio lleva un registro de operaciones que el conector expone;
+ * aquí no existe tal cosa, así que el «último cambio» sale del registro del
+ * panel y la fecha de modificación la da Shopify en cada objeto.
+ */
+async function inventarioShopify(
+  cliente: { tienda: string | null; secreto: string },
+  clienteId: string,
+  tipo: string
+) {
+  let t;
+  try {
+    t = tiendaDe(cliente);
+  } catch (e) {
+    return Response.json(
+      { error: e instanceof Error ? e.message : "Tienda mal configurada." },
+      { status: 400 }
+    );
+  }
+
+  // Lo que hizo el panel sobre este cliente. No trae identificador de objeto,
+  // así que se cruza por nombre: es menos exacto que en WordPress, y por eso
+  // solo se muestra cuando coincide de verdad.
+  const registro = await db.registro.findMany({
+    where: { clienteId, accion: { in: ["producto", "categoria", "contenido"] } },
+    orderBy: { creado: "desc" },
+    take: 200,
+    select: { creado: true, accion: true, resumen: true },
+  });
+
+  const cambioDe = (titulo: string) => {
+    const r = registro.find((x) => titulo && x.resumen.includes(titulo));
+    return r
+      ? { fecha: r.creado.toISOString().slice(0, 16).replace("T", " "), accion: r.accion, resumen: r.resumen }
+      : null;
+  };
+
+  const corta = (f: string | null) => (f ? f.slice(0, 16).replace("T", " ") : null);
+
+  try {
+    if (tipo === "categorias") {
+      const cols = await listarColecciones(t, 250);
+      const filas: Fila[] = cols.map((c) => ({
+        id: c.id,
+        titulo: c.titulo,
+        url: c.url,
+        subtipo: `colección · ${c.productos} prod.`,
+        estado: c.descripcionHtml?.trim() ? "con descripción" : "sin descripción",
+        palabras: null,
+        modificado: corta(c.modificado),
+        cambio: cambioDe(c.titulo),
+      }));
+      return Response.json({ filas, total: filas.length, paginas: 1, pagina: 1 });
+    }
+
+    if (tipo === "productos") {
+      const r = await listarProductos(t, { limite: 100 });
+      const filas: Fila[] = r.productos.map((p) => ({
+        id: p.id,
+        titulo: p.titulo,
+        url: p.url,
+        subtipo: "producto",
+        estado: p.estado === "ACTIVE" ? "publish" : p.estado.toLowerCase(),
+        palabras: p.descripcionHtml ? p.descripcionHtml.replace(/<[^>]+>/g, " ").split(/\s+/).filter(Boolean).length : 0,
+        modificado: corta(p.modificado),
+        cambio: cambioDe(p.titulo),
+      }));
+      return Response.json({ filas, total: filas.length, paginas: 1, pagina: 1 });
+    }
+
+    // Páginas o entradas del blog.
+    const lista = tipo === "posts" ? await listarArticulos(t, 250) : await listarPaginas(t, 250);
+
+    const filas: Fila[] = lista.map((x) => ({
+      id: x.id,
+      titulo: x.titulo,
+      url: x.url,
+      subtipo: x.tipo === "articulo" ? "entrada" : "página",
+      estado: x.publicado ? "publish" : "draft",
+      palabras: null,
+      modificado: corta(x.modificado),
+      cambio: cambioDe(x.titulo),
+    }));
+
+    return Response.json({ filas, total: filas.length, paginas: 1, pagina: 1 });
+  } catch (e) {
+    return Response.json(
+      { error: e instanceof Error ? e.message : "Shopify no respondió." },
+      { status: 502 }
+    );
+  }
 }

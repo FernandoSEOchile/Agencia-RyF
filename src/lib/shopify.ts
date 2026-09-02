@@ -26,6 +26,7 @@ export interface ProductoShopify {
   titulo: string;
   handle: string;
   estado: string;
+  modificado: string | null;
   descripcionHtml: string | null;
   seoTitulo: string | null;
   seoDescripcion: string | null;
@@ -37,6 +38,7 @@ export interface ColeccionShopify {
   titulo: string;
   handle: string;
   productos: number;
+  modificado: string | null;
   descripcionHtml: string | null;
   seoTitulo: string | null;
   seoDescripcion: string | null;
@@ -126,6 +128,7 @@ const CAMPOS_PRODUCTO = `
   title
   handle
   status
+  updatedAt
   descriptionHtml
   seo { title description }
 `;
@@ -164,6 +167,7 @@ function normalizarProducto(p: Record<string, unknown>, dominio: string): Produc
     titulo: String(p.title ?? ""),
     handle: String(p.handle ?? ""),
     estado: String(p.status ?? ""),
+    modificado: typeof p.updatedAt === "string" ? p.updatedAt : null,
     descripcionHtml: (p.descriptionHtml as string) || null,
     seoTitulo: seo.title || null,
     seoDescripcion: seo.description || null,
@@ -224,6 +228,7 @@ const CAMPOS_COLECCION = `
   id
   title
   handle
+  updatedAt
   descriptionHtml
   seo { title description }
   productsCount { count }
@@ -237,6 +242,7 @@ function normalizarColeccion(c: Record<string, unknown>, dominio: string): Colec
     titulo: String(c.title ?? ""),
     handle: String(c.handle ?? ""),
     productos: cuenta.count ?? 0,
+    modificado: typeof c.updatedAt === "string" ? c.updatedAt : null,
     descripcionHtml: (c.descriptionHtml as string) || null,
     seoTitulo: seo.title || null,
     seoDescripcion: seo.description || null,
@@ -296,4 +302,63 @@ export async function escribirColeccion(
     antes: normalizarColeccion(previa.collection, t.dominio),
     despues: normalizarColeccion(d.collectionUpdate.collection, t.dominio),
   };
+}
+
+export interface ContenidoShopify {
+  id: string;
+  titulo: string;
+  handle: string;
+  url: string;
+  tipo: "pagina" | "articulo";
+  publicado: boolean;
+  modificado: string | null;
+}
+
+/** Páginas de la tienda: «quiénes somos», «envíos», y demás. */
+export async function listarPaginas(t: Tienda, limite = 100): Promise<ContenidoShopify[]> {
+  const d = await consultar<{ pages: { nodes: Record<string, unknown>[] } }>(
+    t,
+    `query($n: Int!) {
+       pages(first: $n, sortKey: UPDATED_AT, reverse: true) {
+         nodes { id title handle updatedAt isPublished }
+       }
+     }`,
+    { n: Math.min(limite, 250) }
+  );
+
+  return d.pages.nodes.map((p) => ({
+    id: String(p.id ?? ""),
+    titulo: String(p.title ?? ""),
+    handle: String(p.handle ?? ""),
+    url: `https://${t.dominio}/pages/${p.handle}`,
+    tipo: "pagina" as const,
+    publicado: Boolean(p.isPublished),
+    modificado: typeof p.updatedAt === "string" ? p.updatedAt : null,
+  }));
+}
+
+/** Artículos del blog. Shopify puede tener varios blogs; se traen todos juntos. */
+export async function listarArticulos(t: Tienda, limite = 100): Promise<ContenidoShopify[]> {
+  const d = await consultar<{ articles: { nodes: Record<string, unknown>[] } }>(
+    t,
+    `query($n: Int!) {
+       articles(first: $n, sortKey: UPDATED_AT, reverse: true) {
+         nodes { id title handle updatedAt isPublished blog { handle } }
+       }
+     }`,
+    { n: Math.min(limite, 250) }
+  );
+
+  return d.articles.nodes.map((a) => {
+    const blog = (a.blog ?? {}) as { handle?: string };
+    return {
+      id: String(a.id ?? ""),
+      titulo: String(a.title ?? ""),
+      handle: String(a.handle ?? ""),
+      url: `https://${t.dominio}/blogs/${blog.handle ?? "news"}/${a.handle}`,
+      tipo: "articulo" as const,
+      publicado: Boolean(a.isPublished),
+      modificado: typeof a.updatedAt === "string" ? a.updatedAt : null,
+    };
+  });
 }

@@ -17,7 +17,10 @@ export interface UrlSitemap {
 }
 
 /** Rutas donde suele vivir el sitemap, en orden de probabilidad. */
-const CANDIDATOS = ["/wp-sitemap.xml", "/sitemap_index.xml", "/sitemap.xml", "/sitemap-index.xml"];
+const CANDIDATOS_WP = ["/wp-sitemap.xml", "/sitemap_index.xml", "/sitemap.xml", "/sitemap-index.xml"];
+
+/** Shopify sirve siempre /sitemap.xml y ninguna de las de WordPress. */
+const CANDIDATOS_SHOPIFY = ["/sitemap.xml"];
 
 /** Sitemaps que no aportan secciones: autores, etiquetas, imágenes. */
 const IGNORAR = /(author|tag|etiqueta|image|media|attachment)/i;
@@ -53,7 +56,10 @@ async function bajar(url: string): Promise<string | null> {
  * Se limita el número de sub-sitemaps a la vez: un catálogo grande puede
  * declarar decenas, y pedirlos todos de golpe castiga al servidor del cliente.
  */
-export async function leerSitemap(dominio: string): Promise<{
+export async function leerSitemap(
+  dominio: string,
+  plataforma = "wordpress"
+): Promise<{
   urls: UrlSitemap[];
   origen: string | null;
   aviso: string | null;
@@ -63,7 +69,9 @@ export async function leerSitemap(dominio: string): Promise<{
   let xml: string | null = null;
   let origen: string | null = null;
 
-  for (const ruta of CANDIDATOS) {
+  const candidatos = plataforma === "shopify" ? CANDIDATOS_SHOPIFY : CANDIDATOS_WP;
+
+  for (const ruta of candidatos) {
     xml = await bajar(base + ruta);
     if (xml) {
       origen = base + ruta;

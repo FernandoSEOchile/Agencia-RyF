@@ -47,7 +47,11 @@ function segmento(url: string): string {
  * siempre es una categoría, pero en muchos sitios está resuelta como página
  * de aterrizaje, y darla por inexistente sería falso.
  */
-export async function candidatosDe(clienteId: string, dominio?: string): Promise<Candidato[]> {
+export async function candidatosDe(
+  clienteId: string,
+  dominio?: string,
+  plataforma = "wordpress"
+): Promise<Candidato[]> {
   const [terminos, contenido, mapa] = await Promise.all([
     api<{ terminos: { id: number; nombre: string; slug: string; url: string }[] }>(
       clienteId,
@@ -61,7 +65,7 @@ export async function candidatosDe(clienteId: string, dominio?: string): Promise
     ).catch(() => null),
     // El sitemap es la fuente más completa: trae todo lo indexable sin los
     // topes de paginación de la API, y es lo que Google ve.
-    dominio ? leerSitemap(dominio).catch(() => null) : Promise.resolve(null),
+    dominio ? leerSitemap(dominio, plataforma).catch(() => null) : Promise.resolve(null),
   ]);
 
   const lista: Candidato[] = [];
