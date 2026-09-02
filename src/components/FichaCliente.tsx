@@ -7,6 +7,7 @@ import Arquitectura, { type ArquitecturaVista } from "@/components/Arquitectura"
 import Posiciones, { type KeywordVista } from "@/components/Posiciones";
 import Gasto from "@/components/Gasto";
 import Bitacora from "@/components/Bitacora";
+import Backlinks from "@/components/Backlinks";
 
 export interface Suceso {
   fecha: string;
@@ -37,6 +38,7 @@ const PESTAÑAS = [
   { id: "sitemap", etiqueta: "Sitemap" },
   { id: "arquitectura", etiqueta: "Arquitectura" },
   { id: "posiciones", etiqueta: "Posiciones" },
+  { id: "backlinks", etiqueta: "Backlinks" },
   { id: "bitacora", etiqueta: "Bitácora" },
   { id: "gasto", etiqueta: "Gasto" },
   { id: "registro", etiqueta: "Registro" },
@@ -196,6 +198,8 @@ export default function FichaCliente({
       {activa === "arquitectura" && (
         <Arquitectura clienteId={clienteId} actual={arquitectura} puedeSubir={puedeSubir} />
       )}
+
+      {activa === "backlinks" && <Backlinks clienteId={clienteId} puedeEditar={puedeSubir} />}
 
       {activa === "bitacora" && <Bitacora clienteId={clienteId} puedeEditar={puedeSubir} />}
 

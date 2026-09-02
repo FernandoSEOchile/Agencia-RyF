@@ -683,9 +683,31 @@ export function herramientasDe(ctx: Contexto) {
     },
   });
 
+  const enlaces = betaZodTool({
+    name: "ver_backlinks",
+    description:
+      "El perfil de enlaces entrantes del sitio: cuántos dominios distintos lo enlazan, los principales, y con qué textos. Lee la última foto guardada, no consulta al proveedor, así que no cuesta nada. Si no hay ninguna, dilo y sugiere consultarla desde la pestaña Backlinks.",
+    inputSchema: z.object({}),
+    run: async () => {
+      const foto = await db.backlinks.findUnique({ where: { clienteId: ctx.clienteId } });
+      if (!foto) {
+        return "No hay ninguna foto del perfil de enlaces. Se consulta desde la pestaña Backlinks del cliente, y cuesta unos centavos.";
+      }
+
+      const p = JSON.parse(foto.datos);
+      return JSON.stringify({
+        medido: foto.medido.toISOString().slice(0, 10),
+        resumen: p.resumen,
+        dominiosPrincipales: (p.dominios ?? []).slice(0, 25),
+        anclasPrincipales: (p.anclas ?? []).slice(0, 20),
+      });
+    },
+  });
+
   return [
     salud,
     competencia,
+    enlaces,
     bitacora,
     recordar,
     olvidar,

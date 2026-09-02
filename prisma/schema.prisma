@@ -76,6 +76,7 @@ model Cliente {
   memorias      Memoria[]
   gastos        Gasto[]
   bitacoras     Bitacora[]
+  backlinks     Backlinks?
 }
 
 /// Qué usuario puede trabajar sobre qué cliente.
@@ -460,4 +461,21 @@ model Bitacora {
   creado DateTime @default(now())
 
   @@index([clienteId, mes])
+}
+
+/// Última foto del perfil de enlaces de un sitio.
+///
+/// Se guarda entera en vez de consultarse al abrir la pestaña porque cada
+/// consulta al proveedor cuesta dinero y los backlinks no cambian de una hora
+/// a otra. Mirar sale gratis; actualizar se pide a propósito.
+model Backlinks {
+  id        String  @id @default(cuid())
+  clienteId String  @unique
+  cliente   Cliente @relation(fields: [clienteId], references: [id], onDelete: Cascade)
+
+  /// La instantánea completa, en JSON.
+  datos String
+
+  coste  Float?
+  medido DateTime @default(now())
 }
