@@ -17,6 +17,7 @@ import {
   leerPagina,
   crearPagina,
   escribirPagina,
+  publicarEnTienda,
 } from "@/lib/shopify";
 
 /**
@@ -209,7 +210,7 @@ export function herramientasShopify(ctx: Contexto) {
   const nuevoProducto = betaZodTool({
     name: "crear_producto",
     description:
-      "Crea un producto nuevo en la tienda. Nace en borrador salvo que se pida publicarlo: publicar es un clic, pero que aparezca en la tienda de un cliente algo a medio revisar no se deshace igual. No lleva precio ni inventario; eso lo pone quien gestiona la tienda.",
+      "Crea un producto nuevo. IMPORTANTE: en Shopify crear no es publicar. Si no pides publicar, el producto existe en el admin pero su URL pública devuelve 404 — dile eso a la persona y dale el enlace del admin, no el público. No lleva precio ni inventario; eso lo pone quien gestiona la tienda.",
     inputSchema: z.object({
       titulo: z.string().max(255),
       descripcionHtml: z.string().optional().describe("La descripción, en HTML."),
@@ -228,7 +229,14 @@ export function herramientasShopify(ctx: Contexto) {
           accion: "producto",
           resumen: `Producto creado: ${p.titulo}${p.estado === "DRAFT" ? " (borrador)" : ""}`,
         });
-        return JSON.stringify({ ok: true, producto: p });
+        return JSON.stringify({
+          ok: true,
+          producto: p,
+          visibleEnLaTienda: Boolean(i.publicar),
+          aviso: i.publicar
+            ? "Publicado en la tienda online."
+            : "Creado en borrador: su URL pública devuelve 404 hasta que se publique. Dale a la persona el enlace del admin.",
+        });
       } catch (e) {
         return problema(e instanceof Error ? e.message : "No se pudo crear el producto.");
       }
@@ -238,12 +246,16 @@ export function herramientasShopify(ctx: Contexto) {
   const nuevaColeccion = betaZodTool({
     name: "crear_categoria",
     description:
-      "Crea una colección nueva, que es lo que en otras plataformas es una categoría. Se crea manual y no automática: una colección con reglas se llena sola con lo que cumpla la condición, y esa decisión es del cliente. Los productos se añaden después.",
+      "Crea una colección, que es lo que en otras plataformas es una categoría. IMPORTANTE: en Shopify crear no es publicar. Si no pides publicar, la colección existe en el admin pero su URL pública devuelve 404 — dile eso a la persona y dale el enlace del admin. Se crea manual y no automática: una con reglas se llena sola con lo que cumpla la condición, y esa decisión es del cliente.",
     inputSchema: z.object({
       titulo: z.string().max(255),
       descripcionHtml: z.string().optional(),
       seoTitulo: z.string().max(70).optional(),
       seoDescripcion: z.string().max(320).optional(),
+      publicar: z
+        .boolean()
+        .optional()
+        .describe("Por defecto false. Sin esto la colección no se ve en la tienda."),
     }),
     run: async (i) => {
       if (!ctx.puedeEscribir) return soloLectura();
@@ -255,7 +267,14 @@ export function herramientasShopify(ctx: Contexto) {
           accion: "categoria",
           resumen: `Colección creada: ${c.titulo}`,
         });
-        return JSON.stringify({ ok: true, coleccion: c });
+        return JSON.stringify({
+          ok: true,
+          coleccion: c,
+          visibleEnLaTienda: Boolean(i.publicar),
+          aviso: i.publicar
+            ? "Publicada en la tienda online."
+            : "Creada pero NO publicada: su URL pública devuelve 404 hasta que se publique. Usa publicar_en_tienda o dale a la persona el enlace del admin.",
+        });
       } catch (e) {
         return problema(e instanceof Error ? e.message : "No se pudo crear la colección.");
       }
@@ -345,8 +364,33 @@ export function herramientasShopify(ctx: Contexto) {
     },
   });
 
+  const publicar = betaZodTool({
+    name: "publicar_en_tienda",
+    description:
+      "Hace visible en la tienda online algo ya creado: un producto, una colección o una página. En Shopify esto es un paso aparte de crear, y sin él la URL pública devuelve 404.",
+    inputSchema: z.object({
+      id: z.string().describe("El id del producto, colección o página."),
+    }),
+    run: async (i) => {
+      if (!ctx.puedeEscribir) return soloLectura();
+      try {
+        const r = await publicarEnTienda(await abrir(ctx.clienteId), i.id);
+        await anotar({
+          usuarioId: ctx.usuarioId,
+          clienteId: ctx.clienteId,
+          accion: "publicar",
+          resumen: `Publicado en ${r.canal}: ${i.id}`,
+        });
+        return `Publicado en «${r.canal}». Ya debería verse en la tienda; a veces tarda un minuto en aparecer.`;
+      } catch (e) {
+        return problema(e instanceof Error ? e.message : "No se pudo publicar.");
+      }
+    },
+  });
+
   return [
     estado,
+    publicar,
     productos,
     leer,
     escribir,

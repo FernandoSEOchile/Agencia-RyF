@@ -23,6 +23,7 @@ export interface Tienda {
 
 export interface ProductoShopify {
   id: string;
+  urlAdmin?: string;
   titulo: string;
   handle: string;
   estado: string;
@@ -35,6 +36,7 @@ export interface ProductoShopify {
 
 export interface ColeccionShopify {
   id: string;
+  urlAdmin?: string;
   titulo: string;
   handle: string;
   productos: number;
@@ -172,6 +174,7 @@ function normalizarProducto(p: Record<string, unknown>, dominio: string): Produc
     seoTitulo: seo.title || null,
     seoDescripcion: seo.description || null,
     url: `https://${dominio}/products/${p.handle}`,
+    urlAdmin: urlAdmin(dominio, String(p.id ?? "")),
   };
 }
 
@@ -247,6 +250,7 @@ function normalizarColeccion(c: Record<string, unknown>, dominio: string): Colec
     seoTitulo: seo.title || null,
     seoDescripcion: seo.description || null,
     url: `https://${dominio}/collections/${c.handle}`,
+    urlAdmin: urlAdmin(dominio, String(c.id ?? "")),
   };
 }
 
@@ -378,6 +382,7 @@ function normalizarPagina(p: Record<string, unknown>, dominio: string) {
     titulo: String(p.title ?? ""),
     handle: String(p.handle ?? ""),
     url: `https://${dominio}/pages/${p.handle}`,
+    urlAdmin: urlAdmin(dominio, String(p.id ?? "")),
     publicado: Boolean(p.isPublished),
     cuerpoHtml: (p.body as string) || null,
     modificado: typeof p.updatedAt === "string" ? p.updatedAt : null,
@@ -495,7 +500,10 @@ export async function crearProducto(
 
   comprobarErrores(d.productCreate);
   if (!d.productCreate.product) throw new Error("Shopify no devolvió el producto creado.");
-  return normalizarProducto(d.productCreate.product, t.dominio);
+
+  const prod = normalizarProducto(d.productCreate.product, t.dominio);
+  if (datos.publicar) await publicarEnTienda(t, prod.id);
+  return prod;
 }
 
 /**
@@ -507,7 +515,13 @@ export async function crearProducto(
  */
 export async function crearColeccion(
   t: Tienda,
-  datos: { titulo: string; descripcionHtml?: string; seoTitulo?: string; seoDescripcion?: string }
+  datos: {
+    titulo: string;
+    descripcionHtml?: string;
+    seoTitulo?: string;
+    seoDescripcion?: string;
+    publicar?: boolean;
+  }
 ) {
   const entrada: Record<string, unknown> = { title: datos.titulo };
   if (datos.descripcionHtml) entrada.descriptionHtml = datos.descripcionHtml;
@@ -533,5 +547,65 @@ export async function crearColeccion(
 
   comprobarErrores(d.collectionCreate);
   if (!d.collectionCreate.collection) throw new Error("Shopify no devolvió la colección creada.");
-  return normalizarColeccion(d.collectionCreate.collection, t.dominio);
+
+  const col = normalizarColeccion(d.collectionCreate.collection, t.dominio);
+  if (datos.publicar) await publicarEnTienda(t, col.id);
+  return { ...col, publicada: Boolean(datos.publicar) };
+}
+
+/** El identificador corto de la tienda, que es lo que usa la URL del admin. */
+function handleTienda(dominio: string): string {
+  return dominio.replace(/\.myshopify\.com$/, "");
+}
+
+/** Del gid «gid://shopify/Collection/123» solo interesa el número para el admin. */
+function numeroDe(gid: string): string {
+  return gid.split("/").pop() ?? gid;
+}
+
+/**
+ * Dónde verlo en el admin de Shopify.
+ *
+ * Hace falta porque lo recién creado no es visible en la tienda hasta que se
+ * publica: dar solo la URL pública sería mandar a alguien a un 404.
+ */
+export function urlAdmin(dominio: string, gid: string): string {
+  const t = handleTienda(dominio);
+  const n = numeroDe(gid);
+  if (gid.includes("/Collection/")) return `https://admin.shopify.com/store/${t}/collections/${n}`;
+  if (gid.includes("/Product/")) return `https://admin.shopify.com/store/${t}/products/${n}`;
+  if (gid.includes("/Page/")) return `https://admin.shopify.com/store/${t}/pages/${n}`;
+  if (gid.includes("/Article/")) return `https://admin.shopify.com/store/${t}/articles/${n}`;
+  return `https://admin.shopify.com/store/${t}`;
+}
+
+/**
+ * Publica algo en la tienda online.
+ *
+ * En Shopify crear no es publicar: un producto o una colección existen en el
+ * admin pero devuelven 404 hasta que se les asigna el canal de venta. Es la
+ * causa número uno de «lo creé y no aparece».
+ */
+export async function publicarEnTienda(t: Tienda, id: string) {
+  const p = await consultar<{ publications: { nodes: { id: string; name: string }[] } }>(
+    t,
+    `{ publications(first: 20) { nodes { id name } } }`
+  );
+
+  const canal =
+    p.publications.nodes.find((x) => /online store|tienda online/i.test(x.name)) ??
+    p.publications.nodes[0];
+
+  if (!canal) throw new Error("La tienda no tiene ningún canal de venta donde publicar.");
+
+  const d = await consultar<{ publishablePublish: { userErrors: unknown[] } }>(
+    t,
+    `mutation($id: ID!, $entrada: [PublicationInput!]!) {
+       publishablePublish(id: $id, input: $entrada) { userErrors { field message } }
+     }`,
+    { id, entrada: [{ publicationId: canal.id }] }
+  );
+
+  comprobarErrores(d.publishablePublish);
+  return { canal: canal.name };
 }
