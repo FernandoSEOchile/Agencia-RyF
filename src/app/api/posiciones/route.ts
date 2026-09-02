@@ -3,6 +3,7 @@ import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { veTodo, anotar } from "@/lib/clientes";
 import { credenciales, medir } from "@/lib/dataforseo";
+import { apuntar } from "@/lib/gasto";
 
 /**
  * Seguimiento de posiciones.
@@ -155,6 +156,15 @@ export async function PATCH(req: NextRequest) {
     // sentido seguir quemando intentos contra el mismo muro.
     if (fallos.length >= 8 && medidas === 0) break;
   }
+
+  await apuntar({
+    clienteId: String(clienteId),
+    usuarioId: p.usuarioId,
+    servicio: "dataforseo",
+    concepto: "posiciones",
+    monto: coste,
+    detalle: `${medidas} consultas medidas`,
+  });
 
   await anotar({
     usuarioId: p.usuarioId,

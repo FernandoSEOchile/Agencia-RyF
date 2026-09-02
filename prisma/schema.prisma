@@ -74,6 +74,7 @@ model Cliente {
   arquitecturas Arquitectura[]
   keywords      Keyword[]
   memorias      Memoria[]
+  gastos        Gasto[]
 }
 
 /// Qué usuario puede trabajar sobre qué cliente.
@@ -395,4 +396,33 @@ model Memoria {
 
   @@unique([clienteId, titulo])
   @@index([clienteId])
+}
+
+/// Cada operación que cuesta dinero, anotada al ocurrir.
+///
+/// Se guarda el importe ya calculado y no solo los tokens: las tarifas
+/// cambian, y recalcular el pasado con la tarifa de hoy daría una cifra que
+/// nunca se pagó. Lo que se cobró se cobró.
+model Gasto {
+  id        String   @id @default(cuid())
+  clienteId String?
+  cliente   Cliente? @relation(fields: [clienteId], references: [id], onDelete: Cascade)
+  usuarioId String?
+
+  /// «claude» o «dataforseo». Es lo que separa las dos facturas.
+  servicio String
+
+  /// Qué se estaba haciendo: chat, posiciones, serp, arquitectura.
+  concepto String
+
+  /// En dólares.
+  monto Float
+
+  /// Para poder auditarlo: tokens, número de consultas, modelo usado.
+  detalle String?
+
+  creado DateTime @default(now())
+
+  @@index([clienteId, creado])
+  @@index([creado])
 }

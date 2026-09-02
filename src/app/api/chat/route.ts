@@ -10,6 +10,8 @@ import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { conversar, instrucciones, mensajeDeError, type Turno } from "@/lib/asistente";
 import { veTodo, memoriasDe } from "@/lib/clientes";
+import { apuntarClaude, costeClaude } from "@/lib/gasto";
+import { modelo as modeloActual } from "@/lib/config";
 
 export const runtime = "nodejs";
 export const maxDuration = 300;
@@ -183,13 +185,23 @@ export async function POST(req: NextRequest) {
           },
         });
 
+        const m = await modeloActual();
+        await apuntarClaude({
+          clienteId,
+          usuarioId,
+          concepto: "chat",
+          modelo: m,
+          entrada: r.entrada,
+          salida: r.salida,
+        });
+
         // El coste se muestra al terminar: es la única forma de que quien usa
         // el panel sepa lo que va gastando antes de que llegue la factura.
         enviar({
           tipo: "fin",
           entrada: r.entrada,
           salida: r.salida,
-          coste: (r.entrada * 5 + r.salida * 25) / 1e6,
+          coste: costeClaude(m, r.entrada, r.salida),
         });
       } catch (e) {
         enviar({ tipo: "error", mensaje: mensajeDeError(e) });

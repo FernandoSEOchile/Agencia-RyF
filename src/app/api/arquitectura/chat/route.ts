@@ -2,6 +2,8 @@ import { NextRequest } from "next/server";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { veTodo, anotar } from "@/lib/clientes";
+import { apuntarClaude, costeClaude } from "@/lib/gasto";
+import { modelo as modeloActual } from "@/lib/config";
 import { mensajeDeError } from "@/lib/asistente";
 import {
   conversarArquitectura,
@@ -88,10 +90,20 @@ export async function POST(req: NextRequest) {
           });
         }
 
+        const m = await modeloActual();
+        await apuntarClaude({
+          clienteId: a.clienteId,
+          usuarioId: sesion.user!.id!,
+          concepto: "arquitectura",
+          modelo: m,
+          entrada: r.entrada,
+          salida: r.salida,
+        });
+
         enviar({
           tipo: "fin",
           cambios: cambios.length > 0,
-          coste: (r.entrada * 5 + r.salida * 25) / 1e6,
+          coste: costeClaude(m, r.entrada, r.salida),
         });
       } catch (e) {
         enviar({ tipo: "error", mensaje: mensajeDeError(e) });

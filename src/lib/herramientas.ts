@@ -19,6 +19,7 @@ import { api, anotar } from "@/lib/clientes";
 import { analizarCompetencia } from "@/lib/competencia";
 import { db } from "@/lib/db";
 import { consultas as consultasGsc } from "@/lib/gsc";
+import { apuntar } from "@/lib/gasto";
 
 export interface Contexto {
   clienteId: string;
@@ -378,6 +379,15 @@ export function herramientasDe(ctx: Contexto) {
     run: async (i) => {
       try {
         const r = await analizarCompetencia(i.consulta, i.ubicacion ?? 2152, i.cuantos ?? 3);
+
+        await apuntar({
+          clienteId: ctx.clienteId,
+          usuarioId: ctx.usuarioId,
+          servicio: "dataforseo",
+          concepto: "analisis de serp",
+          monto: r.coste ?? 0,
+          detalle: `«${i.consulta}» · ${r.rivales.length} rivales`,
+        });
 
         await anotar({
           usuarioId: ctx.usuarioId,

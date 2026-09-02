@@ -5,6 +5,7 @@ import Chat from "@/components/Chat";
 import Sitemap from "@/components/Sitemap";
 import Arquitectura, { type ArquitecturaVista } from "@/components/Arquitectura";
 import Posiciones, { type KeywordVista } from "@/components/Posiciones";
+import Gasto from "@/components/Gasto";
 
 export interface Suceso {
   fecha: string;
@@ -35,6 +36,7 @@ const PESTAÑAS = [
   { id: "sitemap", etiqueta: "Sitemap" },
   { id: "arquitectura", etiqueta: "Arquitectura" },
   { id: "posiciones", etiqueta: "Posiciones" },
+  { id: "gasto", etiqueta: "Gasto" },
   { id: "registro", etiqueta: "Registro" },
   { id: "datos", etiqueta: "Datos" },
 ] as const;
@@ -192,6 +194,8 @@ export default function FichaCliente({
       {activa === "arquitectura" && (
         <Arquitectura clienteId={clienteId} actual={arquitectura} puedeSubir={puedeSubir} />
       )}
+
+      {activa === "gasto" && <Gasto clienteId={clienteId} />}
 
       {activa === "posiciones" && (
         <Posiciones
