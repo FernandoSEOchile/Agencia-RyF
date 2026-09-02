@@ -9,7 +9,7 @@ import { NextRequest } from "next/server";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { conversar, instrucciones, mensajeDeError, type Turno } from "@/lib/asistente";
-import { veTodo } from "@/lib/clientes";
+import { veTodo, memoriasDe } from "@/lib/clientes";
 
 export const runtime = "nodejs";
 export const maxDuration = 300;
@@ -137,6 +137,10 @@ export async function POST(req: NextRequest) {
   const conContenido =
     PALABRAS_CONTENIDO.test(mensaje) || previos.some((m) => PALABRAS_CONTENIDO.test(m.contenido));
 
+  // Solo las de este cliente: la consulta lleva su identificador y no existe
+  // una variante que las traiga todas.
+  const memorias = await memoriasDe(clienteId);
+
   const sistema = instrucciones({
     nombre: cliente.nombre,
     dominio: cliente.dominio,
@@ -144,6 +148,7 @@ export async function POST(req: NextRequest) {
     puedeEscribir,
     conDiseno,
     conContenido,
+    memorias,
   });
 
   const codificador = new TextEncoder();

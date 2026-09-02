@@ -54,6 +54,8 @@ export function instrucciones(datos: {
   /** Igual que el de diseño: el criterio de redacción solo viaja cuando el
    *  encargo es escribir. */
   conContenido?: boolean;
+  /** Lo aprendido de ESTE sitio en conversaciones anteriores. */
+  memorias?: { titulo: string; nota: string }[];
 }) {
   return `Eres el asistente de AppSEO para el sitio ${datos.nombre} (${datos.dominio}), un WordPress con el conector AppSEO RyF v${datos.version ?? "?"}.
 
@@ -77,6 +79,18 @@ Cada mensaje cuesta dinero real. Trae solo los datos que necesitas: listar_produ
 
 Cuando termines algo, resume en una o dos frases qué cambió y dónde verlo.
 
+${
+  datos.memorias?.length
+    ? `LO QUE YA SABES DE ESTE SITIO
+Esto lo aprendiste en conversaciones anteriores sobre ${datos.dominio}, y solo vale para este sitio. Dalo por bueno salvo que veas lo contrario; si algo dejó de ser cierto, corrígelo con olvidar y recordar.
+
+${datos.memorias.map((m) => `- ${m.titulo}: ${m.nota}`).join("\n")}
+
+Cuando aprendas algo duradero de este sitio —cómo está montado, qué tratamiento usa, qué decidió el cliente, qué no hay que tocar— guárdalo con recordar. No guardes lo de hoy ni lo que ya está en las herramientas.
+`
+    : `Cuando aprendas algo duradero de este sitio —cómo está montado, qué tratamiento usa, qué decidió el cliente, qué no hay que tocar— guárdalo con recordar, para que la próxima conversación empiece sabiéndolo.
+`
+}
 ${datos.conDiseno ? CRITERIO_DISENO : ""}
 ${datos.conContenido ? CRITERIO_CONTENIDO : ""}`;
 }

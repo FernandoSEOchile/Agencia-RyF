@@ -87,6 +87,22 @@ export async function clientesDe(usuarioId: string, rol: string) {
 }
 
 /** Anota en el registro del panel quién hizo qué. */
+/**
+ * Lo que el asistente sabe de un sitio.
+ *
+ * Siempre filtrado por cliente. No hay una versión de esto sin `clienteId`, y
+ * es deliberado: el aislamiento entre dominios no debe depender de que quien
+ * llame se acuerde de filtrar.
+ */
+export async function memoriasDe(clienteId: string) {
+  return db.memoria.findMany({
+    where: { clienteId },
+    orderBy: { tocado: "desc" },
+    take: 60,
+    select: { titulo: true, nota: true },
+  });
+}
+
 export async function anotar(datos: {
   usuarioId?: string;
   clienteId?: string;

@@ -17,6 +17,8 @@ import { z } from "zod";
 import { betaZodTool } from "@anthropic-ai/sdk/helpers/beta/zod";
 import { api, anotar } from "@/lib/clientes";
 import { analizarCompetencia } from "@/lib/competencia";
+import { db } from "@/lib/db";
+import { consultas as consultasGsc } from "@/lib/gsc";
 
 export interface Contexto {
   clienteId: string;
@@ -410,9 +412,247 @@ export function herramientasDe(ctx: Contexto) {
     },
   });
 
+  /**
+   * Lo que Google dice de este sitio.
+   *
+   * Se devuelve resumido y ya interpretado —tramos, oportunidades, consultas
+   * canibalizadas— en vez del volcado de mil filas: la conversación necesita
+   * el panorama para decidir, no la tabla entera, que además se pagaría en
+   * cada turno posterior.
+   */
+  const searchConsole = betaZodTool({
+    name: "ver_search_console",
+    description:
+      "Datos reales de Google Search Console para este sitio: cuántas palabras posiciona y en qué tramos, qué consultas están entre los puestos 4 y 20 con margen de mejora, y en cuáles hay dos páginas del sitio compitiendo entre sí. Úsala antes de decidir qué contenido escribir o mejorar: te dice dónde ya hay visibilidad que aprovechar.",
+    inputSchema: z.object({
+      dias: z.number().int().min(7).max(180).optional().describe("Periodo en días. Por defecto 28."),
+      foco: z
+        .enum(["resumen", "oportunidades", "canibalizacion"])
+        .optional()
+        .describe("Qué mirar. Por defecto «resumen», que trae un poco de todo."),
+      buscar: z.string().optional().describe("Solo las consultas que contengan este texto."),
+    }),
+    run: async (i) => {
+      const cliente = await db.cliente.findUnique({
+        where: { id: ctx.clienteId },
+        select: { gscConexionId: true, gscPropiedad: true },
+      });
+
+      if (!cliente?.gscConexionId || !cliente.gscPropiedad) {
+        return problema(
+          "Este cliente no tiene Search Console conectado. Se conecta desde la pestaña Posiciones."
+        );
+      }
+
+      let filas;
+      try {
+        filas = await consultasGsc(cliente.gscConexionId, cliente.gscPropiedad, i.dias ?? 28);
+      } catch (e) {
+        return problema(e instanceof Error ? e.message : "No se pudo leer Search Console.");
+      }
+
+      if (i.buscar) {
+        const q = i.buscar.toLowerCase();
+        filas = filas.filter((f) => f.consulta.includes(q));
+      }
+
+      const top = (n: number) => filas.filter((f) => f.posicion <= n).length;
+
+      const oportunidades = filas
+        .filter((f) => f.posicion >= 4 && f.posicion <= 20 && f.impresiones >= 20)
+        .sort((a, b) => b.impresiones - a.impresiones);
+
+      const canibales = filas
+        .filter((f) => {
+          if (f.paginas < 2 || f.impresiones < 20) return false;
+          const segunda = f.urls[1];
+          return Boolean(segunda && segunda.impresiones / f.impresiones >= 0.2);
+        })
+        .sort((a, b) => b.impresiones - a.impresiones);
+
+      const foco = i.foco ?? "resumen";
+      const cuantas = foco === "resumen" ? 15 : 40;
+
+      return JSON.stringify({
+        periodoDias: i.dias ?? 28,
+        propiedad: cliente.gscPropiedad,
+        resumen: {
+          palabrasPosicionadas: filas.length,
+          clics: filas.reduce((s, f) => s + f.clics, 0),
+          impresiones: filas.reduce((s, f) => s + f.impresiones, 0),
+          top3: top(3),
+          top10: top(10),
+          top20: top(20),
+          top100: top(100),
+          oportunidades: oportunidades.length,
+          canibalizando: canibales.length,
+        },
+        ...(foco !== "canibalizacion"
+          ? {
+              oportunidades: oportunidades.slice(0, cuantas).map((f) => ({
+                consulta: f.consulta,
+                posicion: f.posicion,
+                impresiones: f.impresiones,
+                clics: f.clics,
+                url: f.pagina,
+              })),
+            }
+          : {}),
+        ...(foco !== "oportunidades"
+          ? {
+              canibalizacion: canibales.slice(0, cuantas).map((f) => ({
+                consulta: f.consulta,
+                impresiones: f.impresiones,
+                paginasEnPugna: f.urls.map((u) => ({
+                  url: u.url,
+                  posicion: u.posicion,
+                  impresiones: u.impresiones,
+                })),
+              })),
+            }
+          : {}),
+      });
+    },
+  });
+
+  const posiciones = betaZodTool({
+    name: "ver_posiciones",
+    description:
+      "Las consultas que este cliente tiene en seguimiento medido, con su puesto actual en Google, cuánto se movió desde la medición anterior y qué URL está posicionando.",
+    inputSchema: z.object({
+      buscar: z.string().optional().describe("Solo las que contengan este texto."),
+    }),
+    run: async (i) => {
+      const keywords = await db.keyword.findMany({
+        where: {
+          clienteId: ctx.clienteId,
+          activa: true,
+          ...(i.buscar ? { termino: { contains: i.buscar, mode: "insensitive" } } : {}),
+        },
+        include: { posiciones: { orderBy: { medido: "desc" }, take: 2 } },
+        orderBy: { creado: "asc" },
+      });
+
+      if (keywords.length === 0) {
+        return "No hay ninguna consulta en seguimiento medido para este cliente.";
+      }
+
+      return JSON.stringify({
+        total: keywords.length,
+        consultas: keywords.map((k) => ({
+          termino: k.termino,
+          dispositivo: k.dispositivo,
+          puesto: k.posiciones[0]?.puesto ?? null,
+          anterior: k.posiciones[1]?.puesto ?? null,
+          url: k.posiciones[0]?.url ?? null,
+          medido: k.posiciones[0]?.medido.toISOString().slice(0, 10) ?? null,
+        })),
+      });
+    },
+  });
+
+  const arquitectura = betaZodTool({
+    name: "ver_arquitectura",
+    description:
+      "La arquitectura SEO prevista para este sitio y su estado: qué secciones existen ya y con qué URL, y cuáles faltan por crear con cuántas búsquedas mensuales se están perdiendo. Úsala para saber qué contenido tiene sentido crear y con qué prioridad.",
+    inputSchema: z.object({
+      estado: z
+        .enum(["todo", "falta", "dudosa", "creada"])
+        .optional()
+        .describe("Filtra por estado. Por defecto «falta», que es lo accionable."),
+      cuantas: z.number().int().min(5).max(100).optional().describe("Cuántas devolver. Por defecto 30."),
+    }),
+    run: async (i) => {
+      const a = await db.arquitectura.findFirst({
+        where: { clienteId: ctx.clienteId },
+        orderBy: { creado: "desc" },
+        include: { nodos: { orderBy: { volumen: "desc" } } },
+      });
+
+      if (!a) return "Este cliente no tiene ninguna arquitectura cargada.";
+
+      const estado = i.estado ?? "falta";
+      const filtrados = estado === "todo" ? a.nodos : a.nodos.filter((n) => n.estado === estado);
+      const cuenta = (e: string) => a.nodos.filter((n) => n.estado === e).length;
+
+      return JSON.stringify({
+        archivo: a.archivo,
+        resumen: {
+          secciones: a.nodos.length,
+          creadas: cuenta("creada"),
+          dudosas: cuenta("dudosa"),
+          faltan: cuenta("falta"),
+          volumenSinCapturar: a.nodos
+            .filter((n) => n.estado === "falta")
+            .reduce((s, n) => s + n.volumen, 0),
+        },
+        mostrando: estado,
+        secciones: filtrados.slice(0, i.cuantas ?? 30).map((n) => {
+          const kws = JSON.parse(n.keywords) as { keyword: string; volumen: number }[];
+          return {
+            nombre: n.nombre,
+            slug: n.slug,
+            nivel: n.nivel,
+            volumen: n.volumen,
+            keywordPrincipal: kws.sort((x, y) => y.volumen - x.volumen)[0]?.keyword ?? null,
+            estado: n.estado,
+            url: n.urlDestino,
+          };
+        }),
+      });
+    },
+  });
+
+  /**
+   * Memoria del sitio.
+   *
+   * Todo lo que aprende de un cliente se guarda contra su identificador y solo
+   * se lee con él: mezclar lo de un dominio con lo de otro sería peor que no
+   * recordar nada, porque le haría afirmar sobre un sitio cosas que son
+   * ciertas en otro.
+   */
+  const recordar = betaZodTool({
+    name: "recordar",
+    description:
+      "Guarda algo que has aprendido de ESTE sitio y que te servirá en próximas conversaciones: una particularidad del tema, el tratamiento que usa (tú o usted), una decisión que tomó el cliente, algo que no hay que tocar, o qué funcionó y qué no. Guarda solo lo duradero, no lo de hoy. Si ya existe una nota con el mismo título, la reemplaza.",
+    inputSchema: z.object({
+      titulo: z
+        .string()
+        .max(80)
+        .describe("Clave corta del asunto, para poder actualizarla después. Ej: «tratamiento», «tema y maquetación»."),
+      nota: z.string().max(1200).describe("Lo aprendido, en una o dos frases, con el porqué."),
+    }),
+    run: async (i) => {
+      await db.memoria.upsert({
+        where: { clienteId_titulo: { clienteId: ctx.clienteId, titulo: i.titulo.trim() } },
+        update: { nota: i.nota.trim() },
+        create: { clienteId: ctx.clienteId, titulo: i.titulo.trim(), nota: i.nota.trim() },
+      });
+      return `Anotado sobre este sitio: «${i.titulo.trim()}».`;
+    },
+  });
+
+  const olvidar = betaZodTool({
+    name: "olvidar",
+    description:
+      "Borra una nota de la memoria de este sitio, cuando dejó de ser cierta. Es tan importante como recordar: una nota equivocada dirige mal todo lo que venga después.",
+    inputSchema: z.object({ titulo: z.string().describe("El título exacto de la nota.") }),
+    run: async (i) => {
+      const { count } = await db.memoria.deleteMany({
+        where: { clienteId: ctx.clienteId, titulo: i.titulo.trim() },
+      });
+      return count ? `Olvidado: «${i.titulo.trim()}».` : problema("No existe esa nota.");
+    },
+  });
+
   return [
     salud,
     competencia,
+    recordar,
+    olvidar,
+    searchConsole,
+    posiciones,
+    arquitectura,
     auditar,
     leerContenido,
     leerDisenoElementor,

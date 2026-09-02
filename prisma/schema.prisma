@@ -73,6 +73,7 @@ model Cliente {
   trabajos      Trabajo[]
   arquitecturas Arquitectura[]
   keywords      Keyword[]
+  memorias      Memoria[]
 }
 
 /// Qué usuario puede trabajar sobre qué cliente.
@@ -370,4 +371,28 @@ model PlantillaAst {
   usos     Int      @default(0)
   acertado Boolean  @default(true)
   creado   DateTime @default(now())
+}
+
+/// Lo que el asistente ha aprendido de un sitio concreto.
+///
+/// Va atado al cliente y solo se lee con su identificador en el where: la
+/// gracia es que acumule conocimiento profundo de cada dominio, y mezclar lo
+/// de uno con lo de otro sería peor que no recordar nada —le haría afirmar
+/// sobre un sitio cosas que son ciertas en otro.
+///
+/// El título hace de clave: una nota sobre el mismo asunto se reemplaza en vez
+/// de duplicarse, para que la memoria no crezca sin control ni se contradiga.
+model Memoria {
+  id        String  @id @default(cuid())
+  clienteId String
+  cliente   Cliente @relation(fields: [clienteId], references: [id], onDelete: Cascade)
+
+  titulo String
+  nota   String
+
+  creado DateTime @default(now())
+  tocado DateTime @updatedAt
+
+  @@unique([clienteId, titulo])
+  @@index([clienteId])
 }
