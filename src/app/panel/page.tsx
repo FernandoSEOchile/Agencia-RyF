@@ -78,6 +78,9 @@ export default async function Panel() {
           </div>
 
           <div className="flex items-center gap-2">
+          <Link href="/panel/explorar" className="boton">
+            Explorar dominio
+          </Link>
           {rol === "ADMIN" && (
             <Link
               href="/panel/ajustes"

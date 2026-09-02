@@ -479,3 +479,24 @@ model Backlinks {
   coste  Float?
   medido DateTime @default(now())
 }
+
+/// Una consulta de exploración sobre un dominio cualquiera.
+///
+/// No cuelga de Cliente a propósito: sirve sobre todo para dominios que aún no
+/// lo son —un cliente potencial, su competencia— y atarla a la ficha habría
+/// impedido justo el uso más valioso.
+model Exploracion {
+  id      String @id @default(cuid())
+  dominio String
+  pais    Int    @default(2152)
+
+  /// La instantánea completa, en JSON.
+  datos String
+
+  coste     Float?
+  usuarioId String?
+  creado    DateTime @default(now())
+
+  @@unique([dominio, pais])
+  @@index([creado])
+}
