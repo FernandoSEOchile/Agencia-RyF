@@ -19,8 +19,8 @@ const ACTUALIZADO = "2 de septiembre de 2026";
 function Bloque({ titulo, children }: { titulo: string; children: React.ReactNode }) {
   return (
     <section className="mt-10">
-      <h2 className="text-[19px] font-semibold">{titulo}</h2>
-      <div className="mt-3 space-y-3 text-[15px] leading-relaxed text-[color:var(--tinta-media)]">
+      <h2 className="sub-web border-t-2 border-[color:var(--naranja)] pt-4 text-[19px]">{titulo}</h2>
+      <div className="mt-3 space-y-3 text-[15px] leading-relaxed ">
         {children}
       </div>
     </section>
@@ -29,21 +29,26 @@ function Bloque({ titulo, children }: { titulo: string; children: React.ReactNod
 
 export default function Privacidad() {
   return (
-    <>
-      <header className="sticky top-0 z-40 bg-[#111111]">
-        <div className="contenedor flex h-12 items-center gap-4">
-          <Link href="/" className="flex items-center gap-3">
-            <Image src="/ryf.webp" alt="Agencia RYF" width={512} height={199} className="h-[18px] w-auto" />
-            <span className="text-[13px] font-medium tracking-tight text-white/90">AppSEO</span>
+    <div className="web">
+      <header className="sticky top-0 z-40 border-b border-white/10 bg-[#0a0f1c]">
+        <div className="contenedor flex h-16 items-center gap-5">
+          <Link href="/" className="flex items-center gap-5">
+            <Image src="/ryf.webp" alt="Agencia RYF" width={512} height={199} className="h-6 w-auto" />
+            <span
+              className="text-[13px] font-bold uppercase tracking-[0.12em] text-white/50"
+              style={{ fontFamily: "var(--titular)" }}
+            >
+              AppSEO
+            </span>
           </Link>
         </div>
       </header>
 
-      <main className="contenedor max-w-[760px] py-16">
-        <p className="rotulo">Actualizada el {ACTUALIZADO}</p>
-        <h1 className="mt-3 text-[36px] font-semibold leading-tight">Política de privacidad</h1>
+      <main className="contenedor max-w-[780px] py-16">
+        <p className="cinta">Actualizada el {ACTUALIZADO}</p>
+        <h1 className="titular-web mt-5 text-[32px] sm:text-[42px]">Política de privacidad</h1>
 
-        <p className="mt-5 text-[15px] leading-relaxed text-[color:var(--tinta-media)]">
+        <p className="mt-5 text-[15px] leading-relaxed ">
           AppSEO es una herramienta de Agencia RYF (Santiago de Chile) para gestionar el SEO de sitios
           WordPress. Esta página explica qué datos trata, con qué finalidad, dónde se guardan y cómo se
           eliminan.
@@ -179,9 +184,14 @@ export default function Privacidad() {
         </p>
       </main>
 
-      <footer className="contenedor py-10 text-[12px] text-[color:var(--tinta-suave)]">
-        AppSEO · Agencia RYF · Santiago de Chile
+      <footer className="mt-16 bg-[#0a0f1c] py-8">
+        <div className="contenedor flex flex-wrap items-center gap-x-6 gap-y-3 text-[12px] text-white/45">
+          <span>AppSEO · Agencia RYF · Santiago de Chile</span>
+          <Link href="/" className="ml-auto transition hover:text-white">
+            Inicio
+          </Link>
+        </div>
       </footer>
-    </>
+    </div>
   );
 }

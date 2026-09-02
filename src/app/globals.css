@@ -4,12 +4,20 @@
 
 /* Inter es lo más cercano a SF Pro que se puede servir desde la web, y la
    pila del sistema va delante para que en un Mac se use la de verdad. */
-@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Hanken+Grotesk:wght@400;500;600;700;800;900&family=Schibsted+Grotesk:wght@700;800;900&display=swap");
 
 :root {
   /* El acento es el naranja de la agencia, y se gasta con cuentagotas: lo que
      hace legible una pantalla densa es la jerarquía tipográfica, no el color. */
   --acento: #ff6b00;
+
+  /* El naranja de los botones de agenciaryf.com, algo más cálido que el del
+     logo. Se usa en las páginas públicas para que se vean de la misma casa. */
+  --naranja: #ff6d1f;
+  --tinta-web: #334155;
+
+  --titular: "Hanken Grotesk", "Inter", sans-serif;
+  --display: "Schibsted Grotesk", "Hanken Grotesk", sans-serif;
 
   /* Grises con una pizca de azul, como los de Apple: un gris neutro puro se
      ve apagado al lado del blanco. */
@@ -110,5 +118,97 @@ h2,
 
   .pastilla {
     @apply inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-medium;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   Páginas públicas
+   --------------------------------------------------------------------------
+   Siguen el lenguaje de agenciaryf.com y no el del panel: quien llega aquí
+   viene de la web de la agencia, y el salto entre una y otra no debería
+   notarse. El panel, que es una herramienta y no un escaparate, se queda con
+   su propio criterio.
+*/
+@layer components {
+  .web {
+    font-family: "Inter", -apple-system, sans-serif;
+    color: var(--tinta-web);
+  }
+
+  /* Titulares en versalitas apretadas y peso máximo, como los suyos. */
+  .titular-web {
+    font-family: var(--display);
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: -0.01em;
+    line-height: 1.05;
+    color: #111827;
+  }
+
+  .seccion-web {
+    font-family: var(--titular);
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 0.01em;
+    color: #111827;
+  }
+
+  .sub-web {
+    font-family: var(--titular);
+    font-weight: 700;
+    color: #111827;
+  }
+
+  /* Esquina de 3 px, mayúsculas y negrita: su botón exacto. */
+  .boton-naranja {
+    @apply inline-flex items-center justify-center gap-2 px-6 py-3 text-[13px] font-bold uppercase
+           tracking-wide text-white transition;
+    font-family: var(--titular);
+    background: var(--naranja);
+    border-radius: 3px;
+  }
+  .boton-naranja:hover {
+    background: #e85f14;
+  }
+
+  .boton-linea {
+    @apply inline-flex items-center justify-center gap-2 border px-6 py-3 text-[13px] font-bold
+           uppercase tracking-wide transition;
+    font-family: var(--titular);
+    border-color: rgba(255, 255, 255, 0.35);
+    color: #fff;
+    border-radius: 3px;
+  }
+  .boton-linea:hover {
+    border-color: #fff;
+    background: rgba(255, 255, 255, 0.08);
+  }
+
+  /* La píldora de borde naranja que encabeza sus secciones. */
+  .cinta {
+    @apply inline-flex items-center rounded-full border px-4 py-1.5 text-[11px] font-bold uppercase
+           tracking-[0.08em];
+    font-family: var(--titular);
+    border-color: var(--naranja);
+    color: var(--naranja);
+  }
+
+  /* Fondo del héroe: oscuro con un resplandor naranja arriba y una retícula
+     de puntos, que es la lectura sobria de su fondo de red tecnológica. */
+  .heroe {
+    position: relative;
+    background:
+      radial-gradient(ellipse 80% 60% at 50% -10%, rgba(255, 109, 31, 0.22), transparent 70%),
+      linear-gradient(180deg, #0a0f1c 0%, #111827 60%, #0d1424 100%);
+  }
+  .heroe::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background-image: radial-gradient(rgba(255, 255, 255, 0.09) 1px, transparent 1px);
+    background-size: 28px 28px;
+    mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.9), transparent 85%);
+    -webkit-mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.9), transparent 85%);
+    pointer-events: none;
   }
 }
