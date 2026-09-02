@@ -237,8 +237,9 @@ export default function Gasto({ clienteId }: { clienteId: string }) {
           <p className="mt-4 max-w-3xl text-[12px] leading-relaxed text-[color:var(--tinta-suave)]">
             Cada operación se apunta en el momento y con el importe ya calculado, no recalculado
             después: las tarifas cambian y el resultado sería una cifra que nunca se pagó. Se cuenta el
-            chat, la corrección de arquitectura, la medición de posiciones y el análisis de SERP.
-            Search Console no aparece porque no cuesta nada.
+            chat, la corrección de arquitectura, la bitácora, la medición de posiciones, el análisis
+            de SERP y los backlinks. Search Console no aparece porque no cuesta nada, y la exploración
+            de dominios va al gasto general porque se hace sobre sitios que aún no son clientes.
           </p>
         </>
       )}

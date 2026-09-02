@@ -137,7 +137,7 @@ export interface ResumenGlobal {
   claude: number;
   dataforseo: number;
   porCliente: { id: string | null; nombre: string; dominio: string | null; claude: number; dataforseo: number; total: number }[];
-  porUsuario: { id: string | null; nombre: string; total: number; operaciones: number }[];
+  porUsuario: { id: string | null; nombre: string; claude: number; dataforseo: number; total: number; operaciones: number }[];
   porConcepto: { servicio: string; concepto: string; monto: number; veces: number }[];
   porDia: { dia: string; claude: number; dataforseo: number }[];
 }
@@ -204,9 +204,13 @@ export async function resumenGlobal(desde: Date, hasta: Date): Promise<ResumenGl
       {
         id: f.usuarioId,
         nombre: f.usuarioId ? nombreUsuario.get(f.usuarioId) ?? "usuario borrado" : "automático",
+        claude: 0,
+        dataforseo: 0,
         total: 0,
         operaciones: 0,
       };
+    if (esClaude) u.claude += f.monto;
+    else u.dataforseo += f.monto;
     u.total += f.monto;
     u.operaciones++;
     porUsuario.set(uid, u);

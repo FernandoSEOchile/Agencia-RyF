@@ -18,7 +18,7 @@ interface Datos {
     dataforseo: number;
     total: number;
   }[];
-  porUsuario: { id: string | null; nombre: string; total: number; operaciones: number }[];
+  porUsuario: { id: string | null; nombre: string; claude: number; dataforseo: number; total: number; operaciones: number }[];
   porConcepto: { servicio: string; concepto: string; monto: number; veces: number }[];
   porDia: { dia: string; claude: number; dataforseo: number }[];
 }
@@ -38,7 +38,7 @@ const VISTAS = [
 
 type ColCli = "nombre" | "claude" | "dataforseo" | "total";
 type ColCon = "concepto" | "servicio" | "veces" | "monto";
-type ColUsr = "nombre" | "operaciones" | "total";
+type ColUsr = "nombre" | "operaciones" | "claude" | "dataforseo" | "total";
 
 const COL_CLI: readonly Columna<ColCli>[] = [
   { id: "nombre", texto: "Cliente" },
@@ -57,7 +57,9 @@ const COL_CON: readonly Columna<ColCon>[] = [
 const COL_USR: readonly Columna<ColUsr>[] = [
   { id: "nombre", texto: "Persona" },
   { id: "operaciones", texto: "Operaciones", clase: "text-right", num: true },
-  { id: "total", texto: "Gasto", clase: "text-right", num: true },
+  { id: "claude", texto: "Claude", clase: "text-right", num: true },
+  { id: "dataforseo", texto: "API de SEO", clase: "text-right", num: true },
+  { id: "total", texto: "Total", clase: "text-right", num: true },
 ];
 
 function fecha(diasAtras: number) {
@@ -299,7 +301,7 @@ export default function GastoGeneral() {
             )}
 
             {vista === "personas" && (
-              <table className="w-full min-w-[440px] border-collapse text-[13px]">
+              <table className="w-full min-w-[660px] border-collapse text-[13px]">
                 <Cabecera columnas={COL_USR} orden={oUsr.orden} ordenar={oUsr.ordenar} />
                 <tbody className="divide-y divide-[color:var(--linea)]">
                   {personas.map((u) => (
@@ -307,6 +309,12 @@ export default function GastoGeneral() {
                       <td className="px-5 py-2.5 font-medium">{u.nombre}</td>
                       <td className="px-3 py-2.5 text-right tabular-nums text-[color:var(--tinta-media)]">
                         {u.operaciones}
+                      </td>
+                      <td className="px-3 py-2.5 text-right tabular-nums text-[color:var(--tinta-media)]">
+                        {dolares(u.claude)}
+                      </td>
+                      <td className="px-3 py-2.5 text-right tabular-nums text-[color:var(--tinta-media)]">
+                        {dolares(u.dataforseo)}
                       </td>
                       <td className="px-5 py-2.5 text-right font-semibold tabular-nums">{dolares(u.total)}</td>
                     </tr>
