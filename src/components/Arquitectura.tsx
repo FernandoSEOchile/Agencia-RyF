@@ -1,6 +1,7 @@
 "use client";
 
 import { Fragment, useState } from "react";
+import ChatArquitectura from "@/components/ChatArquitectura";
 
 export interface NodoVista {
   id: string;
@@ -482,6 +483,8 @@ export default function Arquitectura({
               </tbody>
             </table>
           </div>
+
+          {puedeSubir && <ChatArquitectura arquitecturaId={actual.id} />}
 
           <p className="mt-4 max-w-3xl text-[12px] leading-relaxed text-[color:var(--tinta-suave)]">
             El cruce va en tres pasos: coincidencia exacta de slug, parecido por nombre, y lo que quede

@@ -218,6 +218,12 @@ model Config {
 
 /// Arquitectura SEO transaccional de un cliente, leída de su Excel AST.
 model Arquitectura {
+  /// La hoja del Excel ya leída, en JSON. Se guarda para poder rehacer la
+  /// lectura con un esquema corregido sin pedir el archivo otra vez, que es
+  /// lo que permite arreglar una arquitectura mal interpretada hablando.
+  rejilla String?
+  esquema String?
+
   id        String  @id @default(cuid())
   cliente   Cliente @relation(fields: [clienteId], references: [id], onDelete: Cascade)
   clienteId String

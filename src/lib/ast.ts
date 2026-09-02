@@ -91,20 +91,26 @@ function nombreDesdeSlug(slug: string): string {
     .replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
-interface FilaLeida {
+export interface FilaLeida {
   n: number;
   celdas: { col: number; valor: string }[];
 }
 
+/** La hoja elegida, ya en texto. Es lo que se guarda para poder rehacerla. */
+export interface Rejilla {
+  hoja: string;
+  filas: FilaLeida[];
+}
+
 /** Convierte una hoja en filas de texto, saltándose lo vacío. */
-function leerHoja(hoja: ExcelJS.Worksheet): FilaLeida[] {
+export function leerHoja(hoja: ExcelJS.Worksheet): FilaLeida[] {
   const filas: FilaLeida[] = [];
 
   hoja.eachRow({ includeEmpty: false }, (fila, n) => {
     const celdas: { col: number; valor: string }[] = [];
     fila.eachCell({ includeEmpty: false }, (celda, col) => {
       const v = texto(celda.value);
-      if (v) celdas.push({ col, valor: v.slice(0, 120) });
+      if (v) celdas.push({ col, valor: v.slice(0, 200) });
     });
     if (celdas.length) filas.push({ n, celdas });
   });
@@ -124,12 +130,13 @@ function slugDe(nombre: string): string {
 }
 
 /**
- * Recorre el archivo entero aplicando la plantilla que dedujo el modelo.
+ * Recorre la rejilla entera aplicando la plantilla que dedujo el modelo.
  *
- * Toda la ambigüedad se resolvió ya al detectar el esquema; aquí no se
- * adivina nada.
+ * Toda la ambigüedad se resolvió al detectar el esquema; aquí no se adivina
+ * nada. Trabaja sobre la rejilla y no sobre el Excel para que se pueda volver
+ * a ejecutar con un esquema corregido sin tener que subir el archivo otra vez.
  */
-function aplicar(hoja: ExcelJS.Worksheet, e: EsquemaAst): ParsedArquitectura {
+export function aplicar(rej: Rejilla, e: EsquemaAst): ParsedArquitectura {
   const ignorar = new Set(
     [...e.textosIgnorar, ...ETIQUETAS_IGNORAR].map((t) => t.toLowerCase().replace(/\s+/g, " ").trim())
   );
@@ -140,17 +147,19 @@ function aplicar(hoja: ExcelJS.Worksheet, e: EsquemaAst): ParsedArquitectura {
   const home: KeywordRow[] = [];
   const stack: (AstNode | null)[] = new Array(10).fill(null);
 
-  for (let r = e.filaInicio; r <= hoja.rowCount; r++) {
-    const fila = hoja.getRow(r);
+  for (const fila of rej.filas) {
+    if (fila.n < e.filaInicio) continue;
+    const celda = new Map(fila.celdas.map((c) => [c.col, c.valor]));
 
     for (const nv of niveles) {
-      const valor = texto(fila.getCell(nv.columnaNombre).value);
+      const valor = celda.get(nv.columnaNombre);
       if (!valor) continue;
 
       const limpio = valor.replace(/\s+/g, " ").trim();
       if (ignorar.has(limpio.toLowerCase()) || limpio.startsWith("#")) continue;
 
-      const vol = nv.columnaVolumen > 0 ? texto(fila.getCell(nv.columnaVolumen).value) : "";
+      const volTexto = nv.columnaVolumen > 0 ? celda.get(nv.columnaVolumen) ?? "" : "";
+      const vol = numero(volTexto);
 
       const esSeccion =
         e.marcaSeccion === "todas"
@@ -158,7 +167,7 @@ function aplicar(hoja: ExcelJS.Worksheet, e: EsquemaAst): ParsedArquitectura {
           : e.marcaSeccion === "empieza_por_barra"
           ? limpio.startsWith("/")
           : // «sin_volumen»: el encabezado del bloque es el que no lleva número.
-            vol === "" || numero(fila.getCell(nv.columnaVolumen).value) === 0;
+            volTexto === "" || vol === 0;
 
       if (esSeccion) {
         const esRuta = limpio.startsWith("/");
@@ -171,8 +180,8 @@ function aplicar(hoja: ExcelJS.Worksheet, e: EsquemaAst): ParsedArquitectura {
           hijos: [],
         };
 
-        // Se cuelga del ancestro más cercano que exista: una subcategoría
-        // cuya categoría padre no aparece en el archivo no debe perderse.
+        // Se cuelga del ancestro más cercano que exista: una subcategoría cuya
+        // categoría padre no aparece en el archivo no debe perderse.
         let padre: AstNode | null = null;
         for (let n = nv.nivel - 1; n >= 1; n--) {
           if (stack[n]) {
@@ -187,12 +196,11 @@ function aplicar(hoja: ExcelJS.Worksheet, e: EsquemaAst): ParsedArquitectura {
         stack[nv.nivel] = node;
         for (let d = nv.nivel + 1; d < stack.length; d++) stack[d] = null;
       } else {
-        const kw: KeywordRow = { keyword: limpio, volumen: numero(fila.getCell(nv.columnaVolumen).value) };
         const destino = stack[nv.nivel];
+        const kw: KeywordRow = { keyword: limpio, volumen: vol };
         if (destino) destino.keywords.push(kw);
         else home.push(kw);
       }
-
     }
   }
 
@@ -216,6 +224,7 @@ function aplicar(hoja: ExcelJS.Worksheet, e: EsquemaAst): ParsedArquitectura {
 export interface ResultadoLectura extends ParsedArquitectura {
   esquema: EsquemaAst;
   reconocido: boolean;
+  rejilla: Rejilla;
 }
 
 export async function parseArquitectura(buffer: Buffer): Promise<ResultadoLectura> {
@@ -227,22 +236,23 @@ export async function parseArquitectura(buffer: Buffer): Promise<ResultadoLectur
     throw new Error("El archivo está vacío.");
   }
 
-  // La muestra lleva las primeras filas de cada hoja: con eso se ve la
-  // cabecera y un par de bloques completos, que es cuanto hace falta para
-  // entender la plantilla.
+  // La muestra lleva las primeras filas de cada hoja: con eso se ve la cabecera
+  // y un par de bloques completos, que es cuanto hace falta para entender la
+  // plantilla.
   const muestra = rejilla(hojas);
   const huella = huellaDe(muestra.slice(0, 1200));
 
-  // Si este formato ya se vio, no se vuelve a preguntar.
   let esquema = await recordada(huella);
   const reconocido = Boolean(esquema);
 
   if (!esquema) esquema = await detectarEsquema(muestra);
 
-  const hoja = wb.getWorksheet(esquema.hoja) ?? wb.worksheets[wb.worksheets.length - 1];
-  if (!hoja) throw new Error(`El modelo indicó la hoja «${esquema.hoja}» y no existe en el archivo.`);
+  const elegida =
+    hojas.find((h) => h.nombre === esquema.hoja) ?? hojas.filter((h) => h.filas.length).slice(-1)[0];
+  if (!elegida) throw new Error(`El modelo indicó la hoja «${esquema.hoja}» y no existe en el archivo.`);
 
-  const leido = aplicar(hoja, esquema);
+  const rej: Rejilla = { hoja: elegida.nombre, filas: elegida.filas };
+  const leido = aplicar(rej, esquema);
 
   if (leido.numPaginas === 0) {
     throw new Error(
@@ -255,7 +265,16 @@ export async function parseArquitectura(buffer: Buffer): Promise<ResultadoLectur
   // sería enseñarle al modelo un mal ejemplo.
   if (!reconocido) await recordar(huella, esquema, muestra.slice(0, 4000));
 
-  return { ...leido, esquema, reconocido };
+  return { ...leido, esquema, reconocido, rejilla: rej };
+}
+
+/** La rejilla en texto legible, para enseñársela al modelo cuando se corrige. */
+export function rejillaLegible(rej: Rejilla, desde = 1, cuantas = 80): string {
+  return rej.filas
+    .filter((f) => f.n >= desde)
+    .slice(0, cuantas)
+    .map((f) => `f${f.n}: ` + f.celdas.map((c) => `[c${c.col}] ${c.valor}`).join("  "))
+    .join("\n");
 }
 
 /** Una sección lista para guardar y cotejar, ya fuera del árbol. */

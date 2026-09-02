@@ -78,6 +78,10 @@ export async function POST(req: NextRequest) {
       archivo: archivo.name,
       subidoPor: p.usuarioId,
       cotejado: new Date(),
+      // Se guarda la hoja ya leída y el esquema usado: es lo que permite
+      // corregir una interpretación mala sin volver a pedir el archivo.
+      rejilla: JSON.stringify(arbol.rejilla).slice(0, 900_000),
+      esquema: JSON.stringify(arbol.esquema),
       nodos: {
         create: planos.map((n) => {
           const v = cotejar(n.slug, n.nombre, candidatos);
