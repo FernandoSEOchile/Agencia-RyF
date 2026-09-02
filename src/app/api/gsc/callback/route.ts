@@ -20,6 +20,13 @@ export async function GET(req: NextRequest) {
   const datos = estado ? leerEstado(estado) : null;
   const clienteId = datos?.clienteId ?? "";
 
+  console.log("[gsc] vuelta de Google:", {
+    hayCodigo: Boolean(codigo),
+    hayEstado: Boolean(estado),
+    estadoValido: Boolean(estado && leerEstado(estado)),
+    rechazo,
+  });
+
   if (rechazo) {
     redirect(destino(clienteId, "error=" + encodeURIComponent("Autorización cancelada.")));
   }
@@ -31,7 +38,13 @@ export async function GET(req: NextRequest) {
   }
 
   const sesion = await auth();
-  if (!sesion?.user?.id) redirect("/entrar");
+
+  // Si la cookie de sesión no viaja en la vuelta desde Google, el usuario acaba
+  // en la entrada y parece que no pasó nada. Conviene poder distinguirlo.
+  if (!sesion?.user?.id) {
+    console.error("[gsc] la vuelta de Google llegó sin sesión");
+    redirect("/entrar");
+  }
 
   const app = await aplicacion();
   if (!app) {
@@ -47,6 +60,7 @@ export async function GET(req: NextRequest) {
     const conexion = await guardarConexion(r.correo, r.refresco, sesion.user.id);
     conexionId = conexion.id;
   } catch (e) {
+    console.error("[gsc] falló el canje del código:", e);
     redirect(
       destino(
         clienteId,

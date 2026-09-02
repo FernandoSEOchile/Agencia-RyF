@@ -25,13 +25,13 @@ export default async function Ficha({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ c?: string }>;
+  searchParams: Promise<{ c?: string; error?: string; ok?: string }>;
 }) {
   const sesion = await auth();
   if (!sesion?.user?.id) redirect("/entrar");
 
   const { id } = await params;
-  const { c } = await searchParams;
+  const { c, error: aviso, ok: exito } = await searchParams;
   const rol = (sesion.user as { rol?: string }).rol ?? "LECTOR";
 
   const cliente = await db.cliente.findUnique({ where: { id } });
@@ -218,6 +218,16 @@ export default async function Ficha({
           </form>
         </div>
       </header>
+
+      {/* Los avisos de las vueltas desde fuera —conectar Google, por ejemplo—
+          llegan por la URL. Sin pintarlos, un fallo se ve como si no hubiera
+          pasado nada, que es peor que un error. */}
+      {aviso && (
+        <p className="mt-5 rounded-2xl bg-red-50 px-4 py-3 text-[13px] text-red-700">{aviso}</p>
+      )}
+      {exito && (
+        <p className="mt-5 rounded-2xl bg-emerald-50 px-4 py-3 text-[13px] text-emerald-700">{exito}</p>
+      )}
 
       {caido && (
         <p className="mt-5 rounded-2xl bg-red-50 px-4 py-3 text-[13px] text-red-700">

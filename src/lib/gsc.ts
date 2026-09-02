@@ -146,7 +146,13 @@ export async function canjear(
   });
 
   const j = await r.json();
-  if (!r.ok) throw new Error(j.error_description || j.error || "Google rechazó la autorización.");
+
+  if (!r.ok) {
+    console.error("[gsc] Google rechazó el canje:", r.status, JSON.stringify(j));
+    throw new Error(
+      `Google rechazó la autorización (${j.error ?? r.status}): ${j.error_description ?? "sin detalle"}`
+    );
+  }
 
   if (!j.refresh_token) {
     throw new Error(
