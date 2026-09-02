@@ -82,6 +82,11 @@ export default async function Panel() {
           <Link href="/panel/explorar" className="boton">
             Explorar dominio
           </Link>
+          {/* Sin filtro de rol: quien instala el plugin en el sitio del cliente
+              casi nunca administra el panel, y antes tenía que pedir el ZIP. */}
+          <Link href="/panel/conector" className="boton">
+            Conector
+          </Link>
           {(rol === "ADMIN" || rol === "GESTOR") && (
             <Link href="/panel/gasto" className="boton">
               Gasto
