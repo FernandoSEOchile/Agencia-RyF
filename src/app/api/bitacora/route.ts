@@ -2,7 +2,7 @@ import { NextRequest } from "next/server";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { veTodo, anotar } from "@/lib/clientes";
-import { redactarMes } from "@/lib/bitacora";
+import { redactarMes, type ModoBitacora } from "@/lib/bitacora";
 
 export const runtime = "nodejs";
 export const maxDuration = 120;
@@ -97,7 +97,7 @@ export async function POST(req: NextRequest) {
 
 /** Redacta un mes a partir del registro técnico. */
 export async function PATCH(req: NextRequest) {
-  const { clienteId, mes } = await req.json();
+  const { clienteId, mes, modo } = await req.json();
 
   const p = await permiso(String(clienteId || ""));
   if ("error" in p) return Response.json({ error: p.error }, { status: p.codigo });
@@ -109,17 +109,23 @@ export async function PATCH(req: NextRequest) {
     return Response.json({ error: "El mes debe venir como 2026-09." }, { status: 400 });
   }
 
+  const cual: ModoBitacora =
+    modo === "actualizar" || modo === "rehacer" ? modo : "nuevo";
+
   try {
-    const cuantas = await redactarMes(String(clienteId), String(mes), p.usuarioId);
+    const r = await redactarMes(String(clienteId), String(mes), p.usuarioId, cual);
 
     await anotar({
       usuarioId: p.usuarioId,
       clienteId: String(clienteId),
       accion: "bitacora",
-      resumen: `Redactadas ${cuantas} entradas de ${mes}`,
+      resumen:
+        cual === "rehacer"
+          ? `Bitácora de ${mes} rehecha: ${r.nuevas} entradas`
+          : `Bitácora de ${mes}: ${r.nuevas} nuevas, ${r.actualizadas} actualizadas`,
     });
 
-    return Response.json({ ok: true, entradas: cuantas });
+    return Response.json({ ok: true, ...r });
   } catch (e) {
     return Response.json(
       { error: e instanceof Error ? e.message : "No se pudo redactar el mes." },

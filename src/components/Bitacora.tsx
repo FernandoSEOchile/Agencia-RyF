@@ -93,13 +93,35 @@ export default function Bitacora({
     return j;
   }
 
-  async function redactar(mes: string) {
+  async function redactar(mes: string, modo: "nuevo" | "actualizar" | "rehacer" = "nuevo") {
+    if (modo === "rehacer") {
+      const ok = confirm(
+        [
+          `Se borrarán todas las entradas de ${mesLegible(mes)} que escribió la IA y se redactará el mes entero de nuevo.`,
+          "",
+          "Lo que hayas añadido a mano se conserva.",
+          "",
+          "¿Rehacer?",
+        ].join(String.fromCharCode(10))
+      );
+      if (!ok) return;
+    }
+
     setOcupado(true);
     setError(null);
     setAviso(null);
     try {
-      const j = await llamar("PATCH", { clienteId, mes });
-      setAviso(`${j.entradas} entradas redactadas para ${mesLegible(mes)}. Revísalas antes de enviarlas.`);
+      const j = await llamar("PATCH", { clienteId, mes, modo });
+
+      const partes = [
+        j.nuevas ? `${j.nuevas} ${j.nuevas === 1 ? "entrada nueva" : "entradas nuevas"}` : "",
+        j.actualizadas ? `${j.actualizadas} ampliadas` : "",
+        j.borradas ? `${j.borradas} rehechas` : "",
+      ].filter(Boolean);
+
+      setAviso(
+        `${mesLegible(mes)}: ${partes.join(", ") || "sin cambios"}. Revísalo antes de enviarlo.`
+      );
       await cargar();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Error inesperado.");
@@ -318,13 +340,24 @@ export default function Bitacora({
                 </ul>
 
                 {puedeEditar && (
-                  <button
-                    onClick={() => redactar(m)}
-                    disabled={ocupado}
-                    className="imprimir-oculto mt-3 text-[12px] text-[color:var(--tinta-suave)] transition hover:text-[color:var(--acento)]"
-                  >
-                    Añadir lo que falte de este mes desde el registro
-                  </button>
+                  <div className="imprimir-oculto mt-4 flex flex-wrap gap-2">
+                    <button
+                      onClick={() => redactar(m, "actualizar")}
+                      disabled={ocupado}
+                      className="boton !py-1.5 !text-[11px]"
+                      title="Solo lee lo ocurrido desde la última vez que se redactó"
+                    >
+                      Añadir lo nuevo
+                    </button>
+                    <button
+                      onClick={() => redactar(m, "rehacer")}
+                      disabled={ocupado}
+                      className="boton !py-1.5 !text-[11px]"
+                      title="Borra lo escrito por la IA y redacta el mes entero otra vez"
+                    >
+                      Rehacer el mes desde cero
+                    </button>
+                  </div>
                 )}
               </section>
             );
@@ -333,9 +366,13 @@ export default function Bitacora({
       )}
 
       <p className="mt-4 max-w-3xl text-[12px] leading-relaxed text-[color:var(--tinta-suave)] imprimir-oculto">
-        Lo redactado a partir del registro agrupa lo repetido: veinte fichas actualizadas son una línea,
-        no veinte. Aun así, revísalo antes de enviarlo — es lo que va a leer tu cliente, y solo tú sabes
-        qué merece destacarse.
+        «Añadir lo nuevo» solo mira lo ocurrido desde la última vez, así que se puede pulsar cuantas
+        veces haga falta sin que se repita nada; si algo amplía una entrada que ya estaba —más fichas
+        del mismo trabajo—, la actualiza en vez de duplicarla. «Rehacer desde cero» borra lo escrito
+        por la IA y vuelve a redactar el mes entero, respetando lo que añadiste a mano.
+        <br />
+        Y revísalo siempre antes de enviarlo: es lo que va a leer tu cliente, y solo tú sabes qué
+        merece destacarse.
       </p>
     </div>
   );

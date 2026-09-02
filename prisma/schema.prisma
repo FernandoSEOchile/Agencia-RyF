@@ -500,3 +500,19 @@ model Exploracion {
   @@unique([dominio, pais])
   @@index([creado])
 }
+
+/// Hasta dónde se contó ya el registro de un mes en la bitácora.
+///
+/// Sin esta marca, actualizar significa releer el mes entero y volver a
+/// decidir qué es nuevo, que es justo donde el modelo se equivoca: o repite lo
+/// ya contado o concluye que no hay nada. Con la marca, «actualizar» solo mira
+/// lo ocurrido después.
+model CorteBitacora {
+  id        String   @id @default(cuid())
+  clienteId String
+  mes       String
+  hasta     DateTime
+  tocado    DateTime @updatedAt
+
+  @@unique([clienteId, mes])
+}

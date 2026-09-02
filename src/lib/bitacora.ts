@@ -42,6 +42,12 @@ export function mesDe(f: Date): string {
 }
 
 const Entrada = z.object({
+  reemplaza: z
+    .string()
+    .nullable()
+    .describe(
+      "Si esto amplía una entrada que ya existe —por ejemplo se optimizaron más fichas de las que decía—, el título EXACTO de esa entrada, para actualizarla en vez de duplicarla. Si es algo nuevo, null."
+    ),
   categoria: z
     .enum(["contenido", "arquitectura", "tecnico", "diseno", "analisis", "otro"])
     .describe("A qué tipo de trabajo corresponde."),
@@ -73,24 +79,49 @@ async function cliente() {
  * es como lo entiende un cliente. Un informe con cien viñetas repetidas se
  * lee como relleno, aunque el trabajo sea real.
  */
+export type ModoBitacora = "nuevo" | "actualizar" | "rehacer";
+
 export async function redactarMes(
   clienteId: string,
   mes: string,
-  usuarioId?: string
-): Promise<number> {
-  const desde = new Date(`${mes}-01T00:00:00Z`);
-  const hasta = new Date(desde);
-  hasta.setUTCMonth(hasta.getUTCMonth() + 1);
+  usuarioId?: string,
+  modo: ModoBitacora = "nuevo"
+): Promise<{ nuevas: number; actualizadas: number; borradas: number }> {
+  const inicioMes = new Date(`${mes}-01T00:00:00Z`);
+  const finMes = new Date(inicioMes);
+  finMes.setUTCMonth(finMes.getUTCMonth() + 1);
+
+  const corte = await db.corteBitacora.findUnique({
+    where: { clienteId_mes: { clienteId, mes } },
+  });
+
+  // Rehacer borra lo que escribió el modelo y respeta lo que puso una persona:
+  // si alguien se molestó en anotarlo a mano, sabe algo que el registro no
+  // contiene.
+  let borradas = 0;
+  if (modo === "rehacer") {
+    const r = await db.bitacora.deleteMany({ where: { clienteId, mes, automatico: true } });
+    borradas = r.count;
+  }
+
+  // Al actualizar solo interesa lo ocurrido desde la última vez. Releer el mes
+  // entero es lo que hacía que el modelo repitiera o concluyera que no había
+  // nada nuevo.
+  const desde = modo === "actualizar" && corte ? corte.hasta : inicioMes;
 
   const registro = await db.registro.findMany({
-    where: { clienteId, creado: { gte: desde, lt: hasta } },
+    where: { clienteId, creado: { gte: desde, lt: finMes } },
     orderBy: { creado: "asc" },
     select: { accion: true, resumen: true, resultado: true, creado: true },
     take: 500,
   });
 
   if (registro.length === 0) {
-    throw new Error("No hay actividad registrada en ese mes.");
+    throw new Error(
+      modo === "actualizar"
+        ? "No ha pasado nada nuevo en este mes desde la última vez."
+        : "No hay actividad registrada en ese mes."
+    );
   }
 
   const yaEscritas = await db.bitacora.findMany({
@@ -102,7 +133,9 @@ export async function redactarMes(
   const m = await modelo();
 
   const texto = [
-    `Registro técnico de ${mes}:`,
+    modo === "actualizar"
+      ? `Registro técnico de ${mes} POSTERIOR a lo ya contado (desde ${desde.toISOString().slice(0, 16).replace("T", " ")}):`
+      : `Registro técnico de ${mes}:`,
     ...registro.map(
       (r) =>
         `${r.creado.toISOString().slice(0, 10)} · ${r.accion}${
@@ -110,9 +143,9 @@ export async function redactarMes(
         } · ${r.resumen}`
     ),
     yaEscritas.length
-      ? `\nYa hay estas entradas en la bitácora, no las repitas:\n${yaEscritas
+      ? `\nEntradas que YA están en la bitácora de este mes:\n${yaEscritas
           .map((e) => `- ${e.titulo}`)
-          .join("\n")}`
+          .join("\n")}\n\nNo las repitas. Si algo del registro nuevo AMPLÍA una de ellas —más páginas del mismo trabajo—, devuelve una entrada con el total acumulado y pon su título exacto en «reemplaza».`
       : "",
   ].join("\n");
 
@@ -150,16 +183,40 @@ Sin punto final en los títulos.`,
   const entradas = r.parsed_output?.entradas ?? [];
   if (entradas.length === 0) throw new Error("El modelo no devolvió ninguna entrada.");
 
-  await db.bitacora.createMany({
-    data: entradas.map((e) => ({
-      clienteId,
-      mes,
-      categoria: e.categoria,
-      titulo: e.titulo.replace(/\.$/, ""),
-      detalle: e.detalle,
-      automatico: true,
-    })),
+  let nuevas = 0;
+  let actualizadas = 0;
+
+  for (const e of entradas) {
+    const titulo = e.titulo.replace(/\.$/, "");
+
+    if (e.reemplaza) {
+      const previa = await db.bitacora.findFirst({
+        where: { clienteId, mes, titulo: e.reemplaza },
+      });
+      if (previa) {
+        await db.bitacora.update({
+          where: { id: previa.id },
+          data: { titulo, detalle: e.detalle, categoria: e.categoria },
+        });
+        actualizadas++;
+        continue;
+      }
+    }
+
+    await db.bitacora.create({
+      data: { clienteId, mes, categoria: e.categoria, titulo, detalle: e.detalle, automatico: true },
+    });
+    nuevas++;
+  }
+
+  // La marca se mueve al final y no antes: si algo falla a mitad, la próxima
+  // vez se vuelve a intentar en vez de dar por contado lo que no se contó.
+  const ultimo = registro[registro.length - 1].creado;
+  await db.corteBitacora.upsert({
+    where: { clienteId_mes: { clienteId, mes } },
+    update: { hasta: ultimo },
+    create: { clienteId, mes, hasta: ultimo },
   });
 
-  return entradas.length;
+  return { nuevas, actualizadas, borradas };
 }
