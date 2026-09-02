@@ -39,6 +39,8 @@ const FILTROS = [
   ["creada", "Creadas"],
 ] as const;
 
+type Vista = (typeof FILTROS)[number][0] | "chat";
+
 function estilo(estado: string) {
   if (estado === "creada") return "bg-emerald-50 text-emerald-700";
   if (estado === "dudosa") return "bg-amber-50 text-amber-700";
@@ -89,7 +91,7 @@ export default function Arquitectura({
   actual: ArquitecturaVista | null;
   puedeSubir: boolean;
 }) {
-  const [filtro, setFiltro] = useState<(typeof FILTROS)[number][0]>("todo");
+  const [filtro, setFiltro] = useState<Vista>("todo");
   const [subiendo, setSubiendo] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [aviso, setAviso] = useState<string | null>(null);
@@ -198,7 +200,8 @@ export default function Arquitectura({
   }
 
   const nodos = actual?.nodos ?? [];
-  const visibles = filtro === "todo" ? nodos : nodos.filter((n) => n.estado === filtro);
+  const visibles =
+    filtro === "todo" || filtro === "chat" ? nodos : nodos.filter((n) => n.estado === filtro);
 
   const cuenta = (e: string) => nodos.filter((n) => n.estado === e).length;
   const volumenPerdido = nodos.filter((n) => n.estado === "falta").reduce((s, n) => s + n.volumen, 0);
@@ -312,6 +315,18 @@ export default function Arquitectura({
                   {texto}
                 </button>
               ))}
+
+              {puedeSubir && (
+                <>
+                  <span className="mx-1 h-4 w-px bg-black/10" />
+                  <button
+                    onClick={() => setFiltro("chat")}
+                    className={`segmento ${filtro === "chat" ? "segmento-activo" : ""}`}
+                  >
+                    Asistente
+                  </button>
+                </>
+              )}
             </div>
             <span className="ml-auto text-[12px] text-[color:var(--tinta-suave)]">
               {actual.archivo}
@@ -319,6 +334,9 @@ export default function Arquitectura({
             </span>
           </div>
 
+          {filtro === "chat" ? (
+            <ChatArquitectura arquitecturaId={actual.id} />
+          ) : (
           <div className="tarjeta mt-3 overflow-x-auto">
             <table className="w-full min-w-[720px] border-collapse text-[13px]">
               <thead>
@@ -483,8 +501,7 @@ export default function Arquitectura({
               </tbody>
             </table>
           </div>
-
-          {puedeSubir && <ChatArquitectura arquitecturaId={actual.id} />}
+          )}
 
           <p className="mt-4 max-w-3xl text-[12px] leading-relaxed text-[color:var(--tinta-suave)]">
             El cruce va en tres pasos: coincidencia exacta de slug, parecido por nombre, y lo que quede
