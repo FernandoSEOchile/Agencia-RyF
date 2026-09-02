@@ -12,7 +12,8 @@ interface Fila {
 
 interface Respuesta {
   configurado: boolean;
-  correo: string | null;
+  cuentas: { id: string; correo: string }[];
+  conexion: { id: string; correo: string } | null;
   propiedades: { url: string; permiso: string }[];
   propiedad: string | null;
   dias?: number;
@@ -63,8 +64,12 @@ export default function SearchConsole({
     try {
       const r = await fetch(`/api/gsc?cliente=${encodeURIComponent(clienteId)}&dias=${d}`);
       const j = await r.json();
+
+      // Un fallo al hablar con Google no debe borrar el resto: la pantalla
+      // sigue necesitando saber si hay cuenta conectada para ofrecer el botón
+      // de reconectar, que suele ser justo lo que hace falta.
+      if (j?.configurado !== undefined) setDatos(j);
       if (!r.ok) throw new Error(j.error || "No se pudieron leer los datos.");
-      setDatos(j);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Error inesperado.");
     } finally {
@@ -77,14 +82,14 @@ export default function SearchConsole({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dias]);
 
-  async function elegirPropiedad(propiedad: string) {
+  async function guardar(cuerpo: Record<string, unknown>) {
     setCargando(true);
     setError(null);
     try {
       const r = await fetch("/api/gsc", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ clienteId, propiedad }),
+        body: JSON.stringify({ clienteId, ...cuerpo }),
       });
       const j = await r.json();
       if (!r.ok) throw new Error(j.error || "No se pudo guardar.");
@@ -99,16 +104,62 @@ export default function SearchConsole({
     return <p className="mt-4 text-[13px] text-[color:var(--tinta-suave)]">Consultando Search Console…</p>;
   }
 
-  if (error) {
-    return <p className="mt-4 rounded-2xl bg-red-50 px-4 py-3 text-[13px] text-red-700">{error}</p>;
-  }
+  const aviso = error && (
+    <p className="mt-4 rounded-2xl bg-red-50 px-4 py-3 text-[13px] text-red-700">{error}</p>
+  );
 
   if (!datos?.configurado) {
     return (
       <p className="mt-4 rounded-2xl bg-black/[0.03] px-4 py-3 text-[13px] text-[color:var(--tinta-media)]">
-        Search Console no está conectado. Un administrador puede hacerlo en Ajustes; da las posiciones
-        reales de lo que este sitio ya posiciona, gratis.
+        Search Console no está habilitado en este panel. Un administrador debe configurarlo en Ajustes.
       </p>
+    );
+  }
+
+  // Sin cuenta de Google no hay nada que pedir. Se ofrece autorizar una nueva
+  // o reutilizar otra ya autorizada, porque una misma cuenta suele dar acceso
+  // a todos los sitios de una agencia.
+  if (!datos.conexion) {
+    return (
+      <div className="mt-4">
+        {aviso}
+        <div className="rounded-2xl border border-dashed border-[color:var(--linea-fuerte)] p-6 text-center">
+          <p className="text-[15px] font-medium">Conecta Search Console</p>
+          <p className="mx-auto mt-2 max-w-md text-[13px] text-[color:var(--tinta-media)]">
+            Autoriza la cuenta de Google que tiene acceso a este sitio. El panel solo podrá leer los
+            datos de búsqueda, y puedes revocar el permiso desde tu cuenta de Google cuando quieras.
+          </p>
+
+          {puedeEditar ? (
+            <a href={`/api/gsc/conectar?cliente=${encodeURIComponent(clienteId)}`} className="boton-fuerte mt-4">
+              Conectar con Google
+            </a>
+          ) : (
+            <p className="mt-3 text-[12px] text-[color:var(--tinta-suave)]">
+              No tienes permiso para conectar cuentas.
+            </p>
+          )}
+
+          {datos.cuentas.length > 0 && puedeEditar && (
+            <div className="mt-6 border-t border-[color:var(--linea)] pt-4">
+              <p className="rotulo">O usa una cuenta ya autorizada</p>
+              <ul className="mt-2 flex flex-wrap justify-center gap-2">
+                {datos.cuentas.map((c) => (
+                  <li key={c.id}>
+                    <button
+                      disabled={cargando}
+                      onClick={() => guardar({ conexionId: c.id })}
+                      className="boton !text-[12px]"
+                    >
+                      {c.correo}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </div>
+      </div>
     );
   }
 
@@ -116,30 +167,44 @@ export default function SearchConsole({
   // de las propiedades de Google corresponde a este cliente.
   if (!datos.propiedad) {
     return (
-      <div className="mt-4 rounded-2xl border border-dashed border-[color:var(--linea-fuerte)] p-5">
-        <p className="text-[13px] font-medium">¿Qué propiedad de Search Console es este cliente?</p>
-
-        {datos.propiedades.length === 0 ? (
-          <p className="mt-2 text-[13px] text-[color:var(--tinta-media)]">
-            La cuenta de servicio no tiene acceso a ninguna propiedad todavía. En Search Console, añade{" "}
-            <span className="break-all font-mono text-[12px]">{datos.correo}</span> como usuario con
-            permiso «Restringido».
+      <div className="mt-4">
+        {aviso}
+        <div className="rounded-2xl border border-dashed border-[color:var(--linea-fuerte)] p-5">
+          <p className="text-[13px] font-medium">¿Qué propiedad corresponde a este cliente?</p>
+          <p className="mt-1 text-[12px] text-[color:var(--tinta-suave)]">
+            Conectado como {datos.conexion.correo}
           </p>
-        ) : (
-          <ul className="mt-3 flex flex-wrap gap-2">
-            {datos.propiedades.map((p) => (
-              <li key={p.url}>
-                <button
-                  disabled={!puedeEditar || cargando}
-                  onClick={() => elegirPropiedad(p.url)}
-                  className="boton font-mono !text-[12px]"
-                >
-                  {p.url}
-                </button>
-              </li>
-            ))}
-          </ul>
-        )}
+
+          {datos.propiedades.length === 0 ? (
+            <p className="mt-3 text-[13px] text-[color:var(--tinta-media)]">
+              Esa cuenta de Google no tiene ninguna propiedad verificada en Search Console. Prueba con
+              otra cuenta.
+            </p>
+          ) : (
+            <ul className="mt-3 flex flex-wrap gap-2">
+              {datos.propiedades.map((x) => (
+                <li key={x.url}>
+                  <button
+                    disabled={!puedeEditar || cargando}
+                    onClick={() => guardar({ propiedad: x.url })}
+                    className="boton font-mono !text-[12px]"
+                  >
+                    {x.url}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+
+          {puedeEditar && (
+            <button
+              onClick={() => guardar({ conexionId: "" })}
+              className="mt-4 text-[12px] text-[color:var(--tinta-suave)] transition hover:text-red-600"
+            >
+              Usar otra cuenta de Google
+            </button>
+          )}
+        </div>
       </div>
     );
   }
@@ -174,7 +239,18 @@ export default function SearchConsole({
         </div>
         <span className="font-mono text-[11px] text-[color:var(--tinta-suave)]">{datos.propiedad}</span>
         {cargando && <span className="text-[12px] text-[color:var(--tinta-suave)]">actualizando…</span>}
+        {puedeEditar && (
+          <button
+            onClick={() => guardar({ propiedad: "" })}
+            className="ml-auto text-[12px] text-[color:var(--tinta-suave)] transition hover:text-[color:var(--acento)]"
+            title={`Conectado como ${datos.conexion.correo}`}
+          >
+            Cambiar propiedad
+          </button>
+        )}
       </div>
+
+      {aviso}
 
       <dl className="tarjeta mt-4 grid grid-cols-2 divide-x divide-[color:var(--linea)] overflow-hidden sm:grid-cols-4">
         {[

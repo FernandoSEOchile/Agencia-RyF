@@ -62,6 +62,12 @@ model Cliente {
   /// tipo dominio («sc-domain:ejemplo.cl») o de prefijo de URL.
   gscPropiedad String?
 
+  /// Con qué cuenta de Google se leen sus datos. Varias fichas pueden
+  /// compartir una: quien gestiona diez sitios suele tenerlos todos bajo la
+  /// misma cuenta y no debería autorizar diez veces.
+  gscConexionId String?
+  gscConexion   ConexionGoogle? @relation(fields: [gscConexionId], references: [id], onDelete: SetNull)
+
   accesos       Acceso[]
   registro      Registro[]
   trabajos      Trabajo[]
@@ -314,4 +320,23 @@ model Posicion {
   coste Float?
 
   @@index([keywordId, medido])
+}
+
+/// Cuenta de Google autorizada para leer Search Console.
+///
+/// Se guarda el token de refresco y no el de acceso: el de acceso dura una
+/// hora, el de refresco no caduca mientras el usuario no revoque el permiso
+/// desde su cuenta de Google. Va cifrado porque da acceso de lectura a los
+/// datos de búsqueda de todos los sitios de esa persona.
+model ConexionGoogle {
+  id     String @id @default(cuid())
+  correo String @unique
+
+  /// Token de refresco cifrado con AES-256-GCM.
+  refresco String
+
+  creado   DateTime @default(now())
+  usadoPor String?
+
+  clientes Cliente[]
 }
