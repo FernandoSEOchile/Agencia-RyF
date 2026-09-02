@@ -2,6 +2,7 @@
 
 import { Fragment, useState } from "react";
 import ChatArquitectura from "@/components/ChatArquitectura";
+import { Cabecera, useOrden, type Columna } from "@/components/Tabla";
 
 export interface NodoVista {
   id: string;
@@ -42,6 +43,16 @@ const FILTROS = [
 ] as const;
 
 type Vista = (typeof FILTROS)[number][0] | "chat";
+
+type ColArq = "nombre" | "principal" | "volumen" | "estado" | "url";
+
+const COLUMNAS: readonly Columna<ColArq>[] = [
+  { id: "nombre", texto: "Sección prevista" },
+  { id: "principal", texto: "Palabra clave principal" },
+  { id: "volumen", texto: "Volumen", clase: "text-right", num: true },
+  { id: "estado", texto: "Estado" },
+  { id: "url", texto: "URL que la ataca" },
+];
 
 function estilo(estado: string) {
   if (estado === "creada") return "bg-emerald-50 text-emerald-700";
@@ -105,6 +116,7 @@ export default function Arquitectura({
   const [urls, setUrls] = useState<UrlSitio[] | null>(null);
   const [cargandoUrls, setCargandoUrls] = useState(false);
   const [guardando, setGuardando] = useState(false);
+  const { orden, ordenar, ordenarPor } = useOrden<ColArq>("nombre");
 
   async function subir(e: React.ChangeEvent<HTMLInputElement>) {
     const f = e.target.files?.[0];
@@ -202,8 +214,22 @@ export default function Arquitectura({
   }
 
   const nodos = actual?.nodos ?? [];
-  const visibles =
+  const filtrados =
     filtro === "todo" || filtro === "chat" ? nodos : nodos.filter((n) => n.estado === filtro);
+
+  // El orden del Excel es el que trae la jerarquía, así que ordenar por
+  // «Sección prevista» respeta ese orden en vez de alfabetizar y romperla.
+  const visibles = ordenarPor(filtrados, (n, col) =>
+    col === "nombre"
+      ? n.nivel * 100000 + n.volumen * -1
+      : col === "principal"
+      ? n.principal ?? ""
+      : col === "volumen"
+      ? n.volumen
+      : col === "estado"
+      ? n.estado
+      : n.urlDestino ?? ""
+  );
 
   const cuenta = (e: string) => nodos.filter((n) => n.estado === e).length;
   const volumenPerdido = nodos.filter((n) => n.estado === "falta").reduce((s, n) => s + n.volumen, 0);
@@ -341,17 +367,7 @@ export default function Arquitectura({
           ) : (
           <div className="tarjeta mt-3 overflow-x-auto">
             <table className="w-full min-w-[860px] border-collapse text-[13px]">
-              <thead>
-                <tr className="border-b border-[color:var(--linea)] text-left">
-                  <th className="rotulo px-5 py-3">Sección prevista</th>
-                  <th className="rotulo px-4 py-3">Palabra clave principal</th>
-                  <th className="rotulo px-3 py-3 text-right" title="Suma de todas las keywords de la sección">
-                    Volumen
-                  </th>
-                  <th className="rotulo px-3 py-3">Estado</th>
-                  <th className="rotulo px-5 py-3">URL que la ataca</th>
-                </tr>
-              </thead>
+              <Cabecera columnas={COLUMNAS} orden={orden} ordenar={ordenar} />
               <tbody className="divide-y divide-[color:var(--linea)]">
                 {visibles.map((n) => (
                   <Fragment key={n.id}>

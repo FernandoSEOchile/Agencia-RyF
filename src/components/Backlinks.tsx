@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { Cabecera, useOrden, type Columna } from "@/components/Tabla";
 
 interface Perfil {
   dominio: string;
@@ -35,6 +36,30 @@ const VISTAS = [
 
 const numero = (n: number) => n.toLocaleString("es-CL");
 
+type ColDom = "dominio" | "enlaces" | "rank" | "primeraVez";
+type ColEnl = "desde" | "ancla" | "hacia" | "dofollow";
+type ColAnc = "texto" | "enlaces" | "dominios";
+
+const COL_DOMINIOS: readonly Columna<ColDom>[] = [
+  { id: "dominio", texto: "Dominio" },
+  { id: "enlaces", texto: "Enlaces", clase: "text-right", num: true },
+  { id: "rank", texto: "Fuerza", clase: "text-right", num: true },
+  { id: "primeraVez", texto: "Desde" },
+];
+
+const COL_ENLACES: readonly Columna<ColEnl>[] = [
+  { id: "desde", texto: "Desde" },
+  { id: "ancla", texto: "Texto del enlace" },
+  { id: "hacia", texto: "Hacia" },
+  { id: "dofollow", texto: "Tipo" },
+];
+
+const COL_ANCLAS: readonly Columna<ColAnc>[] = [
+  { id: "texto", texto: "Texto del enlace" },
+  { id: "enlaces", texto: "Enlaces", clase: "text-right", num: true },
+  { id: "dominios", texto: "Dominios", clase: "text-right", num: true },
+];
+
 export default function Backlinks({
   clienteId,
   puedeEditar,
@@ -49,6 +74,10 @@ export default function Backlinks({
   const [aviso, setAviso] = useState<string | null>(null);
   const [vista, setVista] = useState<(typeof VISTAS)[number][0]>("dominios");
   const [busca, setBusca] = useState("");
+
+  const oDom = useOrden<ColDom>("enlaces", false);
+  const oEnl = useOrden<ColEnl>("desde");
+  const oAnc = useOrden<ColAnc>("enlaces", false);
 
   async function cargar() {
     setCargando(true);
@@ -100,6 +129,20 @@ export default function Backlinks({
   const p = datos?.perfil;
 
   const filtra = (t: string) => !busca.trim() || t.toLowerCase().includes(busca.trim().toLowerCase());
+
+  const dominios = oDom.ordenarPor((p?.dominios ?? []).filter((d) => filtra(d.dominio)), (d, c) =>
+    c === "dominio" ? d.dominio : c === "enlaces" ? d.enlaces : c === "rank" ? d.rank : d.primeraVez ?? ""
+  );
+
+  const listaEnlaces = oEnl.ordenarPor(
+    (p?.enlaces ?? []).filter((e) => filtra(e.desde + " " + (e.ancla ?? ""))),
+    (e, c) =>
+      c === "desde" ? e.desde : c === "ancla" ? e.ancla ?? "" : c === "hacia" ? e.hacia : e.dofollow ? 1 : 0
+  );
+
+  const anclas = oAnc.ordenarPor((p?.anclas ?? []).filter((a) => filtra(a.texto)), (a, c) =>
+    c === "texto" ? a.texto : c === "enlaces" ? a.enlaces : a.dominios
+  );
 
   return (
     <div className="mt-5">
@@ -181,16 +224,9 @@ export default function Backlinks({
           <div className="tarjeta mt-3 overflow-x-auto">
             {vista === "dominios" && (
               <table className="w-full min-w-[600px] border-collapse text-[13px]">
-                <thead>
-                  <tr className="border-b border-[color:var(--linea)] text-left">
-                    <th className="rotulo px-5 py-3">Dominio</th>
-                    <th className="rotulo px-3 py-3 text-right">Enlaces</th>
-                    <th className="rotulo px-3 py-3 text-right">Fuerza</th>
-                    <th className="rotulo px-5 py-3">Desde</th>
-                  </tr>
-                </thead>
+                <Cabecera columnas={COL_DOMINIOS} orden={oDom.orden} ordenar={oDom.ordenar} />
                 <tbody className="divide-y divide-[color:var(--linea)]">
-                  {p.dominios.filter((d) => filtra(d.dominio)).map((d) => (
+                  {dominios.map((d) => (
                     <tr key={d.dominio} className="transition hover:bg-black/[0.015]">
                       <td className="px-5 py-2.5">
                         <a
@@ -218,16 +254,9 @@ export default function Backlinks({
 
             {vista === "enlaces" && (
               <table className="w-full min-w-[760px] border-collapse text-[13px]">
-                <thead>
-                  <tr className="border-b border-[color:var(--linea)] text-left">
-                    <th className="rotulo px-5 py-3">Desde</th>
-                    <th className="rotulo px-3 py-3">Texto del enlace</th>
-                    <th className="rotulo px-3 py-3">Hacia</th>
-                    <th className="rotulo px-3 py-3">Tipo</th>
-                  </tr>
-                </thead>
+                <Cabecera columnas={COL_ENLACES} orden={oEnl.orden} ordenar={oEnl.ordenar} />
                 <tbody className="divide-y divide-[color:var(--linea)]">
-                  {p.enlaces.filter((e) => filtra(e.desde + " " + (e.ancla ?? ""))).map((e, i) => (
+                  {listaEnlaces.map((e, i) => (
                     <tr key={`${e.desde}-${i}`} className="transition hover:bg-black/[0.015]">
                       <td className="max-w-[260px] px-5 py-2.5">
                         <a
@@ -267,15 +296,9 @@ export default function Backlinks({
 
             {vista === "anclas" && (
               <table className="w-full min-w-[520px] border-collapse text-[13px]">
-                <thead>
-                  <tr className="border-b border-[color:var(--linea)] text-left">
-                    <th className="rotulo px-5 py-3">Texto del enlace</th>
-                    <th className="rotulo px-3 py-3 text-right">Enlaces</th>
-                    <th className="rotulo px-5 py-3 text-right">Dominios</th>
-                  </tr>
-                </thead>
+                <Cabecera columnas={COL_ANCLAS} orden={oAnc.orden} ordenar={oAnc.ordenar} />
                 <tbody className="divide-y divide-[color:var(--linea)]">
-                  {p.anclas.filter((a) => filtra(a.texto)).map((a, i) => (
+                  {anclas.map((a, i) => (
                     <tr key={`${a.texto}-${i}`} className="transition hover:bg-black/[0.015]">
                       <td className="px-5 py-2.5">
                         {a.texto || <span className="text-[color:var(--tinta-suave)]">sin texto</span>}

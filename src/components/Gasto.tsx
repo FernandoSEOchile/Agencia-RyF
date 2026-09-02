@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { Cabecera, useOrden, type Columna } from "@/components/Tabla";
 
 interface Concepto {
   servicio: string;
@@ -26,6 +27,15 @@ interface Datos {
   error?: string;
 }
 
+type ColGasto = "concepto" | "servicio" | "veces" | "monto";
+
+const COLUMNAS: readonly Columna<ColGasto>[] = [
+  { id: "concepto", texto: "Concepto" },
+  { id: "servicio", texto: "Servicio" },
+  { id: "veces", texto: "Veces", clase: "text-right", num: true },
+  { id: "monto", texto: "Gasto", clase: "text-right", num: true },
+];
+
 const PERIODOS = [
   [7, "7 días"],
   [28, "28 días"],
@@ -45,6 +55,7 @@ export default function Gasto({ clienteId }: { clienteId: string }) {
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [dias, setDias] = useState<number | null>(28);
+  const { orden, ordenar, ordenarPor } = useOrden<ColGasto>("monto", false);
   const [desde, setDesde] = useState(fecha(28));
   const [hasta, setHasta] = useState(fecha(0));
 
@@ -77,6 +88,10 @@ export default function Gasto({ clienteId }: { clienteId: string }) {
   }
 
   const cima = Math.max(1, ...(datos?.porDia ?? []).map((d) => d.claude + d.dataforseo));
+
+  const conceptos = ordenarPor(datos?.porConcepto ?? [], (c, col) =>
+    col === "concepto" ? c.concepto : col === "servicio" ? c.servicio : col === "veces" ? c.veces : c.monto
+  );
 
   return (
     <div className="mt-5">
@@ -183,23 +198,16 @@ export default function Gasto({ clienteId }: { clienteId: string }) {
 
           <div className="tarjeta mt-3 overflow-x-auto">
             <table className="w-full min-w-[520px] border-collapse text-[13px]">
-              <thead>
-                <tr className="border-b border-[color:var(--linea)] text-left">
-                  <th className="rotulo px-5 py-3">Concepto</th>
-                  <th className="rotulo px-3 py-3">Servicio</th>
-                  <th className="rotulo px-3 py-3 text-right">Veces</th>
-                  <th className="rotulo px-5 py-3 text-right">Gasto</th>
-                </tr>
-              </thead>
+              <Cabecera columnas={COLUMNAS} orden={orden} ordenar={ordenar} />
               <tbody className="divide-y divide-[color:var(--linea)]">
-                {datos.porConcepto.length === 0 ? (
+                {conceptos.length === 0 ? (
                   <tr>
                     <td colSpan={4} className="px-5 py-8 text-center text-[13px] text-[color:var(--tinta-suave)]">
                       Sin gasto registrado en este periodo.
                     </td>
                   </tr>
                 ) : (
-                  datos.porConcepto.map((c) => (
+                  conceptos.map((c) => (
                     <tr key={`${c.servicio}-${c.concepto}`} className="transition hover:bg-black/[0.015]">
                       <td className="px-5 py-2.5 font-medium capitalize">{c.concepto}</td>
                       <td className="px-3 py-2.5">
