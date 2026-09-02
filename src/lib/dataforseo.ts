@@ -79,8 +79,15 @@ function cabecera(c: Credenciales) {
   return "Basic " + Buffer.from(`${c.login}:${c.clave}`).toString("base64");
 }
 
-/** Comprueba que las credenciales sirven, leyendo el saldo de la cuenta. */
-export async function saldo(c: Credenciales): Promise<{ dinero: number; moneda: string }> {
+export interface Cuenta {
+  dinero: number;
+  moneda: string;
+  depositado: number;
+  gastado: number;
+}
+
+/** Comprueba que las credenciales sirven, leyendo el estado de la cuenta. */
+export async function saldo(c: Credenciales): Promise<Cuenta> {
   const base = c.pruebas ? PRUEBAS : PRODUCCION;
   const r = await fetch(`${base}/v3/appendix/user_data`, {
     headers: { Authorization: cabecera(c) },
@@ -95,7 +102,28 @@ export async function saldo(c: Credenciales): Promise<{ dinero: number; moneda: 
   const datos = j?.tasks?.[0]?.result?.[0];
   if (!datos) throw new Error("DataForSEO no devolvió los datos de la cuenta.");
 
-  return { dinero: Number(datos.money?.balance ?? 0), moneda: String(datos.money?.currency ?? "USD") };
+  return {
+    dinero: Number(datos.money?.balance ?? 0),
+    moneda: String(datos.money?.currency ?? "USD"),
+    depositado: Number(datos.money?.total ?? 0),
+    gastado: Number(datos.money?.spent ?? 0),
+  };
+}
+
+/**
+ * Estado de la cuenta para la pantalla de ajustes, sin reventar si falla.
+ *
+ * Que el proveedor no responda no debe impedir abrir los ajustes, así que un
+ * fallo aquí se convierte en «no se pudo leer» y no en una página en blanco.
+ */
+export async function estadoCuenta(): Promise<Cuenta | null> {
+  const c = await credenciales();
+  if (!c) return null;
+  try {
+    return await saldo(c);
+  } catch {
+    return null;
+  }
 }
 
 /** Quita protocolo, www y barra final para poder comparar dominios. */

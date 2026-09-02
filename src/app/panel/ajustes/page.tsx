@@ -15,7 +15,7 @@ import {
   guardarEspacioTrabajo,
   espacioTrabajo,
 } from "@/lib/config";
-import { credenciales, guardarCredenciales, borrarCredenciales, saldo } from "@/lib/dataforseo";
+import { credenciales, guardarCredenciales, borrarCredenciales, saldo, estadoCuenta } from "@/lib/dataforseo";
 
 export const metadata = { title: "Ajustes · Panel AppSEO" };
 export const dynamic = "force-dynamic";
@@ -62,6 +62,7 @@ export default async function Ajustes({
   const { error, ok } = await searchParams;
   const cfg = await estadoConfig();
   const dfs = await credenciales();
+  const cuenta = await estadoCuenta();
   const plugin = await paquetePublicado();
   const clientes = await db.cliente.findMany({
     where: { activo: true },
@@ -377,7 +378,7 @@ export default async function Ajustes({
           <h2 className="text-[15px] font-semibold">Posiciones en Google · DataForSEO</h2>
           <p className="mt-1 text-[13px] text-[color:var(--tinta-media)]">
             Mide en qué puesto aparece cada cliente para las consultas que le sigas. Se paga por
-            consulta, con saldo prepagado: del orden de una milésima de dólar cada una. Las
+            consulta, con saldo prepagado. El gasto real lo ves aquí abajo, leído de su cuenta. Las
             credenciales son las de su panel, no las de tu correo.
           </p>
 
@@ -391,6 +392,23 @@ export default async function Ajustes({
             </p>
           ) : (
             <p className="mt-3 text-[13px] text-[color:var(--tinta-suave)]">Sin conectar.</p>
+          )}
+
+          {/* El gasto se lee del propio proveedor, no de lo que anotamos: si
+              nuestra cuenta y la suya no coinciden, hay que verlo. */}
+          {cuenta && (
+            <dl className="mt-4 grid grid-cols-3 divide-x divide-[color:var(--linea)] overflow-hidden rounded-xl border border-[color:var(--linea)]">
+              {[
+                ["Saldo", `${cuenta.dinero.toFixed(2)} ${cuenta.moneda}`],
+                ["Depositado", `${cuenta.depositado.toFixed(2)}`],
+                ["Gastado", `${cuenta.gastado.toFixed(3)}`],
+              ].map(([k, v]) => (
+                <div key={k} className="px-4 py-3">
+                  <dt className="rotulo">{k}</dt>
+                  <dd className="mt-1 text-[17px] font-semibold tabular-nums">{v}</dd>
+                </div>
+              ))}
+            </dl>
           )}
 
           <form action={guardarDataForSeo} className="mt-4 flex flex-wrap items-end gap-2">
