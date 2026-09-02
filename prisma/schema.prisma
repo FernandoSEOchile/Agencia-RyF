@@ -75,6 +75,7 @@ model Cliente {
   keywords      Keyword[]
   memorias      Memoria[]
   gastos        Gasto[]
+  bitacoras     Bitacora[]
 }
 
 /// Qué usuario puede trabajar sobre qué cliente.
@@ -425,4 +426,38 @@ model Gasto {
 
   @@index([clienteId, creado])
   @@index([creado])
+}
+
+/// Qué se hizo por un cliente, mes a mes, contado para el cliente.
+///
+/// No es el registro técnico —ese ya existe y está lleno de nombres de
+/// herramienta que a nadie le dicen nada—. Esto es lo que se le enseña a quien
+/// paga: frases enteras, sin jerga, agrupadas por mes.
+model Bitacora {
+  id        String  @id @default(cuid())
+  clienteId String
+  cliente   Cliente @relation(fields: [clienteId], references: [id], onDelete: Cascade)
+
+  /// «2026-09». Se guarda como texto porque se agrupa y se ordena por él, y
+  /// una fecha real invitaría a preguntarle el día, que aquí no significa nada.
+  mes String
+
+  /// contenido · tecnico · arquitectura · diseno · analisis · otro
+  categoria String @default("otro")
+
+  /// La línea que lee el cliente. Una frase, sin punto final.
+  titulo String
+
+  /// Detalle opcional, para cuando hace falta explicarlo.
+  detalle String?
+
+  /// URLs afectadas, en JSON. Sirven de prueba de lo hecho.
+  urls String?
+
+  /// Si lo anotó el asistente al trabajar, o lo escribió una persona.
+  automatico Boolean @default(false)
+
+  creado DateTime @default(now())
+
+  @@index([clienteId, mes])
 }

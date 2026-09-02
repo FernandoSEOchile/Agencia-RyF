@@ -214,3 +214,37 @@ h2,
     pointer-events: none;
   }
 }
+
+/* --------------------------------------------------------------------------
+   Impresión
+   --------------------------------------------------------------------------
+   La bitácora se imprime y se envía al cliente, así que al imprimir tiene que
+   quedar el documento y nada más: fuera barra, pestañas, botones y todo lo que
+   solo sirve para operar.
+*/
+@media print {
+  .imprimir-oculto,
+  header,
+  nav {
+    display: none !important;
+  }
+
+  body {
+    background: #fff;
+  }
+
+  .imprimir-limpio {
+    border: 0 !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+  }
+
+  main {
+    padding: 0 !important;
+  }
+
+  a {
+    text-decoration: none;
+    color: inherit;
+  }
+}

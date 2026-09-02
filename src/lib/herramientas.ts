@@ -655,9 +655,38 @@ export function herramientasDe(ctx: Contexto) {
     },
   });
 
+  const bitacora = betaZodTool({
+    name: "anotar_en_bitacora",
+    description:
+      "Anota en la bitácora mensual del cliente un trabajo que acabas de completar sobre el sitio. Es lo que la agencia le enseña al cliente a fin de mes, así que escríbelo en su lenguaje y con cifras: «Optimización de contenido en 12 fichas de producto», no «escribir_producto x12». Anota solo trabajo terminado y visible en el sitio, nunca consultas ni análisis que no cambiaron nada.",
+    inputSchema: z.object({
+      titulo: z.string().max(200).describe("Qué se hizo, en una frase sin jerga y sin punto final."),
+      categoria: z
+        .enum(["contenido", "arquitectura", "tecnico", "diseno", "analisis", "otro"])
+        .describe("Tipo de trabajo."),
+      detalle: z.string().max(400).optional().describe("Una frase más de contexto, si hace falta."),
+      urls: z.array(z.string()).max(50).optional().describe("URLs afectadas, como prueba."),
+    }),
+    run: async (i) => {
+      await db.bitacora.create({
+        data: {
+          clienteId: ctx.clienteId,
+          mes: new Date().toISOString().slice(0, 7),
+          categoria: i.categoria,
+          titulo: i.titulo.replace(/\.$/, ""),
+          detalle: i.detalle,
+          urls: i.urls?.length ? JSON.stringify(i.urls) : null,
+          automatico: true,
+        },
+      });
+      return `Anotado en la bitácora: «${i.titulo}».`;
+    },
+  });
+
   return [
     salud,
     competencia,
+    bitacora,
     recordar,
     olvidar,
     searchConsole,
