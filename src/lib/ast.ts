@@ -1,17 +1,20 @@
 import "server-only";
 import ExcelJS from "exceljs";
+import { rejilla, huellaDe, detectarEsquema, recordada, recordar, type EsquemaAst } from "@/lib/astIA";
 
 /**
- * Lee un Excel de la agencia con hojas "KR" (Keyword Research) y "AST"
- * (Arquitectura del Sitio) y reconstruye el árbol de categorías.
+ * Lectura de un Excel de arquitectura de sitio.
  *
- * Estructura esperada en la hoja AST:
- *  - Cada página se marca con una fila cuyo valor empieza por "/" (el slug).
- *  - El nivel depende de la columna: C = categoría, E = subcategoría,
- *    G = sub-subcategoría (la columna A son keywords de Home).
- *  - Debajo de cada slug van sus keywords objetivo, con el volumen en la
- *    columna inmediatamente a la derecha, hasta una fila "TOTAL" o el
- *    siguiente slug.
+ * No hay formato fijo. Cada agencia monta su plantilla a su manera y la misma
+ * agencia la cambia entre proyectos: unos marcan las secciones con rutas que
+ * empiezan por «/», otros con el nombre a secas distinguido por no llevar
+ * volumen al lado, y las columnas de cada nivel caen donde caen. Intentar
+ * cubrir eso con reglas fijas es una carrera perdida.
+ *
+ * Así que el reparto es: el modelo mira una muestra y deduce la plantilla, y
+ * este archivo la aplica al documento entero de forma determinista. El modelo
+ * decide la estructura; los datos los extrae código, que no se inventa un
+ * volumen.
  */
 
 export interface KeywordRow {
@@ -88,63 +91,114 @@ function nombreDesdeSlug(slug: string): string {
     .replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
-export async function parseArquitectura(buffer: Buffer): Promise<ParsedArquitectura> {
-  const wb = new ExcelJS.Workbook();
-  await wb.xlsx.load(buffer as unknown as ArrayBuffer);
+interface FilaLeida {
+  n: number;
+  celdas: { col: number; valor: string }[];
+}
 
-  const ws = wb.getWorksheet("AST") ?? wb.worksheets[wb.worksheets.length - 1];
-  if (!ws) throw new Error("No se encontró la hoja AST en el Excel.");
+/** Convierte una hoja en filas de texto, saltándose lo vacío. */
+function leerHoja(hoja: ExcelJS.Worksheet): FilaLeida[] {
+  const filas: FilaLeida[] = [];
+
+  hoja.eachRow({ includeEmpty: false }, (fila, n) => {
+    const celdas: { col: number; valor: string }[] = [];
+    fila.eachCell({ includeEmpty: false }, (celda, col) => {
+      const v = texto(celda.value);
+      if (v) celdas.push({ col, valor: v.slice(0, 120) });
+    });
+    if (celdas.length) filas.push({ n, celdas });
+  });
+
+  return filas;
+}
+
+/** Slug a partir de un nombre, cuando la plantilla no trae rutas. */
+function slugDe(nombre: string): string {
+  const s = nombre
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+  return "/" + s;
+}
+
+/**
+ * Recorre el archivo entero aplicando la plantilla que dedujo el modelo.
+ *
+ * Toda la ambigüedad se resolvió ya al detectar el esquema; aquí no se
+ * adivina nada.
+ */
+function aplicar(hoja: ExcelJS.Worksheet, e: EsquemaAst): ParsedArquitectura {
+  const ignorar = new Set(
+    [...e.textosIgnorar, ...ETIQUETAS_IGNORAR].map((t) => t.toLowerCase().replace(/\s+/g, " ").trim())
+  );
+
+  const niveles = [...e.niveles].sort((a, b) => a.columnaNombre - b.columnaNombre);
 
   const categorias: AstNode[] = [];
   const home: KeywordRow[] = [];
-  const stack: (AstNode | null)[] = [null, null, null, null]; // índice = nivel
+  const stack: (AstNode | null)[] = new Array(10).fill(null);
 
-  const maxRow = ws.rowCount;
-  for (let r = 2; r <= maxRow; r++) {
-    const row = ws.getRow(r);
+  for (let r = e.filaInicio; r <= hoja.rowCount; r++) {
+    const fila = hoja.getRow(r);
 
-    // 1) ¿Es una keyword/slug de Home (columna A)?
-    const homeVal = texto(row.getCell(1).value);
-    let consumido = false;
+    for (const nv of niveles) {
+      const valor = texto(fila.getCell(nv.columnaNombre).value);
+      if (!valor) continue;
 
-    // 2) Buscar el primer nivel (C, E, G) con contenido en esta fila.
-    for (const { nivel, colKw, colVol } of NIVELES) {
-      const val = texto(row.getCell(colKw).value);
-      if (!val) continue;
-      consumido = true;
+      const limpio = valor.replace(/\s+/g, " ").trim();
+      if (ignorar.has(limpio.toLowerCase()) || limpio.startsWith("#")) continue;
 
-      if (val.startsWith("/")) {
+      const vol = nv.columnaVolumen > 0 ? texto(fila.getCell(nv.columnaVolumen).value) : "";
+
+      const esSeccion =
+        e.marcaSeccion === "todas"
+          ? true
+          : e.marcaSeccion === "empieza_por_barra"
+          ? limpio.startsWith("/")
+          : // «sin_volumen»: el encabezado del bloque es el que no lleva número.
+            vol === "" || numero(fila.getCell(nv.columnaVolumen).value) === 0;
+
+      if (esSeccion) {
+        const esRuta = limpio.startsWith("/");
         const node: AstNode = {
-          slug: val,
-          nombre: nombreDesdeSlug(val),
-          nivel,
+          slug: esRuta ? limpio : slugDe(limpio),
+          nombre: esRuta ? nombreDesdeSlug(limpio) : limpio,
+          nivel: nv.nivel,
           keywords: [],
           totalVolumen: 0,
           hijos: [],
         };
-        const padre = stack[nivel - 1];
-        if (nivel === 1 || !padre) categorias.push(node);
-        else padre.hijos.push(node);
-        stack[nivel] = node;
-        for (let d = nivel + 1; d < stack.length; d++) stack[d] = null;
-      } else if (!ETIQUETAS_IGNORAR.has(val.toLowerCase())) {
-        const kw: KeywordRow = { keyword: val, volumen: numero(row.getCell(colVol).value) };
-        const destino = stack[nivel];
-        if (destino) destino.keywords.push(kw);
-        else home.push(kw); // keyword de nivel sin página asignada todavía
-      }
-      break; // un contenido por fila
-    }
 
-    // 3) Keyword de Home (solo si no consumimos C/E/G).
-    if (!consumido && homeVal && !ETIQUETAS_IGNORAR.has(homeVal.toLowerCase())) {
-      home.push({ keyword: homeVal, volumen: numero(row.getCell(2).value) });
+        // Se cuelga del ancestro más cercano que exista: una subcategoría
+        // cuya categoría padre no aparece en el archivo no debe perderse.
+        let padre: AstNode | null = null;
+        for (let n = nv.nivel - 1; n >= 1; n--) {
+          if (stack[n]) {
+            padre = stack[n];
+            break;
+          }
+        }
+
+        if (padre) padre.hijos.push(node);
+        else categorias.push(node);
+
+        stack[nv.nivel] = node;
+        for (let d = nv.nivel + 1; d < stack.length; d++) stack[d] = null;
+      } else {
+        const kw: KeywordRow = { keyword: limpio, volumen: numero(fila.getCell(nv.columnaVolumen).value) };
+        const destino = stack[nv.nivel];
+        if (destino) destino.keywords.push(kw);
+        else home.push(kw);
+      }
+
     }
   }
 
-  // Calcular totales de volumen (propios + descendientes) y contadores.
   let numPaginas = 0;
   let totalKeywords = home.length;
+
   function totalizar(node: AstNode): number {
     numPaginas++;
     const propio = node.keywords.reduce((s, k) => s + k.volumen, 0);
@@ -153,15 +207,55 @@ export async function parseArquitectura(buffer: Buffer): Promise<ParsedArquitect
     node.totalVolumen = propio + hijos;
     return node.totalVolumen;
   }
+
   categorias.forEach(totalizar);
 
-  return {
-    categorias,
-    home,
-    numCategorias: categorias.length,
-    numPaginas,
-    totalKeywords,
-  };
+  return { categorias, home, numCategorias: categorias.length, numPaginas, totalKeywords };
+}
+
+export interface ResultadoLectura extends ParsedArquitectura {
+  esquema: EsquemaAst;
+  reconocido: boolean;
+}
+
+export async function parseArquitectura(buffer: Buffer): Promise<ResultadoLectura> {
+  const wb = new ExcelJS.Workbook();
+  await wb.xlsx.load(buffer as unknown as ArrayBuffer);
+
+  const hojas = wb.worksheets.map((h) => ({ nombre: h.name, filas: leerHoja(h) }));
+  if (hojas.every((h) => h.filas.length === 0)) {
+    throw new Error("El archivo está vacío.");
+  }
+
+  // La muestra lleva las primeras filas de cada hoja: con eso se ve la
+  // cabecera y un par de bloques completos, que es cuanto hace falta para
+  // entender la plantilla.
+  const muestra = rejilla(hojas);
+  const huella = huellaDe(muestra.slice(0, 1200));
+
+  // Si este formato ya se vio, no se vuelve a preguntar.
+  let esquema = await recordada(huella);
+  const reconocido = Boolean(esquema);
+
+  if (!esquema) esquema = await detectarEsquema(muestra);
+
+  const hoja = wb.getWorksheet(esquema.hoja) ?? wb.worksheets[wb.worksheets.length - 1];
+  if (!hoja) throw new Error(`El modelo indicó la hoja «${esquema.hoja}» y no existe en el archivo.`);
+
+  const leido = aplicar(hoja, esquema);
+
+  if (leido.numPaginas === 0) {
+    throw new Error(
+      `Se reconoció la plantilla («${esquema.descripcion}») pero no se extrajo ninguna sección. ` +
+        `Puede que el archivo tenga una estructura distinta a la de su cabecera.`
+    );
+  }
+
+  // Solo se recuerda lo que funcionó: guardar un esquema que no extrajo nada
+  // sería enseñarle al modelo un mal ejemplo.
+  if (!reconocido) await recordar(huella, esquema, muestra.slice(0, 4000));
+
+  return { ...leido, esquema, reconocido };
 }
 
 /** Una sección lista para guardar y cotejar, ya fuera del árbol. */

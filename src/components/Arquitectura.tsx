@@ -118,7 +118,12 @@ export default function Arquitectura({
       const r = await fetch("/api/arquitectura", { method: "POST", body: cuerpo });
       const j = await r.json();
       if (!r.ok) throw new Error(j.error || "No se pudo procesar el archivo.");
-      setAviso(`Leídas ${j.secciones} secciones y cotejadas contra ${j.candidatos} URLs del sitio.`);
+      setAviso(
+        `Leídas ${j.secciones} secciones y cotejadas contra ${j.candidatos} URLs del sitio.` +
+          (j.plantilla
+            ? ` Formato ${j.reconocida ? "ya conocido" : "nuevo, aprendido"}: ${j.plantilla}`
+            : "")
+      );
       setTimeout(() => window.location.reload(), 900);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Error inesperado.");

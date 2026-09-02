@@ -125,6 +125,8 @@ export async function POST(req: NextRequest) {
     id: arquitectura.id,
     secciones: planos.length,
     candidatos: candidatos.length,
+    plantilla: arbol.esquema.descripcion,
+    reconocida: arbol.reconocido,
   });
 }
 

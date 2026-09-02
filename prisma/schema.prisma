@@ -340,3 +340,28 @@ model ConexionGoogle {
 
   clientes Cliente[]
 }
+
+/// Cómo está montado un tipo de Excel de arquitectura.
+///
+/// Lo caro y lo frágil de leer estos archivos no son los datos, es entender la
+/// plantilla: qué columna es cada nivel, cómo se distingue el nombre de una
+/// sección de sus keywords. Eso lo deduce el modelo una vez y se guarda aquí;
+/// a partir de entonces el mismo formato se lee sin volver a preguntarle, y
+/// los formatos ya conocidos se le enseñan como ejemplo cuando llega uno nuevo.
+model PlantillaAst {
+  id     String @id @default(cuid())
+  nombre String
+
+  /// Huella de la cabecera, para reconocer un archivo del mismo formato.
+  huella String @unique
+
+  /// El esquema en JSON: hoja, columnas por nivel, y cómo se marca una sección.
+  esquema String
+
+  /// Muestra de filas que originó el esquema, para enseñárselo al modelo.
+  muestra String?
+
+  usos     Int      @default(0)
+  acertado Boolean  @default(true)
+  creado   DateTime @default(now())
+}
