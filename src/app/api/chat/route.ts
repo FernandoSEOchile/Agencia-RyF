@@ -165,7 +165,7 @@ export async function POST(req: NextRequest) {
 
       try {
         const r = await conversar(
-          { clienteId, usuarioId, puedeEscribir },
+          { clienteId, usuarioId, puedeEscribir, plataforma: cliente.plataforma },
           sistema,
           historial,
           (e) => {

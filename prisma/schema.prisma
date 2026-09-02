@@ -39,8 +39,18 @@ model Cliente {
   id      String @id @default(cuid())
   nombre  String
   dominio String @unique
-  urlRest String
-  keyId   String
+
+  /// «wordpress» o «shopify». Decide con qué adaptador se habla con el sitio;
+  /// todo lo demás del panel —posiciones, arquitectura, bitácora, gasto— es
+  /// igual para los dos.
+  plataforma String @default("wordpress")
+
+  /// El dominio interno de Shopify, «algo.myshopify.com». El público va en
+  /// «dominio», que es el que ve Google y con el que se cotejan las URLs.
+  tienda String?
+
+  urlRest String @default("")
+  keyId   String @default("")
 
   /// Secreto HMAC cifrado con AES-256-GCM. Nunca se guarda en claro.
   secreto String

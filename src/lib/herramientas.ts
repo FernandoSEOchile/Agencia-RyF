@@ -20,12 +20,15 @@ import { analizarCompetencia } from "@/lib/competencia";
 import { db } from "@/lib/db";
 import { consultas as consultasGsc } from "@/lib/gsc";
 import { apuntar } from "@/lib/gasto";
+import { herramientasShopify } from "@/lib/herramientasShopify";
 
 export interface Contexto {
   clienteId: string;
   usuarioId: string;
   /** Si es falso, las herramientas de escritura se niegan sin llamar al sitio. */
   puedeEscribir: boolean;
+  /** «wordpress» o «shopify». Cambia solo cómo se escribe en el sitio. */
+  plataforma?: string;
 }
 
 /** Error legible para el modelo: se le devuelve como texto, no como excepción. */
@@ -704,8 +707,10 @@ export function herramientasDe(ctx: Contexto) {
     },
   });
 
-  return [
-    salud,
+  // Lo que no toca el sitio sirve igual en WordPress y en Shopify: analizar la
+  // competencia, leer Search Console, la memoria, la bitácora. Solo cambia la
+  // capa que lee y escribe contenido.
+  const transversales = [
     competencia,
     enlaces,
     bitacora,
@@ -714,6 +719,15 @@ export function herramientasDe(ctx: Contexto) {
     searchConsole,
     posiciones,
     arquitectura,
+  ];
+
+  if (ctx.plataforma === "shopify") {
+    return [...herramientasShopify(ctx), ...transversales];
+  }
+
+  return [
+    salud,
+    ...transversales,
     auditar,
     leerContenido,
     leerDisenoElementor,
