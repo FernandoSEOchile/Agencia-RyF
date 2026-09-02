@@ -18,8 +18,8 @@ export default function Barra({
   acciones?: React.ReactNode;
 }) {
   return (
-    <header className="sticky top-0 z-40 bg-[#111111]">
-      <div className="contenedor flex h-12 flex-wrap items-center gap-4">
+    <header className="sticky top-0 z-40 border-b border-white/10 bg-[color:var(--oscuro)]">
+      <div className="contenedor flex h-14 flex-wrap items-center gap-5">
         <Link href="/panel" className="flex items-center gap-3">
           <Image
             src="/ryf.webp"
@@ -27,9 +27,14 @@ export default function Barra({
             width={512}
             height={199}
             priority
-            className="h-[18px] w-auto"
+            className="h-5 w-auto"
           />
-          <span className="text-[13px] font-medium tracking-tight text-white/90">Panel</span>
+          <span
+            className="text-[12px] font-bold uppercase tracking-[0.12em] text-white/55"
+            style={{ fontFamily: "var(--titular)" }}
+          >
+            Panel
+          </span>
         </Link>
 
         <div className="ml-auto flex items-center gap-4">

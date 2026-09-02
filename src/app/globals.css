@@ -7,13 +7,15 @@
 @import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Hanken+Grotesk:wght@400;500;600;700;800;900&family=Schibsted+Grotesk:wght@700;800;900&display=swap");
 
 :root {
-  /* El acento es el naranja de la agencia, y se gasta con cuentagotas: lo que
-     hace legible una pantalla densa es la jerarquía tipográfica, no el color. */
-  --acento: #ff6b00;
-
-  /* El naranja de los botones de agenciaryf.com, algo más cálido que el del
-     logo. Se usa en las páginas públicas para que se vean de la misma casa. */
+  /* El naranja de agenciaryf.com. Es el mismo dentro y fuera: el panel es la
+     herramienta de la misma casa y debe reconocerse como tal. Aun así se gasta
+     con cuentagotas en las pantallas densas — lo que las hace legibles es la
+     jerarquía tipográfica, no el color. */
   --naranja: #ff6d1f;
+  --acento: #ff6d1f;
+
+  /* El azul casi negro de su cabecera. */
+  --oscuro: #0a0f1c;
   --tinta-web: #334155;
 
   --titular: "Hanken Grotesk", "Inter", sans-serif;
@@ -64,7 +66,8 @@ h2,
   /* Superficie base. El borde es un pelo, no una caja: lo que separa del fondo
      es el blanco y la sombra, no la línea. */
   .tarjeta {
-    @apply rounded-2xl border border-[color:var(--linea)] bg-[color:var(--panel)];
+    @apply border border-[color:var(--linea)] bg-[color:var(--panel)];
+    border-radius: 3px;
     box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
   }
 
@@ -78,16 +81,25 @@ h2,
   }
 
   /* Botones de cápsula, en dos pesos. */
+  /* Botones con la esquina de 3 px y las versalitas de la web. */
   .boton {
-    @apply inline-flex items-center justify-center gap-1.5 rounded-full border border-[color:var(--linea-fuerte)]
-           bg-white px-4 py-1.5 text-[13px] font-medium text-[color:var(--tinta)]
-           transition duration-150 hover:bg-neutral-50 disabled:opacity-40;
+    @apply inline-flex items-center justify-center gap-1.5 border border-[color:var(--linea-fuerte)]
+           bg-white px-4 py-2 text-[12px] font-bold uppercase tracking-wide
+           text-[color:var(--tinta)] transition duration-150 hover:border-[color:var(--naranja)]
+           hover:text-[color:var(--naranja)] disabled:opacity-40;
+    font-family: var(--titular);
+    border-radius: 3px;
   }
 
   .boton-fuerte {
-    @apply inline-flex items-center justify-center gap-1.5 rounded-full bg-[color:var(--tinta)]
-           px-4 py-1.5 text-[13px] font-medium text-white transition duration-150
-           hover:bg-black disabled:opacity-40;
+    @apply inline-flex items-center justify-center gap-1.5 bg-[color:var(--naranja)] px-4 py-2
+           text-[12px] font-bold uppercase tracking-wide text-white transition duration-150
+           disabled:opacity-40;
+    font-family: var(--titular);
+    border-radius: 3px;
+  }
+  .boton-fuerte:hover {
+    background: #e85f14;
   }
 
   .boton-sutil {
@@ -97,27 +109,56 @@ h2,
 
   /* Control segmentado, en lugar de pestañas subrayadas. */
   .segmentos {
-    @apply inline-flex items-center gap-0.5 rounded-full bg-black/[0.045] p-1;
+    @apply inline-flex items-center gap-0.5 bg-black/[0.045] p-1;
+    border-radius: 3px;
   }
 
   .segmento {
-    @apply rounded-full px-3.5 py-1.5 text-[13px] font-medium text-[color:var(--tinta-media)]
-           transition duration-150 hover:text-[color:var(--tinta)];
+    @apply px-3.5 py-1.5 text-[12px] font-bold uppercase tracking-wide
+           text-[color:var(--tinta-media)] transition duration-150 hover:text-[color:var(--tinta)];
+    font-family: var(--titular);
+    border-radius: 2px;
   }
 
+  /* Activo en oscuro y no en blanco: es el contraste que usa la web, negro
+     contra naranja, y sobre una tabla densa se distingue mejor. */
   .segmento-activo {
-    @apply bg-white text-[color:var(--tinta)];
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    @apply bg-[color:var(--oscuro)] text-white;
+  }
+  .segmento-activo:hover {
+    color: #fff;
   }
 
   /* Etiqueta de sección: versalitas finas, el recurso con el que Apple separa
      bloques sin meter una regla horizontal. */
   .rotulo {
-    @apply text-[11px] font-semibold uppercase tracking-[0.06em] text-[color:var(--tinta-suave)];
+    @apply text-[11px] font-bold uppercase tracking-[0.07em] text-[color:var(--tinta-suave)];
+    font-family: var(--titular);
+  }
+
+  /* Título de pantalla del panel: las versalitas de peso máximo de la web. */
+  .titulo-panel {
+    font-family: var(--display);
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: -0.005em;
+    line-height: 1.05;
+    color: #111827;
+  }
+
+  /* El nombre de un cliente NO va en versalitas: es un nombre propio, y
+     gritarlo se lee mal cuando es largo. */
+  .titulo-cliente {
+    font-family: var(--titular);
+    font-weight: 800;
+    letter-spacing: -0.015em;
+    color: #111827;
   }
 
   .pastilla {
-    @apply inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-medium;
+    @apply inline-flex items-center px-2 py-0.5 text-[11px] font-bold uppercase tracking-wide;
+    font-family: var(--titular);
+    border-radius: 2px;
   }
 }
 
