@@ -175,8 +175,7 @@ export default function Explorar({ puedeExplorar }: { puedeExplorar: boolean }) 
           "Verlo no cuesta nada. Volver a consultarlo se paga otra vez.",
           "",
           "¿Consultar de nuevo?",
-        ].join("
-")
+        ].join(String.fromCharCode(10))
       );
       if (!ok) return;
     }
