@@ -362,3 +362,176 @@ export async function listarArticulos(t: Tienda, limite = 100): Promise<Contenid
     };
   });
 }
+
+const CAMPOS_PAGINA = `
+  id
+  title
+  handle
+  updatedAt
+  isPublished
+  body
+`;
+
+function normalizarPagina(p: Record<string, unknown>, dominio: string) {
+  return {
+    id: String(p.id ?? ""),
+    titulo: String(p.title ?? ""),
+    handle: String(p.handle ?? ""),
+    url: `https://${dominio}/pages/${p.handle}`,
+    publicado: Boolean(p.isPublished),
+    cuerpoHtml: (p.body as string) || null,
+    modificado: typeof p.updatedAt === "string" ? p.updatedAt : null,
+  };
+}
+
+export async function leerPagina(t: Tienda, id: string) {
+  const d = await consultar<{ page: Record<string, unknown> | null }>(
+    t,
+    `query($id: ID!) { page(id: $id) { ${CAMPOS_PAGINA} } }`,
+    { id }
+  );
+  if (!d.page) throw new Error("No existe esa página.");
+  return normalizarPagina(d.page, t.dominio);
+}
+
+/**
+ * Crea una página.
+ *
+ * Nace sin publicar salvo que se pida lo contrario. Publicar es un clic; que
+ * aparezca en el sitio de un cliente algo a medio revisar, no se deshace igual.
+ */
+export async function crearPagina(
+  t: Tienda,
+  datos: { titulo: string; cuerpoHtml: string; handle?: string; publicar?: boolean }
+) {
+  const d = await consultar<{ pageCreate: { page: Record<string, unknown> | null; userErrors: unknown[] } }>(
+    t,
+    `mutation($p: PageCreateInput!) {
+       pageCreate(page: $p) {
+         page { ${CAMPOS_PAGINA} }
+         userErrors { field message }
+       }
+     }`,
+    {
+      p: {
+        title: datos.titulo,
+        body: datos.cuerpoHtml,
+        ...(datos.handle ? { handle: datos.handle } : {}),
+        isPublished: Boolean(datos.publicar),
+      },
+    }
+  );
+
+  comprobarErrores(d.pageCreate);
+  if (!d.pageCreate.page) throw new Error("Shopify no devolvió la página creada.");
+  return normalizarPagina(d.pageCreate.page, t.dominio);
+}
+
+export async function escribirPagina(
+  t: Tienda,
+  id: string,
+  cambios: { titulo?: string; cuerpoHtml?: string; publicar?: boolean }
+) {
+  const antes = await leerPagina(t, id);
+
+  const entrada: Record<string, unknown> = {};
+  if (cambios.titulo !== undefined) entrada.title = cambios.titulo;
+  if (cambios.cuerpoHtml !== undefined) entrada.body = cambios.cuerpoHtml;
+  if (cambios.publicar !== undefined) entrada.isPublished = cambios.publicar;
+
+  const d = await consultar<{ pageUpdate: { page: Record<string, unknown> | null; userErrors: unknown[] } }>(
+    t,
+    `mutation($id: ID!, $p: PageUpdateInput!) {
+       pageUpdate(id: $id, page: $p) {
+         page { ${CAMPOS_PAGINA} }
+         userErrors { field message }
+       }
+     }`,
+    { id, p: entrada }
+  );
+
+  comprobarErrores(d.pageUpdate);
+  if (!d.pageUpdate.page) throw new Error("Shopify no devolvió la página actualizada.");
+  return { antes, despues: normalizarPagina(d.pageUpdate.page, t.dominio) };
+}
+
+/** Crea un producto. Nace en borrador por la misma razón que las páginas. */
+export async function crearProducto(
+  t: Tienda,
+  datos: {
+    titulo: string;
+    descripcionHtml?: string;
+    seoTitulo?: string;
+    seoDescripcion?: string;
+    tipo?: string;
+    publicar?: boolean;
+  }
+) {
+  const entrada: Record<string, unknown> = {
+    title: datos.titulo,
+    status: datos.publicar ? "ACTIVE" : "DRAFT",
+  };
+  if (datos.descripcionHtml) entrada.descriptionHtml = datos.descripcionHtml;
+  if (datos.tipo) entrada.productType = datos.tipo;
+  if (datos.seoTitulo || datos.seoDescripcion) {
+    entrada.seo = {
+      ...(datos.seoTitulo ? { title: datos.seoTitulo } : {}),
+      ...(datos.seoDescripcion ? { description: datos.seoDescripcion } : {}),
+    };
+  }
+
+  const d = await consultar<{
+    productCreate: { product: Record<string, unknown> | null; userErrors: unknown[] };
+  }>(
+    t,
+    `mutation($p: ProductCreateInput!) {
+       productCreate(product: $p) {
+         product { ${CAMPOS_PRODUCTO} }
+         userErrors { field message }
+       }
+     }`,
+    { p: entrada }
+  );
+
+  comprobarErrores(d.productCreate);
+  if (!d.productCreate.product) throw new Error("Shopify no devolvió el producto creado.");
+  return normalizarProducto(d.productCreate.product, t.dominio);
+}
+
+/**
+ * Crea una colección.
+ *
+ * Manual y no automática a propósito: una colección con reglas se llena sola
+ * con lo que cumpla la condición, y decidir eso por el cliente es meterse
+ * donde no toca. Los productos se añaden después, a la vista.
+ */
+export async function crearColeccion(
+  t: Tienda,
+  datos: { titulo: string; descripcionHtml?: string; seoTitulo?: string; seoDescripcion?: string }
+) {
+  const entrada: Record<string, unknown> = { title: datos.titulo };
+  if (datos.descripcionHtml) entrada.descriptionHtml = datos.descripcionHtml;
+  if (datos.seoTitulo || datos.seoDescripcion) {
+    entrada.seo = {
+      ...(datos.seoTitulo ? { title: datos.seoTitulo } : {}),
+      ...(datos.seoDescripcion ? { description: datos.seoDescripcion } : {}),
+    };
+  }
+
+  const d = await consultar<{
+    collectionCreate: { collection: Record<string, unknown> | null; userErrors: unknown[] };
+  }>(
+    t,
+    `mutation($c: CollectionInput!) {
+       collectionCreate(input: $c) {
+         collection { ${CAMPOS_COLECCION} }
+         userErrors { field message }
+       }
+     }`,
+    { c: entrada }
+  );
+
+  comprobarErrores(d.collectionCreate);
+  if (!d.collectionCreate.collection) throw new Error("Shopify no devolvió la colección creada.");
+  return normalizarColeccion(d.collectionCreate.collection, t.dominio);
+}

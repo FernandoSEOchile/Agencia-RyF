@@ -11,6 +11,12 @@ import {
   escribirProducto,
   listarColecciones,
   escribirColeccion,
+  crearProducto,
+  crearColeccion,
+  listarPaginas,
+  leerPagina,
+  crearPagina,
+  escribirPagina,
 } from "@/lib/shopify";
 
 /**
@@ -200,5 +206,157 @@ export function herramientasShopify(ctx: Contexto) {
     },
   });
 
-  return [estado, productos, leer, escribir, colecciones, escribirCol];
+  const nuevoProducto = betaZodTool({
+    name: "crear_producto",
+    description:
+      "Crea un producto nuevo en la tienda. Nace en borrador salvo que se pida publicarlo: publicar es un clic, pero que aparezca en la tienda de un cliente algo a medio revisar no se deshace igual. No lleva precio ni inventario; eso lo pone quien gestiona la tienda.",
+    inputSchema: z.object({
+      titulo: z.string().max(255),
+      descripcionHtml: z.string().optional().describe("La descripción, en HTML."),
+      seoTitulo: z.string().max(70).optional(),
+      seoDescripcion: z.string().max(320).optional(),
+      tipo: z.string().optional().describe("Tipo de producto, si el catálogo los usa."),
+      publicar: z.boolean().optional().describe("Por defecto false: se queda en borrador."),
+    }),
+    run: async (i) => {
+      if (!ctx.puedeEscribir) return soloLectura();
+      try {
+        const p = await crearProducto(await abrir(ctx.clienteId), i);
+        await anotar({
+          usuarioId: ctx.usuarioId,
+          clienteId: ctx.clienteId,
+          accion: "producto",
+          resumen: `Producto creado: ${p.titulo}${p.estado === "DRAFT" ? " (borrador)" : ""}`,
+        });
+        return JSON.stringify({ ok: true, producto: p });
+      } catch (e) {
+        return problema(e instanceof Error ? e.message : "No se pudo crear el producto.");
+      }
+    },
+  });
+
+  const nuevaColeccion = betaZodTool({
+    name: "crear_categoria",
+    description:
+      "Crea una colección nueva, que es lo que en otras plataformas es una categoría. Se crea manual y no automática: una colección con reglas se llena sola con lo que cumpla la condición, y esa decisión es del cliente. Los productos se añaden después.",
+    inputSchema: z.object({
+      titulo: z.string().max(255),
+      descripcionHtml: z.string().optional(),
+      seoTitulo: z.string().max(70).optional(),
+      seoDescripcion: z.string().max(320).optional(),
+    }),
+    run: async (i) => {
+      if (!ctx.puedeEscribir) return soloLectura();
+      try {
+        const c = await crearColeccion(await abrir(ctx.clienteId), i);
+        await anotar({
+          usuarioId: ctx.usuarioId,
+          clienteId: ctx.clienteId,
+          accion: "categoria",
+          resumen: `Colección creada: ${c.titulo}`,
+        });
+        return JSON.stringify({ ok: true, coleccion: c });
+      } catch (e) {
+        return problema(e instanceof Error ? e.message : "No se pudo crear la colección.");
+      }
+    },
+  });
+
+  const paginas = betaZodTool({
+    name: "listar_contenido",
+    description: "Las páginas de la tienda, con si están publicadas y cuándo se tocaron por última vez.",
+    inputSchema: z.object({
+      limite: z.number().int().min(1).max(250).optional().describe("Por defecto 100."),
+    }),
+    run: async (i) => {
+      try {
+        return JSON.stringify(await listarPaginas(await abrir(ctx.clienteId), i.limite ?? 100));
+      } catch (e) {
+        return problema(e instanceof Error ? e.message : "No se pudieron listar las páginas.");
+      }
+    },
+  });
+
+  const leerPag = betaZodTool({
+    name: "leer_contenido",
+    description: "El contenido completo de una página.",
+    inputSchema: z.object({ id: z.string() }),
+    run: async (i) => {
+      try {
+        return JSON.stringify(await leerPagina(await abrir(ctx.clienteId), i.id));
+      } catch (e) {
+        return problema(e instanceof Error ? e.message : "No se pudo leer la página.");
+      }
+    },
+  });
+
+  const nuevaPagina = betaZodTool({
+    name: "crear_contenido",
+    description:
+      "Crea una página nueva en la tienda. Nace sin publicar salvo que se pida lo contrario.",
+    inputSchema: z.object({
+      titulo: z.string().max(255),
+      cuerpoHtml: z.string().describe("El contenido de la página, en HTML."),
+      handle: z.string().optional().describe("La parte final de la URL. Si no se da, la genera Shopify."),
+      publicar: z.boolean().optional(),
+    }),
+    run: async (i) => {
+      if (!ctx.puedeEscribir) return soloLectura();
+      try {
+        const p = await crearPagina(await abrir(ctx.clienteId), i);
+        await anotar({
+          usuarioId: ctx.usuarioId,
+          clienteId: ctx.clienteId,
+          accion: "contenido",
+          resumen: `Página creada: ${p.titulo}${p.publicado ? "" : " (sin publicar)"}`,
+        });
+        return JSON.stringify({ ok: true, pagina: p });
+      } catch (e) {
+        return problema(e instanceof Error ? e.message : "No se pudo crear la página.");
+      }
+    },
+  });
+
+  const editarPagina = betaZodTool({
+    name: "escribir_contenido",
+    description:
+      "Cambia el título, el cuerpo o el estado de publicación de una página. Devuelve cómo estaba antes.",
+    inputSchema: z.object({
+      id: z.string(),
+      titulo: z.string().max(255).optional(),
+      cuerpoHtml: z.string().optional(),
+      publicar: z.boolean().optional(),
+    }),
+    run: async (i) => {
+      if (!ctx.puedeEscribir) return soloLectura();
+      try {
+        const { id, ...cambios } = i;
+        const r = await escribirPagina(await abrir(ctx.clienteId), id, cambios);
+        await anotar({
+          usuarioId: ctx.usuarioId,
+          clienteId: ctx.clienteId,
+          accion: "contenido",
+          resumen: `Página actualizada: ${r.despues.titulo}`,
+        });
+        return JSON.stringify({ ok: true, antes: r.antes, despues: r.despues });
+      } catch (e) {
+        return problema(e instanceof Error ? e.message : "No se pudo escribir la página.");
+      }
+    },
+  });
+
+  return [
+    estado,
+    productos,
+    leer,
+    escribir,
+    nuevoProducto,
+    colecciones,
+    escribirCol,
+    nuevaColeccion,
+    paginas,
+    leerPag,
+    nuevaPagina,
+    editarPagina,
+  ];
 }
