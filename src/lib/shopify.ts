@@ -14,7 +14,7 @@ import { descifrar } from "@/lib/cifrado";
  */
 
 /** Versión de la API. Shopify obliga a fijarla y a subirla cada cierto tiempo. */
-const VERSION = "2025-07";
+const VERSION = "2026-07";
 
 export interface Tienda {
   dominio: string;

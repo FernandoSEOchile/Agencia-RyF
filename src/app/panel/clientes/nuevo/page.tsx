@@ -4,7 +4,6 @@ import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { cifrar, cifradoListo } from "@/lib/cifrado";
 import { leerCadena, dominioDe, salud } from "@/lib/conector";
-import { salud as saludShopify } from "@/lib/shopify";
 import { anotar } from "@/lib/clientes";
 import Barra from "@/components/Barra";
 
@@ -31,77 +30,6 @@ export default async function NuevoCliente({
    * personalizada» que el propio dueño crea en su admin. El efecto es el mismo:
    * una credencial que el panel guarda cifrada y comprueba antes de aceptar.
    */
-  async function conectarShopify(datos: FormData) {
-    "use server";
-
-    const s = await auth();
-    const rolAccion = (s?.user as { rol?: string } | undefined)?.rol;
-    if (!s?.user?.id || (rolAccion !== "ADMIN" && rolAccion !== "GESTOR")) redirect("/entrar");
-
-    const nombre = String(datos.get("nombre") || "").trim();
-    const token = String(datos.get("token") || "").trim();
-    const tienda = String(datos.get("tienda") || "")
-      .trim()
-      .toLowerCase()
-      .replace(/^https?:\/\//, "")
-      .replace(/\/.*$/, "");
-
-    const fallar = (m: string) =>
-      redirect("/panel/clientes/nuevo?error=" + encodeURIComponent(m));
-
-    if (!/\.myshopify\.com$/.test(tienda)) {
-      fallar("El dominio debe terminar en .myshopify.com. Lo encuentras en la barra del admin de la tienda.");
-    }
-    if (!token) fallar("Falta el token de acceso de la app.");
-
-    // Se comprueba contra la tienda ANTES de guardar: un cliente que aparece
-    // en la lista con una credencial que no sirve es peor que no tenerlo.
-    let info;
-    try {
-      info = await saludShopify({ dominio: tienda, token });
-    } catch (e) {
-      fallar(e instanceof Error ? e.message : "La tienda no aceptó el token.");
-    }
-
-    // El dominio público es el que ve Google y con el que se cotejan las URLs;
-    // el .myshopify.com es solo la puerta de la API.
-    const publico = dominioDe(info!.url);
-
-    const cliente = await db.cliente.upsert({
-      where: { dominio: publico },
-      update: {
-        plataforma: "shopify",
-        tienda,
-        secreto: cifrar(token),
-        activo: true,
-        version: info!.version,
-        soloLectura: false,
-        ultimaSonda: new Date(),
-        estadoSonda: "ok",
-      },
-      create: {
-        nombre: nombre || info!.nombre || publico,
-        dominio: publico,
-        plataforma: "shopify",
-        tienda,
-        secreto: cifrar(token),
-        version: info!.version,
-        soloLectura: false,
-        ultimaSonda: new Date(),
-        estadoSonda: "ok",
-      },
-    });
-
-    await anotar({
-      usuarioId: s.user.id,
-      clienteId: cliente.id,
-      accion: "cliente_conectar",
-      resumen: `${publico} conectado · Shopify (${tienda})`,
-    });
-
-    redirect(`/panel/clientes/${cliente.id}`);
-  }
-
   async function conectar(datos: FormData) {
     "use server";
 
@@ -227,58 +155,30 @@ export default async function NuevoCliente({
 
       <h2 className="text-[17px] font-semibold">Conectar una tienda Shopify</h2>
       <p className="mt-2 text-[13px] leading-relaxed text-[color:var(--tinta-media)]">
-        Shopify no deja instalar plugins, así que en vez de una cadena se pega el token de una app
-        personalizada. En el admin de la tienda: <strong>Configuración → Apps y canales de venta →
-        Desarrollar apps → Crear una app</strong>. Dale permisos de lectura y escritura sobre
-        productos y contenido, instálala, y copia el token de acceso de la API de Admin.
+        Escribe el dominio de la tienda y te lleva a Shopify a autorizar la app. Al volver queda
+        conectada: el token lo recibe el panel directamente, sin que nadie copie credenciales.
       </p>
 
-      <form action={conectarShopify} className="mt-6 flex flex-col gap-4">
-        <label className="flex flex-col gap-1.5">
-          <span className="rotulo">
-            Nombre del cliente <span className="font-normal normal-case">(opcional)</span>
-          </span>
-          <input
-            name="nombre"
-            placeholder="Mi Tienda"
-            className="rounded-xl border border-[color:var(--linea-fuerte)] bg-white px-3.5 py-2.5 text-[13px] outline-none transition focus:border-[color:var(--acento)]"
-          />
-        </label>
-
-        <label className="flex flex-col gap-1.5">
+      <form action="/api/shopify/instalar" method="get" className="mt-6 flex flex-wrap items-end gap-3">
+        <label className="flex min-w-[260px] flex-1 flex-col gap-1.5">
           <span className="rotulo">Dominio de la tienda</span>
           <input
-            name="tienda"
+            name="shop"
             required
             spellCheck={false}
             placeholder="mitienda.myshopify.com"
             className="rounded-xl border border-[color:var(--linea-fuerte)] bg-white px-3.5 py-2.5 font-mono text-[12px] outline-none transition focus:border-[color:var(--acento)]"
           />
           <span className="text-[12px] text-[color:var(--tinta-suave)]">
-            El interno, el que sale en la barra del admin. El dominio público se detecta solo.
+            El interno, el que sale en la barra del admin de Shopify. El dominio público se detecta solo.
           </span>
         </label>
 
-        <label className="flex flex-col gap-1.5">
-          <span className="rotulo">Token de acceso de la API de Admin</span>
-          <input
-            name="token"
-            type="password"
-            required
-            spellCheck={false}
-            placeholder="shpat_…"
-            className="rounded-xl border border-[color:var(--linea-fuerte)] bg-white px-3.5 py-2.5 font-mono text-[12px] outline-none transition focus:border-[color:var(--acento)]"
-          />
-          <span className="text-[12px] text-[color:var(--tinta-suave)]">
-            Shopify solo lo enseña una vez, al instalar la app. Se comprueba contra la tienda antes de
-            guardarlo, y se almacena cifrado.
-          </span>
-        </label>
-
-        <button type="submit" disabled={!listo} className="boton-fuerte mt-2">
-          Comprobar y conectar
+        <button type="submit" disabled={!listo} className="boton-fuerte">
+          Autorizar en Shopify
         </button>
       </form>
+
       </main>
     </>
   );

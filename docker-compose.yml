@@ -58,6 +58,10 @@ services:
       # cliente, es del producto.
       GSC_CLIENT_ID: ${GSC_CLIENT_ID:-}
       GSC_CLIENT_SECRET: ${GSC_CLIENT_SECRET:-}
+      # La app de Shopify, igual que la de Google: es del producto y la misma
+      # para todas las tiendas que se conecten.
+      SHOPIFY_CLIENT_ID: ${SHOPIFY_CLIENT_ID:-}
+      SHOPIFY_CLIENT_SECRET: ${SHOPIFY_CLIENT_SECRET:-}
     expose:
       - "3000"
 
