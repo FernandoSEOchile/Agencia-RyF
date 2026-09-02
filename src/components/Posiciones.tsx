@@ -57,13 +57,15 @@ export default function Posiciones({
   keywords,
   puedeEditar,
   hayProveedor,
+  hayGsc,
 }: {
   clienteId: string;
   keywords: KeywordVista[];
   puedeEditar: boolean;
   hayProveedor: boolean;
+  hayGsc: boolean;
 }) {
-  const [fuente, setFuente] = useState<(typeof FUENTES)[number][0]>("gsc");
+  const [fuente, setFuente] = useState<(typeof FUENTES)[number][0]>(hayGsc ? "gsc" : "api");
   const [abierto, setAbierto] = useState(false);
   const [texto, setTexto] = useState("");
   const [ubicacion, setUbicacion] = useState(2152);
@@ -166,6 +168,7 @@ export default function Posiciones({
 
   return (
     <div className="mt-5">
+      {hayGsc && (
       <div className="segmentos">
         {FUENTES.map(([id, n]) => (
           <button
@@ -177,6 +180,7 @@ export default function Posiciones({
           </button>
         ))}
       </div>
+      )}
 
       {error && <p className="mt-4 rounded-2xl bg-red-50 px-4 py-3 text-[13px] text-red-700">{error}</p>}
       {aviso && (

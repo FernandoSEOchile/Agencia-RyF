@@ -5,6 +5,7 @@ import { db } from "@/lib/db";
 import { api, sondear, anotar, veTodo } from "@/lib/clientes";
 import FichaCliente, { type Suceso } from "@/components/FichaCliente";
 import { credenciales } from "@/lib/dataforseo";
+import { aplicacion } from "@/lib/gsc";
 import Barra from "@/components/Barra";
 
 export const dynamic = "force-dynamic";
@@ -55,6 +56,8 @@ export default async function Ficha({
     }),
     credenciales(),
   ]);
+
+  const gscListo = Boolean(await aplicacion());
 
   const arq = await db.arquitectura.findFirst({
         where: { clienteId: id },
@@ -230,6 +233,7 @@ export default async function Ficha({
         conversacionInicial={conversacion?.id ?? null}
         puedeSubir={rol !== "LECTOR"}
         hayProveedor={Boolean(proveedor)}
+        hayGsc={gscListo}
         keywords={keywords.map((k) => ({
           id: k.id,
           termino: k.termino,

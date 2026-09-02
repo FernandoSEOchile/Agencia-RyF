@@ -63,6 +63,7 @@ export default function FichaCliente({
   arquitectura,
   keywords,
   hayProveedor,
+  hayGsc,
   puedeSubir,
 }: {
   clienteId: string;
@@ -77,6 +78,7 @@ export default function FichaCliente({
   arquitectura: ArquitecturaVista | null;
   keywords: KeywordVista[];
   hayProveedor: boolean;
+  hayGsc: boolean;
   puedeSubir: boolean;
 }) {
   const [activa, setActiva] = useState<Pestaña>("chat");
@@ -197,6 +199,7 @@ export default function FichaCliente({
           keywords={keywords}
           puedeEditar={puedeSubir}
           hayProveedor={hayProveedor}
+          hayGsc={hayGsc}
         />
       )}
 
