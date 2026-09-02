@@ -53,6 +53,9 @@ const COL_COMP: readonly Columna<ColComp>[] = [
 
 const numero = (n: number) => n.toLocaleString("es-CL");
 
+const limpiar = (d: string) =>
+  d.trim().toLowerCase().replace(/^https?:\/\//, "").replace(/^www\./, "").replace(/\/.*$/, "");
+
 const MESES_CORTOS = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
 
 /** Curva de visibilidad, dibujada a mano: es una línea, no hace falta librería. */
@@ -160,6 +163,24 @@ export default function Explorar({ puedeExplorar }: { puedeExplorar: boolean }) 
   async function consultar() {
     const d = dominio.trim();
     if (!d) return;
+
+    const guardado = datos?.panorama && datos.panorama.dominio === limpiar(d) ? datos : null;
+    if (guardado?.medido) {
+      const dias = Math.round((Date.now() - new Date(guardado.medido).getTime()) / 86_400_000);
+      const antes = guardado.coste ? `US$${guardado.coste.toFixed(4)}` : "algo";
+      const ok = confirm(
+        [
+          `Ya tienes ${d} guardado, consultado hace ${dias} ${dias === 1 ? "día" : "días"} y costó ${antes}.`,
+          "",
+          "Verlo no cuesta nada. Volver a consultarlo se paga otra vez.",
+          "",
+          "¿Consultar de nuevo?",
+        ].join("
+")
+      );
+      if (!ok) return;
+    }
+
     setOcupado(true);
     setError(null);
     setAviso(null);
@@ -176,6 +197,10 @@ export default function Explorar({ puedeExplorar }: { puedeExplorar: boolean }) 
           (j.avisos?.length ? ` Avisos: ${j.avisos.join(" · ")}` : "")
       );
       await mirar(d, pais);
+      fetch("/api/explorar")
+        .then((x) => x.json())
+        .then((x) => setRecientes(x.recientes ?? []))
+        .catch(() => {});
     } catch (e) {
       setError(e instanceof Error ? e.message : "Error inesperado.");
       setOcupado(false);
@@ -225,7 +250,7 @@ export default function Explorar({ puedeExplorar }: { puedeExplorar: boolean }) 
           ))}
         </select>
         <button type="submit" disabled={ocupado || !dominio.trim()} className="boton">
-          Ver lo guardado
+          Ver guardado
         </button>
         {puedeExplorar && (
           <button
@@ -234,7 +259,7 @@ export default function Explorar({ puedeExplorar }: { puedeExplorar: boolean }) 
             disabled={ocupado || !dominio.trim()}
             className="boton-fuerte"
           >
-            {ocupado ? "Consultando…" : "Consultar"}
+            {ocupado ? "Consultando…" : "Consultar · cuesta"}
           </button>
         )}
       </form>
@@ -244,9 +269,11 @@ export default function Explorar({ puedeExplorar }: { puedeExplorar: boolean }) 
         <p className="mt-4 rounded-2xl bg-emerald-50 px-4 py-3 text-[13px] text-emerald-700">{aviso}</p>
       )}
 
-      {!p && recientes.length > 0 && (
+      {recientes.length > 0 && (
         <div className="mt-6">
-          <p className="rotulo">Ya explorados</p>
+          <p className="rotulo">
+            Guardados · verlos no cuesta nada
+          </p>
           <ul className="mt-2 flex flex-wrap gap-2">
             {recientes.map((r) => (
               <li key={`${r.dominio}-${r.pais}`}>
@@ -256,9 +283,15 @@ export default function Explorar({ puedeExplorar }: { puedeExplorar: boolean }) 
                     setPais(r.pais);
                     mirar(r.dominio, r.pais);
                   }}
-                  className="boton font-mono !text-[12px]"
+                  className={`boton font-mono !text-[12px] ${
+                    p?.dominio === r.dominio ? "!border-[color:var(--acento)] !text-[color:var(--acento)]" : ""
+                  }`}
+                  title={`Consultado el ${r.creado.slice(0, 10)}`}
                 >
                   {r.dominio}
+                  <span className="ml-1.5 font-sans text-[10px] text-[color:var(--tinta-suave)]">
+                    {r.creado.slice(5, 10)}
+                  </span>
                 </button>
               </li>
             ))}
