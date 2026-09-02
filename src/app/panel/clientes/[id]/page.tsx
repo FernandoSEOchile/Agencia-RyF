@@ -254,19 +254,28 @@ export default async function Ficha({
                 archivo: arq.archivo,
                 creado: arq.creado.toISOString(),
                 cotejado: arq.cotejado ? arq.cotejado.toISOString() : null,
-                nodos: arq.nodos.map((n) => ({
+                nodos: arq.nodos.map((n) => {
+                  // Ordenadas por volumen: la primera es la que da nombre a la
+                  // intención de esa sección.
+                  const kws = (JSON.parse(n.keywords) as { keyword: string; volumen: number }[]).sort(
+                    (a, b) => b.volumen - a.volumen
+                  );
+                  return {
                   id: n.id,
                   slug: n.slug,
                   nombre: n.nombre,
                   nivel: n.nivel,
                   volumen: n.volumen,
-                  keywords: (JSON.parse(n.keywords) as unknown[]).length,
+                  keywords: kws.length,
+                  principal: kws[0]?.keyword ?? null,
+                  volumenPrincipal: kws[0]?.volumen ?? 0,
                   estado: n.estado,
                   urlDestino: n.urlDestino,
                   confianza: n.confianza,
                   nota: n.nota,
                   comoSeCotejo: n.comoSeCotejo,
-                })),
+                  };
+                }),
               }
             : null
         }

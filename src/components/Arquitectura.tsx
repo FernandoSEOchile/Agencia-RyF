@@ -10,6 +10,8 @@ export interface NodoVista {
   nivel: number;
   volumen: number;
   keywords: number;
+  principal: string | null;
+  volumenPrincipal: number;
   estado: string;
   urlDestino: string | null;
   confianza: number | null;
@@ -338,11 +340,14 @@ export default function Arquitectura({
             <ChatArquitectura arquitecturaId={actual.id} />
           ) : (
           <div className="tarjeta mt-3 overflow-x-auto">
-            <table className="w-full min-w-[720px] border-collapse text-[13px]">
+            <table className="w-full min-w-[860px] border-collapse text-[13px]">
               <thead>
                 <tr className="border-b border-[color:var(--linea)] text-left">
                   <th className="rotulo px-5 py-3">Sección prevista</th>
-                  <th className="rotulo px-3 py-3 text-right">Volumen</th>
+                  <th className="rotulo px-4 py-3">Palabra clave principal</th>
+                  <th className="rotulo px-3 py-3 text-right" title="Suma de todas las keywords de la sección">
+                    Volumen
+                  </th>
                   <th className="rotulo px-3 py-3">Estado</th>
                   <th className="rotulo px-5 py-3">URL que la ataca</th>
                 </tr>
@@ -359,6 +364,21 @@ export default function Arquitectura({
                           {n.slug}
                         </p>
                       </div>
+                    </td>
+                    <td className="px-4 py-3">
+                      {n.principal ? (
+                        <>
+                          <p className="max-w-[240px] truncate" title={n.principal}>
+                            {n.principal}
+                          </p>
+                          <p className="mt-0.5 text-[11px] tabular-nums text-[color:var(--tinta-suave)]">
+                            {n.volumenPrincipal.toLocaleString("es-CL")} búsquedas
+                            {n.keywords > 1 && ` · +${n.keywords - 1} más`}
+                          </p>
+                        </>
+                      ) : (
+                        <span className="text-[color:var(--tinta-suave)]">sin keywords</span>
+                      )}
                     </td>
                     <td className="px-3 py-3 text-right tabular-nums text-[color:var(--tinta-media)]">
                       {n.volumen ? n.volumen.toLocaleString("es-CL") : "—"}
@@ -413,7 +433,7 @@ export default function Arquitectura({
                       de la celda de URL se quedaba en 340 px y no cabía. */}
                   {abierta?.id === n.id && (
                     <tr>
-                      <td colSpan={4} className="bg-black/[0.02] px-5 pb-5 pt-2">
+                      <td colSpan={5} className="bg-black/[0.02] px-5 pb-5 pt-2">
                         <input
                           autoFocus
                           value={busca}
