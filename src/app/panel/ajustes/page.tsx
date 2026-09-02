@@ -16,6 +16,7 @@ import {
   espacioTrabajo,
 } from "@/lib/config";
 import { credenciales, guardarCredenciales, borrarCredenciales, saldo, estadoCuenta } from "@/lib/dataforseo";
+import { cuenta as cuentaGsc, guardarCuenta, borrarCuenta, propiedades } from "@/lib/gsc";
 
 export const metadata = { title: "Ajustes · Panel AppSEO" };
 export const dynamic = "force-dynamic";
@@ -63,6 +64,20 @@ export default async function Ajustes({
   const cfg = await estadoConfig();
   const dfs = await credenciales();
   const cuenta = await estadoCuenta();
+  const gsc = await cuentaGsc();
+
+  // Se listan aquí para que se vea de un vistazo en cuántas propiedades quedó
+  // concedido el acceso: es el error típico, configurar la cuenta y olvidarse
+  // de añadirla en Search Console.
+  let propsGsc: { url: string; permiso: string }[] = [];
+  let errorGsc: string | null = null;
+  if (gsc) {
+    try {
+      propsGsc = await propiedades(gsc);
+    } catch (e) {
+      errorGsc = e instanceof Error ? e.message : "No se pudo hablar con Search Console.";
+    }
+  }
   const plugin = await paquetePublicado();
   const clientes = await db.cliente.findMany({
     where: { activo: true },
@@ -73,6 +88,34 @@ export default async function Ajustes({
   const atrasados = plugin
     ? clientes.filter((c) => c.version && c.version !== plugin.version)
     : [];
+
+  async function conectarGsc(datos: FormData) {
+    "use server";
+    const s = await exigirAdmin();
+    const json = String(datos.get("json") || "").trim();
+
+    if (!json) redirect("/panel/ajustes?error=" + encodeURIComponent("Pega el contenido del archivo JSON."));
+
+    try {
+      await guardarCuenta(json);
+    } catch (e) {
+      redirect(
+        "/panel/ajustes?error=" +
+          encodeURIComponent(e instanceof Error ? e.message : "Ese JSON no se pudo leer.")
+      );
+    }
+
+    await anotar({ usuarioId: s.user!.id, accion: "ajustes", resumen: "Cuenta de servicio de Search Console guardada" });
+    redirect("/panel/ajustes?ok=" + encodeURIComponent("Search Console conectado."));
+  }
+
+  async function desconectarGsc() {
+    "use server";
+    const s = await exigirAdmin();
+    await borrarCuenta();
+    await anotar({ usuarioId: s.user!.id, accion: "ajustes", resumen: "Cuenta de servicio de Search Console borrada" });
+    redirect("/panel/ajustes?ok=" + encodeURIComponent("Search Console desconectado."));
+  }
 
   async function guardarDataForSeo(datos: FormData) {
     "use server";
@@ -371,6 +414,75 @@ export default async function Ajustes({
               Guardar
             </button>
           </form>
+        </section>
+
+        {/* --- Search Console --- */}
+        <section className="tarjeta mt-5 p-5">
+          <h2 className="text-[15px] font-semibold">Search Console</h2>
+          <p className="mt-1 text-[13px] text-[color:var(--tinta-media)]">
+            Las posiciones reales de lo que ya posiciona cada sitio, gratis y directamente de Google.
+            Se conecta con una cuenta de servicio: pega aquí el JSON que descargaste de Google Cloud, y
+            añade su dirección como usuario en cada propiedad de Search Console.
+          </p>
+
+          {gsc ? (
+            <>
+              <p className="mt-3 flex flex-wrap items-center gap-2 text-[13px]">
+                <span className="pastilla bg-emerald-50 text-emerald-700">conectado</span>
+                <span className="break-all font-mono text-[12px] text-[color:var(--tinta-media)]">
+                  {gsc.client_email}
+                </span>
+              </p>
+
+              {errorGsc ? (
+                <p className="mt-3 rounded-xl bg-red-50 px-4 py-3 text-[13px] text-red-700">{errorGsc}</p>
+              ) : propsGsc.length === 0 ? (
+                <p className="mt-3 rounded-xl bg-amber-50 px-4 py-3 text-[13px] text-amber-800">
+                  La credencial funciona, pero todavía no tiene acceso a ninguna propiedad. En Search
+                  Console, entra a cada sitio → Configuración → Usuarios y permisos → Agregar usuario, y
+                  pega la dirección de arriba con permiso «Restringido».
+                </p>
+              ) : (
+                <div className="mt-3">
+                  <p className="rotulo">
+                    {propsGsc.length} {propsGsc.length === 1 ? "propiedad accesible" : "propiedades accesibles"}
+                  </p>
+                  <ul className="mt-2 flex flex-wrap gap-1.5">
+                    {propsGsc.map((x) => (
+                      <li key={x.url} className="pastilla bg-black/[0.05] font-mono text-[color:var(--tinta-media)]">
+                        {x.url}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </>
+          ) : (
+            <p className="mt-3 text-[13px] text-[color:var(--tinta-suave)]">Sin conectar.</p>
+          )}
+
+          <form action={conectarGsc} className="mt-4">
+            <label className="flex flex-col gap-1.5">
+              <span className="rotulo">Contenido del archivo JSON</span>
+              <textarea
+                name="json"
+                rows={4}
+                placeholder='{"type":"service_account","project_id":"…"}'
+                className="w-full rounded-xl border border-[color:var(--linea-fuerte)] bg-white px-3.5 py-2.5 font-mono text-[12px] outline-none transition focus:border-[color:var(--acento)]"
+              />
+            </label>
+            <button type="submit" className="boton-fuerte mt-2">
+              {gsc ? "Reemplazar credencial" : "Conectar"}
+            </button>
+          </form>
+
+          {gsc && (
+            <form action={desconectarGsc} className="mt-3 border-t border-[color:var(--linea)] pt-3">
+              <button className="text-[12px] text-[color:var(--tinta-suave)] transition hover:text-red-600">
+                Desconectar Search Console
+              </button>
+            </form>
+          )}
         </section>
 
         {/* --- DataForSEO --- */}

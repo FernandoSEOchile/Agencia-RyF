@@ -58,6 +58,10 @@ model Cliente {
   /// activa cliente a cliente en vez de aparecerle a todo el mundo.
   betaArquitectura Boolean @default(false)
 
+  /// Propiedad de Search Console que corresponde a este sitio. Puede ser de
+  /// tipo dominio («sc-domain:ejemplo.cl») o de prefijo de URL.
+  gscPropiedad String?
+
   accesos       Acceso[]
   registro      Registro[]
   trabajos      Trabajo[]

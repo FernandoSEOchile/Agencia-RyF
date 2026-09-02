@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import SearchConsole from "@/components/SearchConsole";
 
 export interface KeywordVista {
   id: string;
@@ -23,6 +24,11 @@ const UBICACIONES = [
   [2604, "Perú"],
   [2724, "España"],
   [2840, "Estados Unidos"],
+] as const;
+
+const FUENTES = [
+  ["gsc", "Search Console"],
+  ["api", "Medición directa"],
 ] as const;
 
 const ORDENES = [
@@ -57,6 +63,7 @@ export default function Posiciones({
   puedeEditar: boolean;
   hayProveedor: boolean;
 }) {
+  const [fuente, setFuente] = useState<(typeof FUENTES)[number][0]>("gsc");
   const [abierto, setAbierto] = useState(false);
   const [texto, setTexto] = useState("");
   const [ubicacion, setUbicacion] = useState(2152);
@@ -75,6 +82,18 @@ export default function Posiciones({
     const j = await r.json();
     if (!r.ok) throw new Error(j.error || "No se pudo completar la operación.");
     return j;
+  }
+
+  /** Pasa una consulta de Search Console al seguimiento medido. */
+  async function seguirDesdeGsc(consulta: string) {
+    setError(null);
+    setAviso(null);
+    try {
+      await llamar("POST", { clienteId, terminos: consulta, ubicacion: 2152, dispositivo: "desktop" });
+      setAviso(`«${consulta}» añadida al seguimiento. Cambia a «Medición directa» y pulsa medir.`);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Error inesperado.");
+    }
   }
 
   async function añadir() {
@@ -147,7 +166,28 @@ export default function Posiciones({
 
   return (
     <div className="mt-5">
-      <div className="flex flex-wrap items-center gap-2">
+      <div className="segmentos">
+        {FUENTES.map(([id, n]) => (
+          <button
+            key={id}
+            onClick={() => setFuente(id)}
+            className={`segmento ${fuente === id ? "segmento-activo" : ""}`}
+          >
+            {n}
+          </button>
+        ))}
+      </div>
+
+      {error && <p className="mt-4 rounded-2xl bg-red-50 px-4 py-3 text-[13px] text-red-700">{error}</p>}
+      {aviso && (
+        <p className="mt-4 rounded-2xl bg-emerald-50 px-4 py-3 text-[13px] text-emerald-700">{aviso}</p>
+      )}
+
+      {fuente === "gsc" ? (
+        <SearchConsole clienteId={clienteId} puedeEditar={puedeEditar} onSeguir={seguirDesdeGsc} />
+      ) : (
+        <>
+      <div className="mt-5 flex flex-wrap items-center gap-2">
         {puedeEditar && (
           <button onClick={() => setAbierto(!abierto)} className="boton">
             {abierto ? "Cerrar" : "Añadir consultas"}
@@ -177,11 +217,6 @@ export default function Posiciones({
           Falta conectar DataForSEO. Un administrador puede hacerlo en Ajustes; hasta entonces se
           pueden añadir consultas pero no medirlas.
         </p>
-      )}
-
-      {error && <p className="mt-4 rounded-2xl bg-red-50 px-4 py-3 text-[13px] text-red-700">{error}</p>}
-      {aviso && (
-        <p className="mt-4 rounded-2xl bg-emerald-50 px-4 py-3 text-[13px] text-emerald-700">{aviso}</p>
       )}
 
       {abierto && (
@@ -368,6 +403,8 @@ export default function Posiciones({
             ser tercero debajo de tres bloques no es lo mismo que ser tercero. Cada pasada mide como
             máximo 40 consultas para que el gasto sea previsible.
           </p>
+        </>
+      )}
         </>
       )}
     </div>
