@@ -129,3 +129,110 @@ export async function resumenGasto(
     porDia: [...porDia.values()].sort((a, b) => a.dia.localeCompare(b.dia)),
   };
 }
+
+export interface ResumenGlobal {
+  desde: string;
+  hasta: string;
+  total: number;
+  claude: number;
+  dataforseo: number;
+  porCliente: { id: string | null; nombre: string; dominio: string | null; claude: number; dataforseo: number; total: number }[];
+  porUsuario: { id: string | null; nombre: string; total: number; operaciones: number }[];
+  porConcepto: { servicio: string; concepto: string; monto: number; veces: number }[];
+  porDia: { dia: string; claude: number; dataforseo: number }[];
+}
+
+/**
+ * Lo que gasta la agencia entera, repartido por cliente y por persona.
+ *
+ * El reparto por cliente es el que dice si una cuenta sale rentable. El
+ * reparto por persona no es para vigilar a nadie: sirve para detectar que
+ * alguien está midiendo posiciones cada día porque nadie le explicó que
+ * cuesta, que es un problema de formación y no de intención.
+ *
+ * La exploración de dominios no tiene cliente a propósito —se hace sobre
+ * sitios que aún no lo son— y se agrupa aparte como prospección, que es
+ * exactamente lo que es: coste comercial, no coste de operación.
+ */
+export async function resumenGlobal(desde: Date, hasta: Date): Promise<ResumenGlobal> {
+  const filas = await db.gasto.findMany({
+    where: { creado: { gte: desde, lte: hasta } },
+    select: { clienteId: true, usuarioId: true, servicio: true, concepto: true, monto: true, creado: true },
+    orderBy: { creado: "asc" },
+  });
+
+  const [clientes, usuarios] = await Promise.all([
+    db.cliente.findMany({ select: { id: true, nombre: true, dominio: true } }),
+    db.usuario.findMany({ select: { id: true, nombre: true } }),
+  ]);
+
+  const nombreCliente = new Map(clientes.map((c) => [c.id, c]));
+  const nombreUsuario = new Map(usuarios.map((u) => [u.id, u.nombre]));
+
+  const porCliente = new Map<string, ResumenGlobal["porCliente"][number]>();
+  const porUsuario = new Map<string, ResumenGlobal["porUsuario"][number]>();
+  const porConcepto = new Map<string, ResumenGlobal["porConcepto"][number]>();
+  const porDia = new Map<string, { dia: string; claude: number; dataforseo: number }>();
+
+  let claude = 0;
+  let dataforseo = 0;
+
+  for (const f of filas) {
+    const esClaude = f.servicio === "claude";
+    if (esClaude) claude += f.monto;
+    else dataforseo += f.monto;
+
+    const cid = f.clienteId ?? "";
+    const c =
+      porCliente.get(cid) ??
+      {
+        id: f.clienteId,
+        nombre: f.clienteId ? nombreCliente.get(f.clienteId)?.nombre ?? "cliente borrado" : "Prospección",
+        dominio: f.clienteId ? nombreCliente.get(f.clienteId)?.dominio ?? null : null,
+        claude: 0,
+        dataforseo: 0,
+        total: 0,
+      };
+    if (esClaude) c.claude += f.monto;
+    else c.dataforseo += f.monto;
+    c.total += f.monto;
+    porCliente.set(cid, c);
+
+    const uid = f.usuarioId ?? "";
+    const u =
+      porUsuario.get(uid) ??
+      {
+        id: f.usuarioId,
+        nombre: f.usuarioId ? nombreUsuario.get(f.usuarioId) ?? "usuario borrado" : "automático",
+        total: 0,
+        operaciones: 0,
+      };
+    u.total += f.monto;
+    u.operaciones++;
+    porUsuario.set(uid, u);
+
+    const kc = `${f.servicio}·${f.concepto}`;
+    const k = porConcepto.get(kc) ?? { servicio: f.servicio, concepto: f.concepto, monto: 0, veces: 0 };
+    k.monto += f.monto;
+    k.veces++;
+    porConcepto.set(kc, k);
+
+    const dia = f.creado.toISOString().slice(0, 10);
+    const d = porDia.get(dia) ?? { dia, claude: 0, dataforseo: 0 };
+    if (esClaude) d.claude += f.monto;
+    else d.dataforseo += f.monto;
+    porDia.set(dia, d);
+  }
+
+  return {
+    desde: desde.toISOString().slice(0, 10),
+    hasta: hasta.toISOString().slice(0, 10),
+    total: claude + dataforseo,
+    claude,
+    dataforseo,
+    porCliente: [...porCliente.values()].sort((a, b) => b.total - a.total),
+    porUsuario: [...porUsuario.values()].sort((a, b) => b.total - a.total),
+    porConcepto: [...porConcepto.values()].sort((a, b) => b.monto - a.monto),
+    porDia: [...porDia.values()].sort((a, b) => a.dia.localeCompare(b.dia)),
+  };
+}

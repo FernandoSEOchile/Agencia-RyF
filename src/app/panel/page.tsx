@@ -81,6 +81,11 @@ export default async function Panel() {
           <Link href="/panel/explorar" className="boton">
             Explorar dominio
           </Link>
+          {(rol === "ADMIN" || rol === "GESTOR") && (
+            <Link href="/panel/gasto" className="boton">
+              Gasto
+            </Link>
+          )}
           {rol === "ADMIN" && (
             <Link
               href="/panel/ajustes"
