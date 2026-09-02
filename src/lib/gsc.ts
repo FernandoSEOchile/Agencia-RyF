@@ -41,6 +41,8 @@ export interface FilaConsulta {
   pagina: string | null;
   /** Cuántas páginas del sitio aparecen para ella. Más de una es canibalización. */
   paginas: number;
+  /** Las páginas que compiten, de más a menos impresiones. Para poder arreglarlo. */
+  urls: { url: string; impresiones: number; clics: number; posicion: number }[];
 }
 
 export interface Propiedad {
@@ -288,27 +290,42 @@ export async function consultas(
   // muestra y la cuenta de cuántas compiten.
   const porConsulta = new Map<
     string,
-    { clics: number; impresiones: number; suma: number; paginas: Map<string, number> }
+    {
+      clics: number;
+      impresiones: number;
+      suma: number;
+      paginas: Map<string, { impresiones: number; clics: number; suma: number }>;
+    }
   >();
 
   for (const f of (j.rows ?? []) as Cruda[]) {
     const [consulta, pagina] = f.keys;
     const acc =
       porConsulta.get(consulta) ??
-      { clics: 0, impresiones: 0, suma: 0, paginas: new Map<string, number>() };
+      {
+        clics: 0,
+        impresiones: 0,
+        suma: 0,
+        paginas: new Map<string, { impresiones: number; clics: number; suma: number }>(),
+      };
 
     acc.clics += f.clicks;
     acc.impresiones += f.impressions;
     // La posición se pondera por impresiones: promediar a secas daría el mismo
     // peso a una página que sale mil veces y a otra que sale tres.
     acc.suma += f.position * f.impressions;
-    acc.paginas.set(pagina, (acc.paginas.get(pagina) ?? 0) + f.impressions);
+
+    const pag = acc.paginas.get(pagina) ?? { impresiones: 0, clics: 0, suma: 0 };
+    pag.impresiones += f.impressions;
+    pag.clics += f.clicks;
+    pag.suma += f.position * f.impressions;
+    acc.paginas.set(pagina, pag);
 
     porConsulta.set(consulta, acc);
   }
 
   return [...porConsulta.entries()].map(([consulta, a]) => {
-    const ordenadas = [...a.paginas.entries()].sort((x, y) => y[1] - x[1]);
+    const ordenadas = [...a.paginas.entries()].sort((x, y) => y[1].impresiones - x[1].impresiones);
     return {
       consulta,
       clics: a.clics,
@@ -320,7 +337,15 @@ export async function consultas(
       pagina: ordenadas[0]?.[0] ?? null,
       // Solo cuentan las páginas con impresiones reales: una con dos apariciones
       // sueltas no es canibalización, es ruido.
-      paginas: ordenadas.filter(([, imp]) => imp >= 3).length,
+      paginas: ordenadas.filter(([, d]) => d.impresiones >= 3).length,
+      // Se recortan a cinco: pasada la quinta, lo que hay es ruido de Google
+      // probando páginas, no una decisión que tomar.
+      urls: ordenadas.slice(0, 5).map(([url, d]) => ({
+        url,
+        impresiones: d.impresiones,
+        clics: d.clics,
+        posicion: d.impresiones ? Math.round((d.suma / d.impresiones) * 10) / 10 : 0,
+      })),
     };
   });
 }

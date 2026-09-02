@@ -58,6 +58,9 @@ export async function GET(req: NextRequest) {
       ? { id: p.cliente.gscConexion.id, correo: p.cliente.gscConexion.correo }
       : null,
     propiedad: p.cliente.gscPropiedad,
+    // El dominio del cliente sirve para ordenar el selector: con cien
+    // propiedades en la cuenta, encontrar la suya a ojo es una tarea.
+    dominio: p.cliente.dominio,
   };
 
   if (!app || !p.cliente.gscConexionId) {

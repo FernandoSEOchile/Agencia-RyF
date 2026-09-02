@@ -10,6 +10,7 @@ interface Fila {
   posicion: number;
   pagina: string | null;
   paginas: number;
+  urls: { url: string; impresiones: number; clics: number; posicion: number }[];
 }
 
 /** Columnas ordenables. El sentido inicial de cada una es el útil por defecto. */
@@ -30,6 +31,7 @@ interface Respuesta {
   conexion: { id: string; correo: string } | null;
   propiedades: { url: string; permiso: string }[];
   propiedad: string | null;
+  dominio: string;
   dias?: number;
   filas: Fila[];
   error?: string;
@@ -43,6 +45,7 @@ const PERIODOS = [
 
 const VISTAS = [
   ["oportunidades", "Oportunidades"],
+  ["canibal", "Canibalizaciones"],
   ["todo", "Todas"],
 ] as const;
 
@@ -54,6 +57,24 @@ const VISTAS = [
  */
 function esOportunidad(f: Fila) {
   return f.posicion >= 4 && f.posicion <= 20 && f.impresiones >= 20;
+}
+
+/**
+ * Dos o más páginas del sitio peleando por la misma consulta.
+ *
+ * No basta con que Google haya mostrado varias: prueba páginas continuamente y
+ * eso sería ruido. Se exige que la segunda tenga peso real —al menos un quinto
+ * de las impresiones— porque solo entonces hay reparto de fuerza que arreglar.
+ */
+function esCanibal(f: Fila) {
+  if (f.paginas < 2 || f.impresiones < 20) return false;
+  const segunda = f.urls[1];
+  return Boolean(segunda && segunda.impresiones / f.impresiones >= 0.2);
+}
+
+/** Cuánto se lleva la página principal. Por debajo del 60 % el reparto duele. */
+function dominio(f: Fila) {
+  return f.urls[0] && f.impresiones ? Math.round((f.urls[0].impresiones / f.impresiones) * 100) : 100;
 }
 
 export default function SearchConsole({
@@ -71,6 +92,7 @@ export default function SearchConsole({
   const [dias, setDias] = useState<number>(28);
   const [vista, setVista] = useState<(typeof VISTAS)[number][0]>("oportunidades");
   const [busca, setBusca] = useState("");
+  const [buscaProp, setBuscaProp] = useState("");
   const [orden, setOrden] = useState<{ col: Columna; asc: boolean }>({
     col: "impresiones",
     asc: false,
@@ -191,6 +213,16 @@ export default function SearchConsole({
     );
   }
 
+  // Con cien propiedades en la cuenta, encontrar la del cliente a ojo es una
+  // tarea: las que contienen su dominio suben arriba, y hay buscador.
+  const raiz = (datos.dominio ?? "").replace(/^www\./, "").toLowerCase();
+  const propiedadesOrdenadas = [...datos.propiedades]
+    .filter((x) => !buscaProp.trim() || x.url.toLowerCase().includes(buscaProp.trim().toLowerCase()))
+    .sort((a, b) => {
+      const pesa = (u: string) => (raiz && u.toLowerCase().includes(raiz) ? 0 : 1);
+      return pesa(a.url) - pesa(b.url) || a.url.localeCompare(b.url);
+    });
+
   // Sin propiedad asignada no hay datos que pedir: primero hay que decir cuál
   // de las propiedades de Google corresponde a este cliente.
   if (!datos.propiedad) {
@@ -209,19 +241,34 @@ export default function SearchConsole({
               otra cuenta.
             </p>
           ) : (
-            <ul className="mt-3 flex flex-wrap gap-2">
-              {datos.propiedades.map((x) => (
-                <li key={x.url}>
-                  <button
-                    disabled={!puedeEditar || cargando}
-                    onClick={() => guardar({ propiedad: x.url })}
-                    className="boton font-mono !text-[12px]"
-                  >
-                    {x.url}
-                  </button>
-                </li>
-              ))}
-            </ul>
+            <>
+              <input
+                value={buscaProp}
+                onChange={(e) => setBuscaProp(e.target.value)}
+                placeholder="Buscar propiedad…"
+                className="mt-3 w-full max-w-sm rounded-full border border-[color:var(--linea-fuerte)] bg-white px-4 py-1.5 text-[13px] outline-none transition focus:border-[color:var(--acento)]"
+              />
+
+              <p className="mt-2 text-[12px] text-[color:var(--tinta-suave)]">
+                {datos.propiedades.length} propiedades en esta cuenta, las de este dominio primero.
+                Cuidado con la variante: para Google, una propiedad con «www» y otra sin él son dos
+                sitios distintos, y la equivocada devuelve casi nada.
+              </p>
+
+              <ul className="scroll-fino mt-3 flex max-h-72 flex-wrap gap-2 overflow-y-auto">
+                {propiedadesOrdenadas.map((x) => (
+                  <li key={x.url}>
+                    <button
+                      disabled={!puedeEditar || cargando}
+                      onClick={() => guardar({ propiedad: x.url })}
+                      className="boton font-mono !text-[12px]"
+                    >
+                      {x.url}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </>
           )}
 
           {puedeEditar && (
@@ -239,8 +286,12 @@ export default function SearchConsole({
 
   const filas = datos.filas ?? [];
   const oportunidades = filas.filter(esOportunidad);
+  const canibales = filas.filter(esCanibal);
 
-  const visibles = (vista === "oportunidades" ? oportunidades : filas)
+  const conjunto =
+    vista === "oportunidades" ? oportunidades : vista === "canibal" ? canibales : filas;
+
+  const visibles = conjunto
     .filter(
       (f) =>
         !busca.trim() ||
@@ -263,6 +314,9 @@ export default function SearchConsole({
   const media = filas.length
     ? Math.round((filas.reduce((s, f) => s + f.posicion, 0) / filas.length) * 10) / 10
     : null;
+
+  /** Cuántas consultas caen dentro de ese puesto. Acumulativo. */
+  const top = (n: number) => filas.filter((f) => f.posicion <= n).length;
 
   return (
     <div className="mt-4">
@@ -295,10 +349,10 @@ export default function SearchConsole({
 
       <dl className="tarjeta mt-4 grid grid-cols-2 divide-x divide-[color:var(--linea)] overflow-hidden sm:grid-cols-4">
         {[
-          ["Consultas", filas.length.toLocaleString("es-CL"), ""],
+          ["Palabras posicionadas", filas.length.toLocaleString("es-CL"), ""],
           ["Clics", clics.toLocaleString("es-CL"), ""],
           ["Impresiones", impresiones.toLocaleString("es-CL"), ""],
-          ["Oportunidades", String(oportunidades.length), oportunidades.length ? "text-amber-600" : ""],
+          ["Posición media", media !== null ? String(media) : "—", ""],
         ].map(([k, v, color]) => (
           <div key={k} className="px-5 py-4">
             <dt className="rotulo">{k}</dt>
@@ -307,18 +361,42 @@ export default function SearchConsole({
         ))}
       </dl>
 
-      {media !== null && (
-        <p className="mt-3 text-[13px] text-[color:var(--tinta-media)]">
-          Posición media de {media} sobre {filas.length.toLocaleString("es-CL")} consultas.{" "}
-          {oportunidades.length > 0 && (
-            <>
-              Hay <strong className="font-semibold text-[color:var(--tinta)]">{oportunidades.length}</strong>{" "}
-              entre los puestos 4 y 20 con impresiones reales: ahí Google ya considera relevante la
-              página, y mejorarla rinde más que atacar algo desde cero.
-            </>
-          )}
-        </p>
-      )}
+      {/* Los tramos son acumulativos, como en cualquier herramienta de SEO: el
+          top 10 incluye al top 3. Por franjas sueltas saldrían números que
+          nadie suma de cabeza. */}
+      <dl className="tarjeta mt-3 grid grid-cols-2 divide-x divide-[color:var(--linea)] overflow-hidden sm:grid-cols-5">
+        {[
+          ["Top 3", top(3), "text-emerald-600"],
+          ["Top 10", top(10), "text-emerald-600"],
+          ["Top 20", top(20), ""],
+          ["Top 100", top(100), ""],
+          ["Canibalizando", canibales.length, canibales.length ? "text-red-600" : ""],
+        ].map(([k, v, color]) => (
+          <div key={String(k)} className="px-5 py-4">
+            <dt className="rotulo">{String(k)}</dt>
+            <dd className={`mt-1 text-[22px] font-semibold tabular-nums ${color}`}>
+              {Number(v).toLocaleString("es-CL")}
+            </dd>
+          </div>
+        ))}
+      </dl>
+
+      <p className="mt-3 text-[13px] text-[color:var(--tinta-media)]">
+        {oportunidades.length > 0 && (
+          <>
+            <strong className="font-semibold text-[color:var(--tinta)]">{oportunidades.length}</strong>{" "}
+            oportunidades: consultas entre los puestos 4 y 20 con impresiones reales, donde Google ya
+            considera relevante la página y mejorarla rinde más que atacar algo desde cero.{" "}
+          </>
+        )}
+        {canibales.length > 0 && (
+          <>
+            Y{" "}
+            <strong className="font-semibold text-[color:var(--tinta)]">{canibales.length}</strong>{" "}
+            consultas donde dos o más páginas tuyas se reparten las impresiones.
+          </>
+        )}
+      </p>
 
       <div className="mt-5 flex flex-wrap items-center gap-3">
         <div className="segmentos">
@@ -340,6 +418,79 @@ export default function SearchConsole({
         />
       </div>
 
+      {vista === "canibal" ? (
+        <div className="mt-3 space-y-3">
+          {visibles.length === 0 ? (
+            <p className="tarjeta px-5 py-8 text-center text-[13px] text-[color:var(--tinta-suave)]">
+              Ninguna consulta con dos páginas repartiéndose las impresiones. Buena señal.
+            </p>
+          ) : (
+            visibles.map((f) => (
+              <div key={f.consulta} className="tarjeta p-4">
+                <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+                  <p className="text-[14px] font-semibold">{f.consulta}</p>
+                  <span
+                    className={`pastilla ${
+                      dominio(f) < 60 ? "bg-red-50 text-red-700" : "bg-amber-50 text-amber-700"
+                    }`}
+                  >
+                    {f.paginas} páginas
+                  </span>
+                  <span className="text-[12px] text-[color:var(--tinta-suave)]">
+                    la principal se lleva el {dominio(f)}% · posición media {f.posicion} ·{" "}
+                    {f.impresiones.toLocaleString("es-CL")} impresiones
+                  </span>
+                  {puedeEditar && onSeguir && (
+                    <button
+                      onClick={() => onSeguir(f.consulta)}
+                      className="ml-auto text-[12px] text-[color:var(--tinta-suave)] transition hover:text-[color:var(--acento)]"
+                    >
+                      Seguir
+                    </button>
+                  )}
+                </div>
+
+                <ul className="mt-3 divide-y divide-[color:var(--linea)] border-t border-[color:var(--linea)]">
+                  {f.urls.map((u, i) => (
+                    <li key={u.url} className="flex flex-wrap items-baseline gap-x-3 py-2 text-[13px]">
+                      <span
+                        className={`pastilla shrink-0 ${
+                          i === 0 ? "bg-emerald-50 text-emerald-700" : "bg-black/[0.05] text-[color:var(--tinta-media)]"
+                        }`}
+                      >
+                        {i === 0 ? "principal" : "compite"}
+                      </span>
+                      <a
+                        href={u.url}
+                        target="_blank"
+                        rel="noopener"
+                        className="min-w-0 flex-1 truncate underline-offset-2 transition hover:text-[color:var(--acento)] hover:underline"
+                        title={u.url}
+                      >
+                        {u.url.replace(/^https?:\/\/[^/]+/, "") || "/"}
+                      </a>
+                      <span className="shrink-0 tabular-nums text-[color:var(--tinta-media)]">
+                        pos. {u.posicion}
+                      </span>
+                      <span className="w-24 shrink-0 text-right tabular-nums text-[color:var(--tinta-suave)]">
+                        {u.impresiones.toLocaleString("es-CL")} impr.
+                      </span>
+                      <span className="w-16 shrink-0 text-right tabular-nums text-[color:var(--tinta-suave)]">
+                        {u.clics} clics
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+
+                <p className="mt-2 text-[12px] leading-relaxed text-[color:var(--tinta-suave)]">
+                  Decide qué página debe quedarse con esta búsqueda y quítale la intención a las otras:
+                  cambia sus títulos y encabezados, o enlázalas hacia la elegida.
+                </p>
+              </div>
+            ))
+          )}
+        </div>
+      ) : (
       <div className="tarjeta mt-3 overflow-x-auto">
         <table className="w-full min-w-[840px] border-collapse text-[13px]">
           <thead>
@@ -435,6 +586,7 @@ export default function SearchConsole({
           </tbody>
         </table>
       </div>
+      )}
 
       <p className="mt-4 max-w-3xl text-[12px] leading-relaxed text-[color:var(--tinta-suave)]">
         Datos reales de Google, sin coste. La posición es un promedio de todas las veces que el sitio

@@ -31,11 +31,14 @@ const FUENTES = [
   ["api", "Medición directa"],
 ] as const;
 
-const ORDENES = [
-  ["puesto", "Mejor posición"],
-  ["cambio", "Más movimiento"],
-  ["termino", "Alfabético"],
+const COLUMNAS = [
+  { id: "termino", texto: "Consulta", ancho: "", num: false },
+  { id: "puesto", texto: "Puesto", ancho: "text-right", num: true },
+  { id: "cambio", texto: "Cambio", ancho: "text-right", num: true },
+  { id: "url", texto: "URL que posiciona", ancho: "", num: false },
 ] as const;
+
+type Columna = (typeof COLUMNAS)[number]["id"];
 
 /** El salto entre dos mediciones, con el signo que entiende un humano. */
 function delta(k: KeywordVista): number | null {
@@ -70,7 +73,14 @@ export default function Posiciones({
   const [texto, setTexto] = useState("");
   const [ubicacion, setUbicacion] = useState(2152);
   const [dispositivo, setDispositivo] = useState("desktop");
-  const [orden, setOrden] = useState<(typeof ORDENES)[number][0]>("puesto");
+  const [orden, setOrden] = useState<{ col: Columna; asc: boolean }>({ col: "puesto", asc: true });
+
+  /** Al cambiar de columna se arranca por lo útil; volver a pulsar invierte. */
+  function ordenar(col: Columna) {
+    setOrden((o) =>
+      o.col === col ? { col, asc: !o.asc } : { col, asc: col === "puesto" || col === "termino" }
+    );
+  }
   const [ocupado, setOcupado] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [aviso, setAviso] = useState<string | null>(null);
@@ -152,19 +162,33 @@ export default function Posiciones({
     }
   }
 
-  const ordenadas = [...keywords].sort((a, b) => {
-    if (orden === "termino") return a.termino.localeCompare(b.termino);
-    if (orden === "cambio") return Math.abs(delta(b) ?? 0) - Math.abs(delta(a) ?? 0);
+  const valorDe = (k: KeywordVista, col: Columna): string | number => {
+    if (col === "termino") return k.termino;
+    if (col === "url") return k.urlPosicionada ?? "";
+    if (col === "cambio") return delta(k) ?? 0;
     // Sin medir y fuera del top 100 van al final: lo accionable arriba.
-    return (a.puesto ?? 999) - (b.puesto ?? 999);
+    return k.puesto ?? 999;
+  };
+
+  const ordenadas = [...keywords].sort((a, b) => {
+    const x = valorDe(a, orden.col);
+    const y = valorDe(b, orden.col);
+    const cmp =
+      typeof x === "number" && typeof y === "number"
+        ? x - y
+        : String(x).localeCompare(String(y), "es");
+    return orden.asc ? cmp : -cmp;
   });
 
   const medidas = keywords.filter((k) => k.puesto !== null);
   const sinMedir = keywords.filter((k) => k.mediciones === 0).length;
-  const top10 = medidas.filter((k) => (k.puesto ?? 999) <= 10).length;
+  const fuera = keywords.filter((k) => k.mediciones > 0 && k.puesto === null).length;
   const media = medidas.length
     ? Math.round((medidas.reduce((s, k) => s + (k.puesto ?? 0), 0) / medidas.length) * 10) / 10
     : null;
+
+  /** Cuántas caen dentro de ese puesto. Acumulativo, como en Search Console. */
+  const top = (n: number) => medidas.filter((k) => (k.puesto ?? 999) <= n).length;
 
   return (
     <div className="mt-5">
@@ -292,40 +316,54 @@ export default function Posiciones({
         <>
           <dl className="tarjeta mt-5 grid grid-cols-2 divide-x divide-[color:var(--linea)] overflow-hidden sm:grid-cols-4">
             {[
-              ["Consultas", String(keywords.length), ""],
-              ["En el top 10", String(top10), "text-emerald-600"],
+              ["Palabras posicionadas", String(medidas.length), ""],
+              ["En seguimiento", String(keywords.length), ""],
               ["Posición media", media !== null ? String(media) : "—", ""],
               ["Sin medir", String(sinMedir), sinMedir ? "text-amber-600" : ""],
             ].map(([k, v, color]) => (
               <div key={k} className="px-5 py-4">
                 <dt className="rotulo">{k}</dt>
-                <dd className={`mt-1 text-[26px] font-semibold tabular-nums ${color}`}>{v}</dd>
+                <dd className={`mt-1 text-[24px] font-semibold tabular-nums ${color}`}>{v}</dd>
               </div>
             ))}
           </dl>
 
-          <div className="mt-6 flex flex-wrap items-center gap-2">
-            <div className="segmentos">
-              {ORDENES.map(([id, n]) => (
-                <button
-                  key={id}
-                  onClick={() => setOrden(id)}
-                  className={`segmento ${orden === id ? "segmento-activo" : ""}`}
-                >
-                  {n}
-                </button>
-              ))}
-            </div>
-          </div>
+          <dl className="tarjeta mt-3 grid grid-cols-2 divide-x divide-[color:var(--linea)] overflow-hidden sm:grid-cols-5">
+            {[
+              ["Top 3", top(3), "text-emerald-600"],
+              ["Top 10", top(10), "text-emerald-600"],
+              ["Top 20", top(20), ""],
+              ["Top 100", top(100), ""],
+              ["Fuera del 100", fuera, fuera ? "text-[color:var(--tinta-media)]" : ""],
+            ].map(([k, v, color]) => (
+              <div key={String(k)} className="px-5 py-4">
+                <dt className="rotulo">{String(k)}</dt>
+                <dd className={`mt-1 text-[24px] font-semibold tabular-nums ${color}`}>
+                  {Number(v).toLocaleString("es-CL")}
+                </dd>
+              </div>
+            ))}
+          </dl>
 
           <div className="tarjeta mt-3 overflow-x-auto">
             <table className="w-full min-w-[720px] border-collapse text-[13px]">
               <thead>
                 <tr className="border-b border-[color:var(--linea)] text-left">
-                  <th className="rotulo px-5 py-3">Consulta</th>
-                  <th className="rotulo px-3 py-3 text-right">Puesto</th>
-                  <th className="rotulo px-3 py-3 text-right">Cambio</th>
-                  <th className="rotulo px-5 py-3">URL que posiciona</th>
+                  {COLUMNAS.map((c) => (
+                    <th key={c.id} className={`rotulo px-3 py-3 first:px-5 ${c.ancho}`}>
+                      <button
+                        onClick={() => ordenar(c.id)}
+                        className={`rotulo transition hover:text-[color:var(--tinta)] ${
+                          orden.col === c.id ? "!text-[color:var(--tinta)]" : ""
+                        }`}
+                      >
+                        {c.texto}
+                        <span className="ml-1 inline-block w-2 text-[9px]">
+                          {orden.col === c.id ? (orden.asc ? "▲" : "▼") : ""}
+                        </span>
+                      </button>
+                    </th>
+                  ))}
                   <th className="rotulo px-3 py-3"></th>
                 </tr>
               </thead>
