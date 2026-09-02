@@ -16,9 +16,10 @@ import {
 /**
  * Herramientas para tiendas Shopify.
  *
- * Hacen lo mismo que las de WordPress y se llaman parecido, pero hablan otro
- * idioma: aquí las categorías son colecciones y el SEO tiene campos propios en
- * lugar de depender de qué plugin lleve instalado el sitio.
+ * Hacen lo mismo que las de WordPress y se llaman igual a propósito, para que
+ * el asistente no tenga que saber en qué plataforma está. Por dentro hablan
+ * otro idioma: las categorías son colecciones, y el SEO tiene campos propios en
+ * vez de depender de qué plugin lleve instalado el sitio.
  *
  * Dos reglas se mantienen igual que en el otro adaptador, y son las que hacen
  * seguro dejar escribir a un modelo: comprobar el permiso antes de llamar, y

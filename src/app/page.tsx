@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { auth } from "@/lib/auth";
+import { IconoWordPress, IconoShopify } from "@/components/Plataforma";
 
 /**
  * Página pública del producto.
@@ -18,14 +19,14 @@ import { auth } from "@/lib/auth";
 export const metadata = {
   title: "AppSEO · Gestiona el SEO de todos tus WordPress desde un panel",
   description:
-    "Conecta los WordPress y WooCommerce de tus clientes y trabaja sobre ellos conversando: contenido, arquitectura SEO, posiciones y diseño, sin entrar a cada escritorio.",
+    "Conecta los WordPress y las tiendas Shopify de tus clientes y trabaja sobre ellos conversando: contenido, arquitectura SEO, posiciones y diseño, sin entrar a cada escritorio.",
 };
 
 const CAPACIDADES = [
   {
     titulo: "Escribe en el sitio",
     cuerpo:
-      "Descripciones de categoría, fichas de producto, páginas y CSS se publican directamente en el WordPress del cliente. No devuelve texto para que lo copies: lo aplica.",
+      "Descripciones de categoría, fichas de producto, páginas y CSS se publican directamente en el sitio del cliente, sea WordPress o Shopify. No devuelve texto para que lo copies: lo aplica.",
   },
   {
     titulo: "Mira Google antes de escribir",
@@ -55,9 +56,18 @@ const CAPACIDADES = [
 ];
 
 const PASOS: [string, string][] = [
-  ["Instalas el conector", "Un plugin propio en el WordPress del cliente. No ejecuta código remoto: expone lo justo, y cada petición va firmada."],
-  ["Pegas la cadena", "El sitio queda enlazado al panel, y decides si permite solo lectura o también escritura."],
-  ["Trabajas conversando", "Pides lo que necesitas en lenguaje normal y se aplica sobre el sitio, dejando registro de cada cambio."],
+  [
+    "Conectas el sitio",
+    "En WordPress, un plugin propio que no ejecuta código remoto: expone lo justo y firma cada petición. En Shopify no se instala nada — el dueño autoriza la app desde su propio panel.",
+  ],
+  [
+    "Eliges el alcance",
+    "Solo lectura o también escritura. El permiso lo da quien administra el sitio, y puede retirarlo cuando quiera.",
+  ],
+  [
+    "Trabajas conversando",
+    "Pides lo que necesitas en lenguaje normal y se aplica sobre el sitio, dejando registro de cada cambio.",
+  ],
 ];
 
 export default async function Inicio() {
@@ -94,10 +104,10 @@ export default async function Inicio() {
             </h1>
 
             <p className="mx-auto mt-6 max-w-2xl text-[16px] leading-relaxed text-white/70">
-              AppSEO conecta los sitios WordPress y WooCommerce de tus clientes y te deja trabajar sobre
-              ellos conversando. Escribes una instrucción y se aplica en el sitio: contenido, categorías,
-              fichas de producto, diseño. Sin entrar a cada escritorio y con registro de todo lo que se
-              toca.
+              AppSEO conecta los WordPress y las tiendas Shopify de tus clientes y te deja trabajar
+              sobre ellos conversando. Escribes una instrucción y se aplica en el sitio: contenido,
+              categorías, fichas de producto, diseño. Sin entrar a cada escritorio y con registro de
+              todo lo que se toca.
             </p>
 
             <div className="mt-9 flex flex-wrap items-center justify-center gap-3">
@@ -108,6 +118,22 @@ export default async function Inicio() {
                 Escríbenos
               </a>
             </div>
+
+            {/* Qué plataformas soporta, arriba del todo: es la primera pregunta
+                de cualquiera que valore usarlo. */}
+            <div className="mt-10 flex flex-wrap items-center justify-center gap-6 text-white/60">
+              <span className="text-[11px] font-semibold uppercase tracking-[0.1em]">
+                Funciona con
+              </span>
+              <span className="flex items-center gap-2 rounded-full bg-white/[0.07] px-4 py-2">
+                <IconoWordPress tam={20} />
+                <span className="text-[14px] font-medium text-white/85">WordPress</span>
+              </span>
+              <span className="flex items-center gap-2 rounded-full bg-white/[0.07] px-4 py-2">
+                <IconoShopify tam={20} />
+                <span className="text-[14px] font-medium text-white/85">Shopify</span>
+              </span>
+            </div>
           </div>
         </section>
 
@@ -117,7 +143,7 @@ export default async function Inicio() {
             <p className="cinta">Qué hace</p>
             <h2 className="seccion-web mt-4 max-w-3xl text-[26px] sm:text-[34px]">
               Todo lo que hoy haces entrando a{" "}
-              <span style={{ color: "var(--naranja)" }}>cada WordPress</span>
+              <span style={{ color: "var(--naranja)" }}>cada sitio, uno por uno</span>
             </h2>
 
             <div className="mt-12 grid gap-x-10 gap-y-10 sm:grid-cols-2 lg:grid-cols-3">
@@ -168,9 +194,10 @@ export default async function Inicio() {
               <div className="border-t-2 border-[color:var(--naranja)] pt-4">
                 <h3 className="sub-web text-[17px]">Los sitios que conectas</h3>
                 <p className="mt-2 text-[15px] leading-relaxed">
-                  El conector se instala con tu permiso en cada WordPress y expone únicamente lo
-                  necesario para leer y publicar contenido. Cada petición va firmada, y las credenciales
-                  se guardan cifradas.
+                  En WordPress, el conector se instala con tu permiso y expone únicamente lo necesario
+                  para leer y publicar contenido, firmando cada petición. En Shopify, quien administra
+                  la tienda autoriza la app y decide qué puede tocar. Las credenciales se guardan
+                  cifradas en los dos casos.
                 </p>
               </div>
               <div className="border-t-2 border-[color:var(--naranja)] pt-4">

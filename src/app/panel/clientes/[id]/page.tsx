@@ -7,6 +7,7 @@ import FichaCliente, { type Suceso } from "@/components/FichaCliente";
 import { credenciales } from "@/lib/dataforseo";
 import { aplicacion } from "@/lib/gsc";
 import Barra from "@/components/Barra";
+import Plataforma from "@/components/Plataforma";
 
 export const dynamic = "force-dynamic";
 
@@ -188,6 +189,7 @@ export default async function Ficha({
         <div className="min-w-0">
           <h1 className="truncate text-[28px] font-semibold leading-tight">{cliente.nombre}</h1>
           <p className="mt-0.5 flex flex-wrap items-center gap-2 text-[13px] text-[color:var(--tinta-media)]">
+            <Plataforma cual={cliente.plataforma} tam={14} />
             <a
               href={`https://${cliente.dominio}`}
               target="_blank"

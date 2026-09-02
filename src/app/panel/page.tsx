@@ -4,6 +4,7 @@ import { auth, signOut } from "@/lib/auth";
 import { clientesDe } from "@/lib/clientes";
 import { db } from "@/lib/db";
 import Barra from "@/components/Barra";
+import Plataforma from "@/components/Plataforma";
 
 export const metadata = { title: "Clientes · Panel AppSEO" };
 export const dynamic = "force-dynamic";
@@ -148,7 +149,10 @@ export default async function Panel() {
 
                       <div className="min-w-0 flex-1">
                         <p className="truncate text-[15px] font-semibold">{c.nombre}</p>
-                        <p className="truncate text-[13px] text-[color:var(--tinta-suave)]">{c.dominio}</p>
+                        <p className="flex items-center gap-1.5 text-[13px] text-[color:var(--tinta-suave)]">
+                          <Plataforma cual={c.plataforma} tam={14} />
+                          <span className="truncate">{c.dominio}</span>
+                        </p>
                       </div>
                     </div>
 

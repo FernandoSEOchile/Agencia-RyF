@@ -5,8 +5,8 @@ import { descifrar } from "@/lib/cifrado";
  * Adaptador de Shopify.
  *
  * A diferencia de WordPress, aquí no hay plugin que instalar: Shopify no lo
- * permite. Se crea una «app personalizada» dentro del admin de la tienda, que
- * devuelve un token, y el panel habla con la API de administración usándolo.
+ * permite. El dueño de la tienda autoriza la app desde fuera y Shopify entrega
+ * un token con el que el panel habla con la API de administración.
  *
  * Se usa GraphQL y no REST porque Shopify está retirando REST, y porque en una
  * sola petición se traen producto, SEO y colecciones —con REST harían falta

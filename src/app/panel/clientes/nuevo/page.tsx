@@ -6,6 +6,7 @@ import { cifrar, cifradoListo } from "@/lib/cifrado";
 import { leerCadena, dominioDe, salud } from "@/lib/conector";
 import { anotar } from "@/lib/clientes";
 import Barra from "@/components/Barra";
+import { IconoWordPress, IconoShopify } from "@/components/Plataforma";
 
 export const metadata = { title: "Conectar sitio · AppSEO" };
 
@@ -105,9 +106,19 @@ export default async function NuevoCliente({
         ← Clientes
       </Link>
 
-      <h1 className="mt-4 text-2xl font-bold tracking-tight text-neutral-900">Conectar un sitio</h1>
-      <p className="mt-2 text-sm text-neutral-500">
-        En el WordPress del cliente: AppSEO → Conexión, y copia la cadena completa.
+      <h1 className="mt-4 text-[30px] font-semibold leading-tight">Conectar un sitio</h1>
+      <p className="mt-2 max-w-xl text-[14px] leading-relaxed text-[color:var(--tinta-media)]">
+        WordPress y Shopify se conectan distinto porque funcionan distinto: en WordPress se instala un
+        plugin que genera una cadena, y en Shopify no se instala nada dentro de la tienda —se autoriza
+        una app desde fuera.
+      </p>
+
+      <h2 className="mt-8 flex items-center gap-2 text-[17px] font-semibold">
+        <IconoWordPress tam={20} />
+        WordPress o WooCommerce
+      </h2>
+      <p className="mt-2 text-[13px] leading-relaxed text-[color:var(--tinta-media)]">
+        En el escritorio del cliente: <strong>AppSEO → Conexión</strong>, y copia la cadena completa.
       </p>
 
       {!listo && (
@@ -153,10 +164,19 @@ export default async function NuevoCliente({
 
       <hr className="my-10 border-[color:var(--linea)]" />
 
-      <h2 className="text-[17px] font-semibold">Conectar una tienda Shopify</h2>
+      <h2 className="flex items-center gap-2 text-[17px] font-semibold">
+        <IconoShopify tam={20} />
+        Shopify
+      </h2>
       <p className="mt-2 text-[13px] leading-relaxed text-[color:var(--tinta-media)]">
-        Escribe el dominio de la tienda y te lleva a Shopify a autorizar la app. Al volver queda
-        conectada: el token lo recibe el panel directamente, sin que nadie copie credenciales.
+        Aquí no se instala nada dentro de la tienda: Shopify no lo permite. Escribes su dominio, te
+        lleva a Shopify a autorizar la app <strong>AppSEO</strong>, y al volver la tienda ya está
+        conectada. El permiso lo da quien administra la tienda, y puede retirarlo desde su propio
+        panel cuando quiera.
+      </p>
+      <p className="mt-2 text-[13px] leading-relaxed text-[color:var(--tinta-media)]">
+        No hay que copiar ningún token: lo recibe el panel directamente y se guarda cifrado. Si la
+        tienda no es tuya, mándale este mismo enlace al cliente y que lo autorice él.
       </p>
 
       <form action="/api/shopify/instalar" method="get" className="mt-6 flex flex-wrap items-end gap-3">
@@ -170,7 +190,8 @@ export default async function NuevoCliente({
             className="rounded-xl border border-[color:var(--linea-fuerte)] bg-white px-3.5 py-2.5 font-mono text-[12px] outline-none transition focus:border-[color:var(--acento)]"
           />
           <span className="text-[12px] text-[color:var(--tinta-suave)]">
-            El interno, el que sale en la barra del admin de Shopify. El dominio público se detecta solo.
+            El interno, el que sale en la barra del admin de Shopify. Su dominio público —el que ve
+            Google— se detecta solo.
           </span>
         </label>
 
