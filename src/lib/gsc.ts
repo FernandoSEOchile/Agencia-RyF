@@ -116,6 +116,9 @@ export function urlAutorizacion(app: Aplicacion, estado: string): string {
     redirect_uri: app.redireccion,
     response_type: "code",
     scope: ALCANCE,
+    // Sin esto Google no devuelve el estado, y la vuelta se rechaza por no
+    // saber a qué ficha corresponde.
+    state: estado,
     // Sin «offline» Google no entrega token de refresco, y sin «consent» deja
     // de entregarlo a partir de la segunda autorización de la misma cuenta:
     // el panel se quedaría sin poder renovar y fallaría a la hora.
