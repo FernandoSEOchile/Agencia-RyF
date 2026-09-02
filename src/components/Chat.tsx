@@ -34,6 +34,7 @@ export default function Chat({
   historialInicial,
   conversacionInicial,
   visible,
+  sugerida,
 }: {
   clienteId: string;
   nombre: string;
@@ -41,6 +42,8 @@ export default function Chat({
   historialInicial: Turno[];
   conversacionInicial: string | null;
   visible: boolean;
+  /** Instrucción que llega desde otra pestaña, lista para revisar y enviar. */
+  sugerida?: { texto: string; sello: number } | null;
 }) {
   const [turnos, setTurnos] = useState<Turno[]>(historialInicial);
   const [entrada, setEntrada] = useState("");
@@ -50,6 +53,21 @@ export default function Chat({
   const [error, setError] = useState<string | null>(null);
   const [adjuntas, setAdjuntas] = useState<Adjunta[]>([]);
   const [arrastrando, setArrastrando] = useState(false);
+
+  const campo = useRef<HTMLTextAreaElement>(null);
+
+  /**
+   * Se rellena el campo pero no se envía.
+   *
+   * La orden acaba escribiendo en el sitio de un cliente, y un clic de más en
+   * la tabla de arquitectura no debería disparar eso sin que nadie lo lea. Con
+   * el texto puesto y el cursor dentro, enviarlo es una tecla.
+   */
+  useEffect(() => {
+    if (!sugerida?.texto) return;
+    setEntrada(sugerida.texto);
+    campo.current?.focus();
+  }, [sugerida?.sello, sugerida?.texto]);
 
   const caja = useRef<HTMLDivElement>(null);
   const [alto, setAlto] = useState<number | undefined>(undefined);
@@ -341,6 +359,7 @@ export default function Chat({
             </svg>
           </button>
           <textarea
+            ref={campo}
             value={entrada}
             onChange={(e) => setEntrada(e.target.value)}
             onPaste={alPegar}

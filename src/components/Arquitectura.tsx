@@ -54,6 +54,32 @@ const COLUMNAS: readonly Columna<ColArq>[] = [
   { id: "url", texto: "URL que la ataca" },
 ];
 
+/**
+ * La instrucción que se manda al chat para crear una sección.
+ *
+ * Lleva todo lo que el asistente necesitaría preguntar —qué keyword ataca,
+ * cuánto volumen tiene, dónde cuelga— porque una orden que obliga a repreguntar
+ * gasta dos turnos y se contesta peor.
+ */
+function ordenDeCrear(n: NodoVista): string {
+  return [
+    `Crea la sección «${n.nombre}» de la arquitectura SEO de este sitio.`,
+    "",
+    `- URL prevista: ${n.slug}`,
+    n.principal
+      ? `- Palabra clave principal: «${n.principal}» (${n.volumenPrincipal.toLocaleString("es-CL")} búsquedas al mes)`
+      : "- Sin palabra clave asignada en el Excel",
+    n.volumen ? `- Volumen total de la sección: ${n.volumen.toLocaleString("es-CL")}` : "",
+    `- Nivel ${n.nivel} de la jerarquía`,
+    "",
+    "Antes de escribir, analiza los primeros resultados de Google para esa búsqueda.",
+    "Crea la categoría con su descripción optimizada y sus campos SEO, déjala sin publicar,",
+    "y dime qué creaste y con qué URL para cotejarla.",
+  ]
+    .filter(Boolean)
+    .join(String.fromCharCode(10));
+}
+
 function estilo(estado: string) {
   if (estado === "creada") return "bg-emerald-50 text-emerald-700";
   if (estado === "dudosa") return "bg-amber-50 text-amber-700";
@@ -99,10 +125,13 @@ export default function Arquitectura({
   clienteId,
   actual,
   puedeSubir,
+  onCrear,
 }: {
   clienteId: string;
   actual: ArquitecturaVista | null;
   puedeSubir: boolean;
+  /** Lleva una instrucción al chat, para crear la sección que falta. */
+  onCrear?: (texto: string) => void;
 }) {
   const [filtro, setFiltro] = useState<Vista>("todo");
   const [subiendo, setSubiendo] = useState(false);
@@ -435,12 +464,24 @@ export default function Arquitectura({
                       )}
 
                       {puedeSubir && (
-                        <button
-                          onClick={() => abrir(n)}
-                          className="mt-1.5 block text-[12px] font-medium text-[color:var(--tinta-media)] transition hover:text-[color:var(--acento)]"
-                        >
-                          {abierta?.id === n.id ? "Cerrar" : n.urlDestino ? "Cambiar URL" : "Asignar URL"}
-                        </button>
+                        <div className="mt-1.5 flex flex-wrap items-center gap-3">
+                          <button
+                            onClick={() => abrir(n)}
+                            className="text-[12px] font-medium text-[color:var(--tinta-media)] transition hover:text-[color:var(--acento)]"
+                          >
+                            {abierta?.id === n.id ? "Cerrar" : n.urlDestino ? "Cambiar URL" : "Asignar URL"}
+                          </button>
+
+                          {n.estado !== "creada" && onCrear && (
+                            <button
+                              onClick={() => onCrear(ordenDeCrear(n))}
+                              className="text-[12px] font-semibold text-[color:var(--acento)] underline-offset-2 hover:underline"
+                              title="Lleva la orden al chat, con su keyword y su volumen, para revisarla antes de enviar"
+                            >
+                              Crear con la IA
+                            </button>
+                          )}
+                        </div>
                       )}
                     </td>
                   </tr>

@@ -88,6 +88,15 @@ export default function FichaCliente({
   puedeSubir: boolean;
 }) {
   const [activa, setActiva] = useState<Pestaña>("chat");
+
+  // Lo que llega desde otra pestaña al campo del chat. El sello permite repetir
+  // la misma instrucción dos veces y que la segunda también se note.
+  const [sugerida, setSugerida] = useState<{ texto: string; sello: number } | null>(null);
+
+  function llevarAlChat(texto: string) {
+    setSugerida({ texto, sello: Date.now() });
+    setActiva("chat");
+  }
   const [sitemapVisto, setSitemapVisto] = useState(false);
   if (activa === "sitemap" && !sitemapVisto) setSitemapVisto(true);
   const [filtro, setFiltro] = useState<"todo" | "sitio" | "panel">("todo");
@@ -184,6 +193,7 @@ export default function FichaCliente({
               historialInicial={historialInicial}
               conversacionInicial={conversacionInicial}
               visible={activa === "chat"}
+              sugerida={sugerida}
             />
           </div>
         </div>
@@ -196,7 +206,12 @@ export default function FichaCliente({
       )}
 
       {activa === "arquitectura" && (
-        <Arquitectura clienteId={clienteId} actual={arquitectura} puedeSubir={puedeSubir} />
+        <Arquitectura
+          clienteId={clienteId}
+          actual={arquitectura}
+          puedeSubir={puedeSubir}
+          onCrear={llevarAlChat}
+        />
       )}
 
       {activa === "backlinks" && <Backlinks clienteId={clienteId} puedeEditar={puedeSubir} />}
