@@ -15,6 +15,7 @@ import {
   guardarEspacioTrabajo,
   espacioTrabajo,
 } from "@/lib/config";
+import { credenciales, guardarCredenciales, borrarCredenciales, saldo } from "@/lib/dataforseo";
 
 export const metadata = { title: "Ajustes · Panel AppSEO" };
 export const dynamic = "force-dynamic";
@@ -60,6 +61,7 @@ export default async function Ajustes({
   const sesion = await exigirAdmin();
   const { error, ok } = await searchParams;
   const cfg = await estadoConfig();
+  const dfs = await credenciales();
   const plugin = await paquetePublicado();
   const clientes = await db.cliente.findMany({
     where: { activo: true },
@@ -70,6 +72,43 @@ export default async function Ajustes({
   const atrasados = plugin
     ? clientes.filter((c) => c.version && c.version !== plugin.version)
     : [];
+
+  async function guardarDataForSeo(datos: FormData) {
+    "use server";
+    const s = await exigirAdmin();
+    const login = String(datos.get("dfsLogin") || "").trim();
+    const clave = String(datos.get("dfsClave") || "").trim();
+    const pruebas = datos.get("dfsPruebas") === "si";
+
+    if (!login || !clave) {
+      redirect("/panel/ajustes?error=" + encodeURIComponent("Faltan el usuario o la contraseña."));
+    }
+
+    // Se comprueban antes de guardarlas: unas credenciales malas guardadas en
+    // silencio se descubren cuando alguien intenta medir y no entiende el fallo.
+    let mensaje: string;
+    try {
+      const c = await saldo({ login, clave, pruebas });
+      mensaje = `DataForSEO conectado. Saldo: ${c.dinero.toFixed(2)} ${c.moneda}.`;
+    } catch (e) {
+      redirect(
+        "/panel/ajustes?error=" +
+          encodeURIComponent(e instanceof Error ? e.message : "No se pudo conectar con DataForSEO.")
+      );
+    }
+
+    await guardarCredenciales(login, clave, pruebas);
+    await anotar({ usuarioId: s.user!.id, accion: "ajustes", resumen: "Credenciales de DataForSEO guardadas" });
+    redirect("/panel/ajustes?ok=" + encodeURIComponent(mensaje));
+  }
+
+  async function quitarDataForSeo() {
+    "use server";
+    const s = await exigirAdmin();
+    await borrarCredenciales();
+    await anotar({ usuarioId: s.user!.id, accion: "ajustes", resumen: "Credenciales de DataForSEO borradas" });
+    redirect("/panel/ajustes?ok=" + encodeURIComponent("DataForSEO desconectado."));
+  }
 
   async function guardarClave(datos: FormData) {
     "use server";
@@ -331,6 +370,69 @@ export default async function Ajustes({
               Guardar
             </button>
           </form>
+        </section>
+
+        {/* --- DataForSEO --- */}
+        <section className="tarjeta mt-5 p-5">
+          <h2 className="text-[15px] font-semibold">Posiciones en Google · DataForSEO</h2>
+          <p className="mt-1 text-[13px] text-[color:var(--tinta-media)]">
+            Mide en qué puesto aparece cada cliente para las consultas que le sigas. Se paga por
+            consulta, con saldo prepagado: del orden de una milésima de dólar cada una. Las
+            credenciales son las de su panel, no las de tu correo.
+          </p>
+
+          {dfs ? (
+            <p className="mt-3 flex flex-wrap items-center gap-2 text-[13px]">
+              <span className="pastilla bg-emerald-50 text-emerald-700">conectado</span>
+              <span className="font-mono text-[12px] text-[color:var(--tinta-media)]">{dfs.login}</span>
+              {dfs.pruebas && (
+                <span className="pastilla bg-amber-50 text-amber-700">modo de pruebas</span>
+              )}
+            </p>
+          ) : (
+            <p className="mt-3 text-[13px] text-[color:var(--tinta-suave)]">Sin conectar.</p>
+          )}
+
+          <form action={guardarDataForSeo} className="mt-4 flex flex-wrap items-end gap-2">
+            <label className="flex min-w-[200px] flex-1 flex-col gap-1.5">
+              <span className="rotulo">Usuario</span>
+              <input
+                name="dfsLogin"
+                defaultValue={dfs?.login ?? ""}
+                placeholder="correo@ejemplo.com"
+                className="rounded-xl border border-[color:var(--linea-fuerte)] bg-white px-3.5 py-2 text-[13px] outline-none transition focus:border-[color:var(--acento)]"
+              />
+            </label>
+            <label className="flex min-w-[200px] flex-1 flex-col gap-1.5">
+              <span className="rotulo">Contraseña de la API</span>
+              <input
+                name="dfsClave"
+                type="password"
+                placeholder="••••••••"
+                className="rounded-xl border border-[color:var(--linea-fuerte)] bg-white px-3.5 py-2 text-[13px] outline-none transition focus:border-[color:var(--acento)]"
+              />
+            </label>
+            <label className="flex items-center gap-2 pb-2 text-[13px] text-[color:var(--tinta-media)]">
+              <input type="checkbox" name="dfsPruebas" value="si" defaultChecked={dfs?.pruebas ?? false} />
+              Modo de pruebas
+            </label>
+            <button type="submit" className="boton-fuerte">
+              Comprobar y guardar
+            </button>
+          </form>
+
+          <p className="mt-2 text-[12px] text-[color:var(--tinta-suave)]">
+            El modo de pruebas usa su entorno gratuito: devuelve datos falsos con la forma real, sirve
+            para verificar que todo funciona sin gastar saldo.
+          </p>
+
+          {dfs && (
+            <form action={quitarDataForSeo} className="mt-3 border-t border-[color:var(--linea)] pt-3">
+              <button className="text-[12px] text-[color:var(--tinta-suave)] transition hover:text-red-600">
+                Desconectar DataForSEO
+              </button>
+            </form>
+          )}
         </section>
 
         {/* --- Modelo --- */}

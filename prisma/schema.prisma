@@ -14,17 +14,17 @@ datasource db {
 
 /// Persona que entra al panel.
 model Usuario {
-  id        String   @id @default(cuid())
-  email     String   @unique
-  nombre    String
-  clave     String // hash bcrypt, nunca la contraseña
-  rol       Rol      @default(EDITOR)
-  activo    Boolean  @default(true)
-  creado    DateTime @default(now())
+  id           String    @id @default(cuid())
+  email        String    @unique
+  nombre       String
+  clave        String // hash bcrypt, nunca la contraseña
+  rol          Rol       @default(EDITOR)
+  activo       Boolean   @default(true)
+  creado       DateTime  @default(now())
   ultimoAcceso DateTime?
 
-  accesos   Acceso[]
-  registro  Registro[]
+  accesos  Acceso[]
+  registro Registro[]
 }
 
 enum Rol {
@@ -36,32 +36,33 @@ enum Rol {
 
 /// Sitio WordPress conectado mediante el plugin AppSEO RyF.
 model Cliente {
-  id       String   @id @default(cuid())
-  nombre   String
-  dominio  String   @unique
-  urlRest  String
-  keyId    String
+  id      String @id @default(cuid())
+  nombre  String
+  dominio String @unique
+  urlRest String
+  keyId   String
 
   /// Secreto HMAC cifrado con AES-256-GCM. Nunca se guarda en claro.
-  secreto  String
+  secreto String
 
-  activo   Boolean  @default(true)
-  creado   DateTime @default(now())
+  activo Boolean  @default(true)
+  creado DateTime @default(now())
 
   // Última foto conocida, para no consultar el sitio en cada carga.
-  version      String?
-  soloLectura  Boolean?
-  ultimaSonda  DateTime?
-  estadoSonda  String?
+  version     String?
+  soloLectura Boolean?
+  ultimaSonda DateTime?
+  estadoSonda String?
 
   /// Función en pruebas: no todos los proyectos la necesitan, así que se
   /// activa cliente a cliente en vez de aparecerle a todo el mundo.
   betaArquitectura Boolean @default(false)
 
-  accesos  Acceso[]
-  registro Registro[]
-  trabajos Trabajo[]
+  accesos       Acceso[]
+  registro      Registro[]
+  trabajos      Trabajo[]
   arquitecturas Arquitectura[]
+  keywords      Keyword[]
 }
 
 /// Qué usuario puede trabajar sobre qué cliente.
@@ -103,22 +104,22 @@ model Registro {
 /// Se guarda en la base y no en memoria porque una tanda de 2000 productos
 /// dura más que cualquier petición HTTP y tiene que sobrevivir a un reinicio.
 model Trabajo {
-  id        String   @id @default(cuid())
-  cliente   Cliente  @relation(fields: [clienteId], references: [id], onDelete: Cascade)
+  id        String  @id @default(cuid())
+  cliente   Cliente @relation(fields: [clienteId], references: [id], onDelete: Cascade)
   clienteId String
 
-  tipo      String // metadesc | descripcion | categoria
-  estado    EstadoTrabajo @default(PENDIENTE)
-  total     Int      @default(0)
-  hechos    Int      @default(0)
-  fallidos  Int      @default(0)
+  tipo     String // metadesc | descripcion | categoria
+  estado   EstadoTrabajo @default(PENDIENTE)
+  total    Int           @default(0)
+  hechos   Int           @default(0)
+  fallidos Int           @default(0)
 
-  creado    DateTime @default(now())
+  creado    DateTime  @default(now())
   iniciado  DateTime?
   terminado DateTime?
   error     String?
 
-  items     ItemTrabajo[]
+  items ItemTrabajo[]
 
   @@index([clienteId, estado])
 }
@@ -139,20 +140,20 @@ model ItemTrabajo {
   trabajo   Trabajo @relation(fields: [trabajoId], references: [id], onDelete: Cascade)
   trabajoId String
 
-  objetoId  Int
-  nombre    String
+  objetoId Int
+  nombre   String
 
   /// Huella del contenido original al leerlo. Si al escribir no coincide,
   /// alguien lo editó por su cuenta y el item se salta en vez de pisarlo.
-  huella    String?
+  huella String?
 
   propuesto String?
   anterior  String?
   estado    String  @default("pendiente")
   error     String?
 
-  @@index([trabajoId, estado])
   @@unique([trabajoId, objetoId])
+  @@index([trabajoId, estado])
 }
 
 /// Conversación del panel sobre un cliente concreto.
@@ -164,7 +165,7 @@ model Conversacion {
   creado    DateTime @default(now())
   tocado    DateTime @updatedAt
 
-  mensajes  Mensaje[]
+  mensajes Mensaje[]
 
   @@index([clienteId, tocado])
 }
@@ -199,25 +200,25 @@ model Mensaje {
 /// sin beneficio. Los valores sensibles se guardan cifrados, igual que los
 /// secretos de los clientes.
 model Config {
-  clave     String   @id
-  valor     String
-  cifrado   Boolean  @default(false)
-  tocado    DateTime @updatedAt
+  clave   String   @id
+  valor   String
+  cifrado Boolean  @default(false)
+  tocado  DateTime @updatedAt
 }
 
 /// Arquitectura SEO transaccional de un cliente, leída de su Excel AST.
 model Arquitectura {
-  id        String   @id @default(cuid())
-  cliente   Cliente  @relation(fields: [clienteId], references: [id], onDelete: Cascade)
+  id        String  @id @default(cuid())
+  cliente   Cliente @relation(fields: [clienteId], references: [id], onDelete: Cascade)
   clienteId String
 
   nombre    String
   archivo   String
   subidoPor String?
-  creado    DateTime @default(now())
+  creado    DateTime  @default(now())
   cotejado  DateTime?
 
-  nodos     NodoArquitectura[]
+  nodos NodoArquitectura[]
 
   @@index([clienteId, creado])
 }
@@ -229,11 +230,11 @@ model NodoArquitectura {
   arquitectura   Arquitectura @relation(fields: [arquitecturaId], references: [id], onDelete: Cascade)
   arquitecturaId String
 
-  slug     String
-  nombre   String
-  nivel    Int
-  orden    Int    @default(0)
-  padreId  String?
+  slug    String
+  nombre  String
+  nivel   Int
+  orden   Int     @default(0)
+  padreId String?
 
   /// Keywords objetivo en JSON, con su volumen.
   keywords String @default("[]")
@@ -244,14 +245,69 @@ model NodoArquitectura {
   // `dudosa` existe a propósito: forzar cada sección a creada o falta
   // convertiría en «falta» cosas que existen con otro nombre, y en «creada»
   // coincidencias que no lo son. Lo dudoso se revisa, no se adivina.
-  estado     String  @default("pendiente") // pendiente | creada | dudosa | falta
-  urlDestino String?
-  objetoId   Int?
-  tipoObjeto String?
-  confianza  Int?
-  nota       String?
+  estado       String  @default("pendiente") // pendiente | creada | dudosa | falta
+  urlDestino   String?
+  objetoId     Int?
+  tipoObjeto   String?
+  confianza    Int?
+  nota         String?
   comoSeCotejo String? // slug | nombre | ia
 
   @@index([arquitecturaId, estado])
   @@index([arquitecturaId, orden])
+}
+
+/// Consulta cuya posición se vigila para un cliente.
+model Keyword {
+  id        String  @id @default(cuid())
+  clienteId String
+  cliente   Cliente @relation(fields: [clienteId], references: [id], onDelete: Cascade)
+
+  termino String
+
+  /// Código de ubicación de Google Ads. 2152 es Chile.
+  ubicacion Int    @default(2152)
+  idioma    String @default("es")
+
+  /// «desktop» o «mobile»: la misma consulta da resultados distintos, y en
+  /// ecommerce el móvil suele ser el que importa.
+  dispositivo String @default("desktop")
+
+  /// URL que se espera que posicione. Sirve para avisar cuando Google elige
+  /// otra página del sitio, que es un problema de canibalización y no de
+  /// posición.
+  urlObjetivo String?
+
+  activa Boolean  @default(true)
+  creado DateTime @default(now())
+
+  posiciones Posicion[]
+
+  @@unique([clienteId, termino, ubicacion, dispositivo])
+  @@index([clienteId, activa])
+}
+
+/// Una medición concreta. Se guarda el histórico entero: el valor de esto no
+/// es la posición de hoy, es la curva.
+model Posicion {
+  id        String  @id @default(cuid())
+  keywordId String
+  keyword   Keyword @relation(fields: [keywordId], references: [id], onDelete: Cascade)
+
+  /// null cuando el sitio no aparece en los cien primeros resultados.
+  puesto Int?
+
+  /// La URL concreta que Google eligió mostrar.
+  url String?
+
+  /// Resultados totales y cuántos bloques no orgánicos había por encima:
+  /// estar tercero bajo un bloque de anuncios y un mapa no es estar tercero.
+  bloquesArriba Int?
+
+  medido DateTime @default(now())
+
+  /// Lo que costó la consulta, tal como lo informa el proveedor.
+  coste Float?
+
+  @@index([keywordId, medido])
 }

@@ -4,6 +4,7 @@ import { useState } from "react";
 import Chat from "@/components/Chat";
 import Sitemap from "@/components/Sitemap";
 import Arquitectura, { type ArquitecturaVista } from "@/components/Arquitectura";
+import Posiciones, { type KeywordVista } from "@/components/Posiciones";
 
 export interface Suceso {
   fecha: string;
@@ -33,6 +34,7 @@ const PESTAÑAS = [
   { id: "chat", etiqueta: "Conversación" },
   { id: "sitemap", etiqueta: "Sitemap" },
   { id: "arquitectura", etiqueta: "Arquitectura" },
+  { id: "posiciones", etiqueta: "Posiciones" },
   { id: "registro", etiqueta: "Registro" },
   { id: "datos", etiqueta: "Datos" },
 ] as const;
@@ -59,6 +61,8 @@ export default function FichaCliente({
   conversaciones,
   borrar,
   arquitectura,
+  keywords,
+  hayProveedor,
   puedeSubir,
 }: {
   clienteId: string;
@@ -70,8 +74,9 @@ export default function FichaCliente({
   datos: { etiqueta: string; valor: string }[];
   conversaciones: ResumenConversacion[];
   borrar: (datos: FormData) => Promise<void>;
-  /** La arquitectura es beta: si el cliente no la tiene, la pestaña no existe. */
   arquitectura: ArquitecturaVista | null;
+  keywords: KeywordVista[];
+  hayProveedor: boolean;
   puedeSubir: boolean;
 }) {
   const [activa, setActiva] = useState<Pestaña>("chat");
@@ -184,6 +189,15 @@ export default function FichaCliente({
 
       {activa === "arquitectura" && (
         <Arquitectura clienteId={clienteId} actual={arquitectura} puedeSubir={puedeSubir} />
+      )}
+
+      {activa === "posiciones" && (
+        <Posiciones
+          clienteId={clienteId}
+          keywords={keywords}
+          puedeEditar={puedeSubir}
+          hayProveedor={hayProveedor}
+        />
       )}
 
       {activa === "registro" && (

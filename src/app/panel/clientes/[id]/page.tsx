@@ -4,6 +4,7 @@ import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { api, sondear, anotar, veTodo } from "@/lib/clientes";
 import FichaCliente, { type Suceso } from "@/components/FichaCliente";
+import { credenciales } from "@/lib/dataforseo";
 import Barra from "@/components/Barra";
 
 export const dynamic = "force-dynamic";
@@ -43,6 +44,17 @@ export default async function Ficha({
   }
 
   const puedeEscribir = rol !== "LECTOR" && cliente.soloLectura === false;
+
+  // Las consultas seguidas, cada una con sus dos últimas medidas: la actual y
+  // la anterior, que es lo que permite mostrar si subió o bajó.
+  const [keywords, proveedor] = await Promise.all([
+    db.keyword.findMany({
+      where: { clienteId: id, activa: true },
+      include: { posiciones: { orderBy: { medido: "desc" }, take: 2 }, _count: { select: { posiciones: true } } },
+      orderBy: { creado: "asc" },
+    }),
+    credenciales(),
+  ]);
 
   const arq = await db.arquitectura.findFirst({
         where: { clienteId: id },
@@ -217,6 +229,19 @@ export default async function Ficha({
         historialInicial={historial}
         conversacionInicial={conversacion?.id ?? null}
         puedeSubir={rol !== "LECTOR"}
+        hayProveedor={Boolean(proveedor)}
+        keywords={keywords.map((k) => ({
+          id: k.id,
+          termino: k.termino,
+          dispositivo: k.dispositivo,
+          urlObjetivo: k.urlObjetivo,
+          puesto: k.posiciones[0]?.puesto ?? null,
+          urlPosicionada: k.posiciones[0]?.url ?? null,
+          bloquesArriba: k.posiciones[0]?.bloquesArriba ?? null,
+          medido: k.posiciones[0] ? k.posiciones[0].medido.toISOString().slice(5, 10) : null,
+          anterior: k.posiciones[1]?.puesto ?? null,
+          mediciones: k._count.posiciones,
+        }))}
         arquitectura={
           arq
             ? {
