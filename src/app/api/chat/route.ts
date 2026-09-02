@@ -129,12 +129,21 @@ export async function POST(req: NextRequest) {
   const conDiseno =
     PALABRAS_DISENO.test(mensaje) || previos.some((m) => PALABRAS_DISENO.test(m.contenido));
 
+  // Redacción: el criterio pesa lo suyo, así que solo viaja cuando el encargo
+  // va de escribir. Se mira también en los mensajes previos porque un «hazlo
+  // más largo» tres turnos después sigue siendo el mismo encargo.
+  const PALABRAS_CONTENIDO =
+    /escrib|redact|conten|text|descripc|art[íi]culo|post|blog|categor[íi]a|ficha|copy|t[íi]tulo|meta|párrafo|parrafo|faq|preguntas frecuentes|optimiz|posicion|palabra clave|keyword/i;
+  const conContenido =
+    PALABRAS_CONTENIDO.test(mensaje) || previos.some((m) => PALABRAS_CONTENIDO.test(m.contenido));
+
   const sistema = instrucciones({
     nombre: cliente.nombre,
     dominio: cliente.dominio,
     version: cliente.version,
     puedeEscribir,
     conDiseno,
+    conContenido,
   });
 
   const codificador = new TextEncoder();

@@ -16,6 +16,7 @@ import "server-only";
 import { z } from "zod";
 import { betaZodTool } from "@anthropic-ai/sdk/helpers/beta/zod";
 import { api, anotar } from "@/lib/clientes";
+import { analizarCompetencia } from "@/lib/competencia";
 
 export interface Contexto {
   clienteId: string;
@@ -359,8 +360,59 @@ export function herramientasDe(ctx: Contexto) {
     },
   });
 
+  const competencia = betaZodTool({
+    name: "analizar_competencia",
+    description:
+      "Trae los primeros resultados de Google para una consulta y los desarma: extensión de cada uno, sus encabezados, el vocabulario que comparten y las preguntas que responden. ÚSALA SIEMPRE antes de escribir cualquier contenido: sin esto estarías adivinando qué espera Google. Cuesta unos centavos por consulta, así que llámala una vez por tema, no una vez por párrafo.",
+    inputSchema: z.object({
+      consulta: z.string().describe("La búsqueda por la que quieres competir, tal como la escribiría una persona."),
+      ubicacion: z
+        .number()
+        .int()
+        .optional()
+        .describe("Código de país de Google Ads. 2152 Chile (por defecto), 2724 España, 2484 México, 2032 Argentina."),
+      cuantos: z.number().int().min(1).max(5).optional().describe("Cuántos resultados analizar. Por defecto 3."),
+    }),
+    run: async (i) => {
+      try {
+        const r = await analizarCompetencia(i.consulta, i.ubicacion ?? 2152, i.cuantos ?? 3);
+
+        await anotar({
+          usuarioId: ctx.usuarioId,
+          clienteId: ctx.clienteId,
+          accion: "competencia",
+          resumen: `SERP analizado: «${i.consulta}» · ${r.rivales.length} rivales · US$${(r.coste ?? 0).toFixed(3)}`,
+        });
+
+        // Se devuelve la anatomía, no el texto de los rivales: volcar tres
+        // páginas enteras llenaría la conversación y se pagaría en cada turno
+        // siguiente sin aportar nada que no esté aquí resumido.
+        return JSON.stringify({
+          consulta: r.consulta,
+          palabrasObjetivo: r.palabrasObjetivo,
+          bloquesDeGoogle: r.bloques,
+          preguntasDelSerp: r.preguntasSerp,
+          vocabularioCompartido: r.vocabulario,
+          rivales: r.rivales.map((x) => ({
+            puesto: x.puesto,
+            url: x.url,
+            titulo: x.titulo,
+            palabras: x.palabras,
+            h1: x.h1,
+            encabezados: x.encabezados,
+            preguntas: x.preguntas,
+            error: x.error,
+          })),
+        });
+      } catch (e) {
+        return problema(e instanceof Error ? e.message : "No se pudo analizar el SERP.");
+      }
+    },
+  });
+
   return [
     salud,
+    competencia,
     auditar,
     leerContenido,
     leerDisenoElementor,

@@ -9,6 +9,7 @@ import "server-only";
 import Anthropic from "@anthropic-ai/sdk";
 import { herramientasDe, type Contexto } from "@/lib/herramientas";
 import { CRITERIO_DISENO } from "@/lib/diseno";
+import { CRITERIO_CONTENIDO } from "@/lib/contenido";
 import { claveApi, modelo, espacioTrabajo } from "@/lib/config";
 
 /**
@@ -50,6 +51,9 @@ export function instrucciones(datos: {
   /** Se añade el criterio de diseño solo si el encargo lo pide: son ~900
    *  palabras que se pagarían en cada turno de cualquier conversación. */
   conDiseno?: boolean;
+  /** Igual que el de diseño: el criterio de redacción solo viaja cuando el
+   *  encargo es escribir. */
+  conContenido?: boolean;
 }) {
   return `Eres el asistente de AppSEO para el sitio ${datos.nombre} (${datos.dominio}), un WordPress con el conector AppSEO RyF v${datos.version ?? "?"}.
 
@@ -73,7 +77,8 @@ Cada mensaje cuesta dinero real. Trae solo los datos que necesitas: listar_produ
 
 Cuando termines algo, resume en una o dos frases qué cambió y dónde verlo.
 
-${datos.conDiseno ? CRITERIO_DISENO : ""}`;
+${datos.conDiseno ? CRITERIO_DISENO : ""}
+${datos.conContenido ? CRITERIO_CONTENIDO : ""}`;
 }
 
 /**
