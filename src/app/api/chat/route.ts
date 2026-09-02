@@ -148,6 +148,7 @@ export async function POST(req: NextRequest) {
     dominio: cliente.dominio,
     version: cliente.version,
     puedeEscribir,
+    plataforma: cliente.plataforma,
     conDiseno,
     conContenido,
     memorias,
