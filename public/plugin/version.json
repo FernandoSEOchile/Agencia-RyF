@@ -1,7 +1,7 @@
 {
- "version": "1.16.0",
+ "version": "1.17.0",
  "probado": "6.0",
  "php": "7.4",
- "notas": "Crear productos y categorias de WooCommerce desde el panel, no solo editarlos.",
- "publicado": "2026-09-02T13:47:48.404Z"
+ "notas": "El panel puede pedir al sitio que se actualice, y crear productos y categorias de WooCommerce.",
+ "publicado": "2026-09-02T15:15:24.892Z"
 }

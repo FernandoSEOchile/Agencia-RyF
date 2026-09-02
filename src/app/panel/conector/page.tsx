@@ -3,8 +3,10 @@ import { join } from "node:path";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { auth, signOut } from "@/lib/auth";
+import { clientesDe } from "@/lib/clientes";
 import Barra from "@/components/Barra";
 import { IconoWordPress } from "@/components/Plataforma";
+import SitiosConector from "@/components/SitiosConector";
 
 export const metadata = { title: "Conector · Panel AppSEO" };
 export const dynamic = "force-dynamic";
@@ -64,6 +66,12 @@ export default async function PaginaConector() {
   const rol = (sesion.user as { rol?: string }).rol ?? "LECTOR";
   const p = await paquete();
 
+  // Solo los sitios a los que llega quien mira: un LECTOR con dos clientes
+  // asignados no debe enterarse aquí de cuántos tiene la agencia.
+  const sitios = (await clientesDe(sesion.user.id, rol))
+    .filter((c) => c.plataforma !== "shopify")
+    .map((c) => ({ id: c.id, nombre: c.nombre, dominio: c.dominio, version: c.version }));
+
   async function salir() {
     "use server";
     await signOut({ redirectTo: "/entrar" });
@@ -122,6 +130,22 @@ export default async function PaginaConector() {
                 para instalarlo por primera vez, o cuando haya que hacerlo a mano.
               </p>
             </section>
+
+            {sitios.length > 0 && (
+              <section className="mt-10">
+                <h2 className="text-[17px] font-semibold">Tus sitios</h2>
+                <p className="mt-1 max-w-2xl text-[13px] leading-relaxed text-[color:var(--tinta-media)]">
+                  El botón le pide al sitio que compruebe ahora, sin esperar a que caduque su caché.
+                  Instalar lo decide él: si tiene desactivada la gestión de plugins, te lo dirá y
+                  tendrás que actualizarlo desde su escritorio, donde ya aparecerá.
+                </p>
+                <SitiosConector
+                  sitios={sitios}
+                  ultima={p.version}
+                  puedeActualizar={rol !== "LECTOR"}
+                />
+              </section>
+            )}
 
             <h2 className="mt-10 text-[17px] font-semibold">Cómo se instala</h2>
             <ol className="mt-4 flex flex-col gap-4">
