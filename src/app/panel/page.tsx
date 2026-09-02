@@ -1,10 +1,12 @@
+import { readFile } from "node:fs/promises";
+import { join } from "node:path";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { auth, signOut } from "@/lib/auth";
 import { clientesDe } from "@/lib/clientes";
 import { db } from "@/lib/db";
 import Barra from "@/components/Barra";
-import Plataforma from "@/components/Plataforma";
+import Plataforma, { IconoWordPress } from "@/components/Plataforma";
 
 export const metadata = { title: "Clientes · Panel AppSEO" };
 export const dynamic = "force-dynamic";
@@ -24,12 +26,31 @@ function inicial(nombre: string) {
   return nombre.replace(/^www\./, "").slice(0, 2).toUpperCase();
 }
 
+/**
+ * Versión del conector publicada en este servidor.
+ *
+ * Se lee del archivo que de verdad se descarga, no de la base: así el número
+ * que se anuncia y el ZIP que se entrega no pueden separarse.
+ */
+async function versionPublicada() {
+  try {
+    const bruto = await readFile(
+      join(process.cwd(), "public", "plugin", "version.json"),
+      "utf8"
+    );
+    return (JSON.parse(bruto) as { version?: string }).version ?? null;
+  } catch {
+    return null;
+  }
+}
+
 export default async function Panel() {
   const sesion = await auth();
   if (!sesion?.user?.id) redirect("/entrar");
 
   const rol = (sesion.user as { rol?: string }).rol ?? "LECTOR";
   const clientes = await clientesDe(sesion.user.id, rol);
+  const versionConector = await versionPublicada();
 
   const versiones = [...new Set(clientes.map((c) => c.version).filter(Boolean))].sort((a, b) =>
     String(b).localeCompare(String(a), undefined, { numeric: true })
@@ -82,11 +103,6 @@ export default async function Panel() {
           <Link href="/panel/explorar" className="boton">
             Explorar dominio
           </Link>
-          {/* Sin filtro de rol: quien instala el plugin en el sitio del cliente
-              casi nunca administra el panel, y antes tenía que pedir el ZIP. */}
-          <Link href="/panel/conector" className="boton">
-            Conector
-          </Link>
           {(rol === "ADMIN" || rol === "GESTOR") && (
             <Link href="/panel/gasto" className="boton">
               Gasto
@@ -118,6 +134,37 @@ export default async function Panel() {
           )}
           </div>
         </div>
+
+        {/* Sin filtro de rol a propósito: quien instala el plugin en el sitio
+            del cliente casi nunca administra el panel, y antes tenía que
+            pedirle el ZIP a otra persona. El paquete no lleva secretos. */}
+        {versionConector && (
+          <section className="mt-8 flex flex-wrap items-center gap-x-5 gap-y-3 rounded-2xl border border-[color:var(--linea)] bg-white px-5 py-4 shadow-sm">
+            <IconoWordPress tam={22} />
+
+            <div className="min-w-[220px] flex-1">
+              <p className="text-[14px] font-medium">
+                Conector para WordPress{" "}
+                <span className="ml-1 pastilla bg-black/[0.05] tabular-nums text-[color:var(--tinta-media)]">
+                  v{versionConector}
+                </span>
+              </p>
+              <p className="mt-0.5 text-[13px] text-[color:var(--tinta-media)]">
+                El plugin que conecta un WordPress o WooCommerce con este panel. Esta es siempre la
+                última versión.
+              </p>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <Link href="/panel/conector" className="boton">
+                Cómo se instala
+              </Link>
+              <a href="/api/plugin/descargar" className="boton-fuerte">
+                Descargar
+              </a>
+            </div>
+          </section>
+        )}
 
         {clientes.length === 0 ? (
           <div className="mt-10 rounded-2xl border border-dashed border-[color:var(--linea-fuerte)] px-6 py-20 text-center">
