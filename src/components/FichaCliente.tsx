@@ -31,7 +31,7 @@ export interface ResumenConversacion {
 }
 
 const PESTAÑAS = [
-  { id: "chat", etiqueta: "Conversación" },
+  { id: "chat", etiqueta: "Trabajar" },
   { id: "sitemap", etiqueta: "Sitemap" },
   { id: "arquitectura", etiqueta: "Arquitectura" },
   { id: "posiciones", etiqueta: "Posiciones" },
