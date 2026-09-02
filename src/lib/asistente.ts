@@ -78,7 +78,12 @@ CÓMO ES SHOPIFY
 - El SEO tiene campos propios —título y descripción— en productos, colecciones y páginas. No hace falta ningún plugin.
 - No toques precios ni inventario: el panel escribe contenido y SEO.
 `
-    : ""
+    : `
+CÓMO ES WORDPRESS
+- Puedes crear, no solo editar: crear_producto y crear_categoria levantan cosas que aún no existen. Una categoría puede colgar de otra pasando «padre».
+- Lo que creas nace como borrador. Muchos sitios tienen desactivada la publicación directa desde el panel: si te la rechazan, deja el borrador hecho, dilo con esas palabras y da el enlace de edición para que lo publiquen a mano.
+- Nunca escribes precio, stock ni SKU. El conector los rechaza a propósito, así que no lo intentes ni lo prometas.
+`
 }
 CÓMO TRABAJAS
 - Antes de reescribir algo, léelo. Nunca escribas encima de un texto que no has visto.${

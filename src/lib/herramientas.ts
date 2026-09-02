@@ -116,6 +116,87 @@ export function herramientasDe(ctx: Contexto) {
     },
   });
 
+  const crearProducto = betaZodTool({
+    name: "crear_producto",
+    description:
+      "Crea un producto nuevo en WooCommerce. Nace como borrador salvo que pidas otro estado, y el sitio puede tener desactivada la publicación directa. No escribe precio, stock ni SKU: eso se pone a mano en la tienda.",
+    inputSchema: z.object({
+      nombre: z.string().describe("Nombre del producto, tal como lo verá el visitante."),
+      descripcion: z.string().optional().describe("HTML de la descripción larga."),
+      descripcion_corta: z.string().optional(),
+      slug: z
+        .string()
+        .optional()
+        .describe("Parte final de la URL. Sin esto, WordPress la deduce del nombre."),
+      categorias: z
+        .array(z.number().int())
+        .optional()
+        .describe("IDs de categorías de producto, los que devuelve listar_categorias."),
+      etiquetas: z.array(z.string()).optional(),
+      estado: z
+        .enum(["draft", "pending", "private", "publish"])
+        .optional()
+        .describe("Por omisión, draft."),
+      meta: z
+        .record(z.string(), z.string())
+        .optional()
+        .describe("Metadatos de Yoast: _yoast_wpseo_metadesc, _yoast_wpseo_title, _yoast_wpseo_focuskw."),
+    }),
+    run: async (i) => {
+      if (!ctx.puedeEscribir) return soloLectura();
+      const r = await api<{ id: number; url: string; editar: string }>(
+        ctx.clienteId,
+        "POST",
+        "/products",
+        i
+      );
+      if (!r.ok) return problema(r.mensaje || r.codigo || `HTTP ${r.estado}`);
+      await anotar({
+        usuarioId: ctx.usuarioId,
+        clienteId: ctx.clienteId,
+        accion: "producto_crear",
+        resumen: `${i.nombre} → ${r.datos?.url ?? ""}`,
+      });
+      return JSON.stringify(r.datos);
+    },
+  });
+
+  const crearCategoria = betaZodTool({
+    name: "crear_categoria",
+    description:
+      "Crea una categoría de producto en WooCommerce, opcionalmente colgando de otra. Es lo que levanta las secciones que faltan de la arquitectura. Si ya existe una con ese nombre, el sitio responde con su id para que escribas encima en vez de duplicarla.",
+    inputSchema: z.object({
+      nombre: z.string().describe("Nombre de la categoría."),
+      seo: z
+        .string()
+        .optional()
+        .describe("HTML de la descripción SEO que se muestra al pie de la categoría."),
+      slug: z.string().optional().describe("Parte final de la URL. Sin esto se deduce del nombre."),
+      padre: z
+        .number()
+        .int()
+        .optional()
+        .describe("ID de la categoría madre. Omítelo para dejarla en el primer nivel."),
+    }),
+    run: async (i) => {
+      if (!ctx.puedeEscribir) return soloLectura();
+      const r = await api<{ id: number; nombre: string; url: string; editar: string }>(
+        ctx.clienteId,
+        "POST",
+        "/terms",
+        { ...i, taxonomia: "product_cat" }
+      );
+      if (!r.ok) return problema(r.mensaje || r.codigo || `HTTP ${r.estado}`);
+      await anotar({
+        usuarioId: ctx.usuarioId,
+        clienteId: ctx.clienteId,
+        accion: "categoria_crear",
+        resumen: `${i.nombre} → ${r.datos?.url ?? ""}`,
+      });
+      return JSON.stringify(r.datos);
+    },
+  });
+
   const listarCategorias = betaZodTool({
     name: "listar_categorias",
     description:
@@ -735,8 +816,10 @@ export function herramientasDe(ctx: Contexto) {
     listarProductos,
     leerProducto,
     escribirProducto,
+    crearProducto,
     listarCategorias,
     escribirCategoria,
+    crearCategoria,
     escribirContenido,
     leerCss,
     escribirCss,

@@ -1,7 +1,7 @@
 {
- "version": "1.15.0",
+ "version": "1.16.0",
  "probado": "6.0",
  "php": "7.4",
- "notas": "Actualización automática, lectura de contenido y diseños de Elementor.",
- "publicado": "2026-09-01T15:53:02.227Z"
+ "notas": "Crear productos y categorias de WooCommerce desde el panel, no solo editarlos.",
+ "publicado": "2026-09-02T13:47:48.404Z"
 }
