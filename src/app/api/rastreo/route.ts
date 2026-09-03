@@ -53,6 +53,66 @@ const FILTROS: Record<string, Prisma.PaginaWhereInput> = {
   sinAlt: { ...PROPIA, imagenesSinAlt: { gt: 0 } },
 };
 
+/**
+ * Si Google puede indexar esta página, y por qué no cuando no puede.
+ *
+ * Se decide aquí y no en la pantalla porque son cuatro razones distintas que
+ * conviene no repetir en dos sitios: una URL que redirige no se indexa ella
+ * —se indexa su destino—, y una que apunta su canonical a otra tampoco, aunque
+ * responda 200 y se vea perfecta. Esas dos son las que más despistan.
+ *
+ * No mira el robots.txt: eso bloquea el rastreo, no la indexación, y sus reglas
+ * son del sitio entero. Sale aparte, en el aviso de arriba.
+ */
+function indexabilidad(p: {
+  estado: number | null;
+  destino: string | null;
+  noindex: boolean;
+  canonical: string | null;
+  url: string;
+}) {
+  if (p.estado === null) return { indexable: false, motivo: "no responde" };
+  if (p.estado >= 400) return { indexable: false, motivo: `error ${p.estado}` };
+  if (p.destino) return { indexable: false, motivo: "redirige" };
+  if (p.noindex) return { indexable: false, motivo: "noindex" };
+
+  if (p.canonical) {
+    const l = (u: string) =>
+      u.replace(/^https?:\/\/(www\.)?/, "").replace(/\/+$/, "").toLowerCase();
+    if (l(p.canonical) !== l(p.url)) {
+      return { indexable: false, motivo: "canonical a otra" };
+    }
+  }
+
+  return { indexable: true, motivo: null };
+}
+
+/** La fila tal como la espera la pantalla. */
+function aFila(p: {
+  url: string;
+  estado: number | null;
+  ms: number | null;
+  destino: string | null;
+  titulo: string | null;
+  palabras: number;
+  imagenesSinAlt: number;
+  error: string | null;
+  noindex: boolean;
+  canonical: string | null;
+}) {
+  return {
+    url: p.url,
+    estado: p.estado,
+    ms: p.ms,
+    destino: p.destino,
+    titulo: p.titulo,
+    palabras: p.palabras,
+    imagenesSinAlt: p.imagenesSinAlt,
+    error: p.error,
+    ...indexabilidad(p),
+  };
+}
+
 async function permiso(clienteId: string) {
   const sesion = await auth();
   if (!sesion?.user?.id) return { error: "Sesión no iniciada.", codigo: 401 as const };
@@ -152,19 +212,7 @@ export async function GET(req: NextRequest) {
         take: 300,
       });
 
-      return Response.json({
-        problema,
-        paginas: paginas.map((x) => ({
-          url: x.url,
-          estado: x.estado,
-          ms: x.ms,
-          destino: x.destino,
-          titulo: x.titulo,
-          palabras: x.palabras,
-          imagenesSinAlt: x.imagenesSinAlt,
-          error: x.error,
-        })),
-      });
+      return Response.json({ problema, paginas: paginas.map(aFila) });
     }
 
     const donde = FILTROS[problema];
@@ -183,19 +231,7 @@ export async function GET(req: NextRequest) {
       paginas = paginas.filter((x) => x.canonical && l(x.url) !== l(x.canonical)).slice(0, 300);
     }
 
-    return Response.json({
-      problema,
-      paginas: paginas.map((p) => ({
-        url: p.url,
-        estado: p.estado,
-        ms: p.ms,
-        destino: p.destino,
-        titulo: p.titulo,
-        palabras: p.palabras,
-        imagenesSinAlt: p.imagenesSinAlt,
-        error: p.error,
-      })),
-    });
+    return Response.json({ problema, paginas: paginas.map(aFila) });
   }
 
   const claves = Object.keys(FILTROS) as (keyof typeof FILTROS)[];

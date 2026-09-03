@@ -22,6 +22,9 @@ interface Pagina {
   palabras: number;
   imagenesSinAlt: number;
   error: string | null;
+  /** Si Google puede indexarla, y por qué no cuando no. Lo decide el servidor. */
+  indexable: boolean;
+  motivo: string | null;
 }
 
 interface Tanda {
@@ -74,11 +77,12 @@ interface Sitio {
   error?: string;
 }
 
-type Col = "url" | "estado" | "ms" | "titulo";
+type Col = "url" | "estado" | "indexable" | "ms" | "titulo";
 
 const COLUMNAS: readonly Columna<Col>[] = [
   { id: "url", texto: "URL" },
   { id: "estado", texto: "Código", clase: "text-right", num: true },
+  { id: "indexable", texto: "Indexable" },
   { id: "ms", texto: "Tiempo", clase: "text-right", num: true },
   { id: "titulo", texto: "Título" },
 ];
@@ -171,7 +175,15 @@ export default function Rastreo({
   const filas = porTitulo && orden.col === "url"
     ? [...paginas].sort((a, b) => (a.titulo ?? "").localeCompare(b.titulo ?? "", "es"))
     : ordenarPor(paginas, (p, c) =>
-        c === "url" ? p.url : c === "titulo" ? (p.titulo ?? "") : (p[c] ?? -1)
+        c === "url"
+          ? p.url
+          : c === "titulo"
+            ? (p.titulo ?? "")
+            : // Al ordenar por indexable primero salen las que NO lo son, que es
+              // lo que uno busca cuando pincha esa columna.
+              c === "indexable"
+              ? (p.indexable ? "2 sí" : `1 ${p.motivo ?? "no"}`)
+              : (p[c] ?? -1)
       );
 
   if (cargando) return <p className="text-[13px] text-[color:var(--tinta-media)]">Mirando…</p>;
@@ -334,6 +346,18 @@ export default function Rastreo({
                         }`}
                       >
                         {p.estado ?? "—"}
+                      </td>
+                      <td className="whitespace-nowrap px-3 py-2.5">
+                        {p.indexable ? (
+                          <span className="pastilla bg-emerald-50 text-emerald-700">sí</span>
+                        ) : (
+                          <span
+                            className="pastilla bg-red-50 text-red-700"
+                            title={`Google no la indexa: ${p.motivo ?? "sin motivo claro"}`}
+                          >
+                            no · {p.motivo}
+                          </span>
+                        )}
                       </td>
                       <td className="px-3 py-2.5 text-right tabular-nums text-[color:var(--tinta-media)]">
                         {p.ms == null ? "—" : `${(p.ms / 1000).toFixed(1)} s`}
