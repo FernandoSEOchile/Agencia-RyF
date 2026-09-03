@@ -9,6 +9,7 @@ import "server-only";
 import { db } from "@/lib/db";
 import { descifrar } from "@/lib/cifrado";
 import { llamar, salud, type Credencial, type Salud } from "@/lib/conector";
+import { tiendaDe, salud as saludShopify } from "@/lib/shopify";
 
 /** Devuelve las credenciales listas para firmar, descifrando el secreto. */
 export async function credencialDe(clienteId: string): Promise<Credencial> {
@@ -40,6 +41,18 @@ export async function api<T = unknown>(
  * dejar la página en blanco esperando a que respondan todos los sitios.
  */
 export async function sondear(clienteId: string) {
+  const ficha = await db.cliente.findUnique({
+    where: { id: clienteId },
+    select: { plataforma: true, tienda: true, secreto: true },
+  });
+
+  // Una tienda Shopify no lleva conector, así que preguntarle por /health era
+  // pedirle una ruta que no existe sobre una URL vacía. De ahí venía el
+  // «Failed to parse URL from /health» que llevaba días marcándola como caída.
+  if (ficha?.plataforma === "shopify") {
+    return sondearShopify(clienteId, ficha);
+  }
+
   let r;
   try {
     r = await salud(await credencialDe(clienteId));
@@ -67,6 +80,44 @@ export async function sondear(clienteId: string) {
   return r.ok
     ? { ok: true as const, salud: datos }
     : { ok: false as const, mensaje: r.mensaje || r.codigo || `HTTP ${r.estado}` };
+}
+
+/**
+ * El equivalente para una tienda Shopify.
+ *
+ * Se guarda la versión de la API en el mismo campo donde WordPress guarda la
+ * del conector: no es lo mismo, pero responde a la misma pregunta —«¿con qué
+ * estoy hablando?»— y tener dos campos para eso obligaría a distinguir en cada
+ * pantalla que lo pinta.
+ */
+async function sondearShopify(
+  clienteId: string,
+  ficha: { tienda: string | null; secreto: string }
+) {
+  try {
+    const s = await saludShopify(tiendaDe(ficha));
+
+    await db.cliente.update({
+      where: { id: clienteId },
+      data: {
+        ultimaSonda: new Date(),
+        estadoSonda: "ok",
+        version: s.version,
+        // Shopify no tiene interruptor de solo lectura: lo que se puede hacer
+        // lo decide el alcance que autorizó la tienda al instalar la app.
+        soloLectura: false,
+      },
+    });
+
+    return { ok: true as const, salud: null };
+  } catch (e) {
+    const mensaje = e instanceof Error ? e.message : "error";
+    await db.cliente.update({
+      where: { id: clienteId },
+      data: { ultimaSonda: new Date(), estadoSonda: mensaje.slice(0, 120) },
+    });
+    return { ok: false as const, mensaje };
+  }
 }
 
 /** ¿Este rol ve la cartera completa sin necesitar asignaciones? */
