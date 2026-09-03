@@ -9,8 +9,6 @@ import Gasto from "@/components/Gasto";
 import Bitacora from "@/components/Bitacora";
 import Backlinks from "@/components/Backlinks";
 import Rastreo from "@/components/Rastreo";
-import Velocidad from "@/components/Velocidad";
-import SearchConsole from "@/components/SearchConsole";
 
 export interface Suceso {
   fecha: string;
@@ -231,24 +229,9 @@ export default function FichaCliente({
         />
       )}
 
-      {activa === "tecnico" && (
-        <>
-          <Rastreo clienteId={clienteId} puedeLanzar={puedeSubir} />
-          <Velocidad clienteId={clienteId} puedeMedir={puedeSubir} />
-
-          <section className="mt-12">
-            <h2 className="text-[17px] font-semibold">Canibalizaciones</h2>
-            <p className="mt-0.5 max-w-2xl text-[13px] text-[color:var(--tinta-media)]">
-              Búsquedas para las que Google enseña varias páginas tuyas. Compiten entre ellas y se
-              reparten los clics. Sale de Search Console, así que son datos reales, no una
-              estimación.
-            </p>
-            <div className="mt-4">
-              <SearchConsole clienteId={clienteId} puedeEditar={puedeSubir} soloCanibal />
-            </div>
-          </section>
-        </>
-      )}
+      {/* Velocidad y canibalizaciones viven dentro de Rastreo, como dos cuadros
+          más de su rejilla: son comprobaciones técnicas y se miran ahí. */}
+      {activa === "tecnico" && <Rastreo clienteId={clienteId} puedeLanzar={puedeSubir} />}
 
       {activa === "backlinks" && <Backlinks clienteId={clienteId} puedeEditar={puedeSubir} />}
 

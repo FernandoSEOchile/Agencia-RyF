@@ -129,6 +129,34 @@ model Rastreo {
   @@index([clienteId, creado])
 }
 
+/// La última medición de velocidad de una URL.
+///
+/// Se guarda para que la pestaña Técnico pueda enseñar una nota sin volver a
+/// medir: cada medición tarda medio minuto porque Google carga la página en un
+/// navegador de verdad, y abrir una pestaña no puede costar eso.
+///
+/// Una fila por URL, sobrescrita: interesa la foto de ahora, no el histórico.
+/// Si algún día hace falta la evolución, se quita el índice único.
+model MedicionVelocidad {
+  id        String @id @default(cuid())
+  clienteId String
+  url       String
+
+  nota Int?
+  lcp  Float?
+  cls  Float?
+  inp  Int?
+  ttfb Int?
+
+  /// Si los números vienen de usuarios reales o de una simulación.
+  reales Boolean @default(false)
+
+  medido DateTime @default(now())
+
+  @@unique([clienteId, url])
+  @@index([clienteId, medido])
+}
+
 /// Una URL tal como respondió durante un rastreo.
 model Pagina {
   id        String  @id @default(cuid())

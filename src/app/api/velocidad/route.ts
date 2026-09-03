@@ -62,6 +62,46 @@ async function representativas(clienteId: string, dominio: string) {
   return urls.slice(0, 3);
 }
 
+/**
+ * La última medición guardada. Gratis e instantánea.
+ *
+ * La pestaña Técnico la pide al abrirse para pintar la nota en su cuadro. Si
+ * midiera de verdad, abrir la pestaña costaría medio minuto por página.
+ */
+export async function GET(req: NextRequest) {
+  const clienteId = req.nextUrl.searchParams.get("cliente") || "";
+  const p = await permiso(clienteId);
+  if ("error" in p) return Response.json({ error: p.error }, { status: p.codigo });
+
+  const filas = await db.medicionVelocidad.findMany({
+    where: { clienteId },
+    orderBy: { medido: "desc" },
+    take: 10,
+  });
+
+  const conNota = filas.filter((f) => f.nota != null);
+
+  return Response.json({
+    // La media de las notas, que es lo que va en el cuadro. Se redondea aquí
+    // para que la pantalla no tenga que decidir cómo.
+    nota: conNota.length
+      ? Math.round(conNota.reduce((t, f) => t + (f.nota ?? 0), 0) / conNota.length)
+      : null,
+    medido: filas[0]?.medido.toISOString() ?? null,
+    mediciones: filas.map((f) => ({
+      url: f.url,
+      nota: f.nota,
+      lcp: f.lcp,
+      cls: f.cls,
+      inp: f.inp,
+      ttfb: f.ttfb,
+      reales: f.reales,
+      medido: f.medido.toISOString(),
+      error: null,
+    })),
+  });
+}
+
 export async function POST(req: NextRequest) {
   const { clienteId } = (await req.json().catch(() => ({}))) as { clienteId?: string };
   if (!clienteId) return Response.json({ error: "Falta el cliente." }, { status: 400 });
@@ -86,6 +126,33 @@ export async function POST(req: NextRequest) {
   for (const u of urls) mediciones.push(await medir(u));
 
   const buenas = mediciones.filter((m) => m.nota != null);
+
+  // Se guarda para que la próxima vez que se abra la pestaña haya una nota que
+  // enseñar sin volver a esperar medio minuto por página.
+  for (const m of buenas) {
+    await db.medicionVelocidad.upsert({
+      where: { clienteId_url: { clienteId, url: m.url } },
+      update: {
+        nota: m.nota,
+        lcp: m.lcp,
+        cls: m.cls,
+        inp: m.inp ? Math.round(m.inp) : null,
+        ttfb: m.ttfb ? Math.round(m.ttfb) : null,
+        reales: m.reales,
+        medido: new Date(),
+      },
+      create: {
+        clienteId,
+        url: m.url,
+        nota: m.nota,
+        lcp: m.lcp,
+        cls: m.cls,
+        inp: m.inp ? Math.round(m.inp) : null,
+        ttfb: m.ttfb ? Math.round(m.ttfb) : null,
+        reales: m.reales,
+      },
+    });
+  }
 
   await anotar({
     usuarioId: p.usuarioId,

@@ -2,6 +2,8 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { Cabecera, useOrden, type Columna } from "@/components/Tabla";
+import SearchConsole from "@/components/SearchConsole";
+import Velocidad from "@/components/Velocidad";
 
 /**
  * Rastreo técnico del sitio.
@@ -68,6 +70,27 @@ const INFORMES: { id: string; etiqueta: string; grave?: boolean; porque: string 
   { id: "sinAlt", etiqueta: "Imágenes sin alt", porque: "Imágenes sin texto alternativo: ni Google ni un lector de pantalla saben qué son." },
 ];
 
+/**
+ * Los dos cuadros que no salen del rastreo.
+ *
+ * Canibalizaciones viene de Search Console y velocidad de PageSpeed, pero se
+ * presentan igual que el resto: quien audita quiere ver todo lo que está mal en
+ * la misma rejilla, no una lista de problemas y luego dos secciones sueltas
+ * debajo con otro aspecto.
+ */
+const APARTE: Record<string, { etiqueta: string; porque: string }> = {
+  canibal: {
+    etiqueta: "Canibalizaciones",
+    porque:
+      "Búsquedas en las que Google enseña varias páginas tuyas: compiten entre ellas y se reparten los clics. Sale de Search Console, así que son datos reales.",
+  },
+  velocidad: {
+    etiqueta: "Velocidad",
+    porque:
+      "Nota de 0 a 100 de PageSpeed, media de las últimas páginas medidas. En móvil, que es lo que Google usa para decidir posiciones.",
+  },
+};
+
 interface Sitio {
   robots: boolean;
   estado?: number;
@@ -99,6 +122,10 @@ export default function Rastreo({
   const [tanda, setTanda] = useState<Tanda | null>(null);
   const [problemas, setProblemas] = useState<Problemas | null>(null);
   const [sitio, setSitio] = useState<Sitio | null>(null);
+  const [canibales, setCanibales] = useState<number | null>(null);
+  const [velocidad, setVelocidad] = useState<{ nota: number | null; medido: string | null } | null>(
+    null
+  );
   const [abierto, setAbierto] = useState<string | null>(null);
   const [paginas, setPaginas] = useState<Pagina[]>([]);
   const [cargando, setCargando] = useState(true);
@@ -130,6 +157,26 @@ export default function Rastreo({
   useEffect(() => {
     mirar();
   }, [mirar]);
+
+  // Los dos de fuera se piden por separado y sin bloquear: uno habla con Google
+  // y puede tardar un par de segundos, y no tiene por qué retrasar la rejilla.
+  useEffect(() => {
+    fetch(`/api/velocidad?cliente=${clienteId}`)
+      .then((r) => r.json())
+      .then((d) => setVelocidad({ nota: d.nota ?? null, medido: d.medido ?? null }))
+      .catch(() => setVelocidad({ nota: null, medido: null }));
+
+    fetch(`/api/gsc?cliente=${clienteId}&dias=28`)
+      .then((r) => r.json())
+      .then((d) =>
+        setCanibales(
+          Array.isArray(d.filas)
+            ? d.filas.filter((f: { paginas?: number }) => (f.paginas ?? 0) > 1).length
+            : 0
+        )
+      )
+      .catch(() => setCanibales(null));
+  }, [clienteId]);
 
   // Mientras corre se pregunta cada pocos segundos. Con el rastreo parado no se
   // pregunta nada: no hay nada que pueda cambiar solo.
@@ -167,6 +214,10 @@ export default function Rastreo({
     }
     setAbierto(id);
     setPaginas([]);
+
+    // Los de fuera del rastreo despliegan su propio componente, no una tabla
+    // de URLs: no hay nada que pedir aquí.
+    if (APARTE[id]) return;
 
     const d = await fetch(`/api/rastreo?cliente=${clienteId}&problema=${id}`).then((r) => r.json());
     setPaginas(d.paginas ?? []);
@@ -304,16 +355,84 @@ export default function Rastreo({
               </button>
             );
           })}
+
+          {/* Canibalizaciones: el número tarda porque hay que preguntarle a
+              Google, así que hasta que llegue se enseña un guion en gris. */}
+          <button
+            onClick={() => abrir("canibal")}
+            title={APARTE.canibal.porque}
+            className={`rounded-2xl border px-4 py-3 text-left transition ${
+              abierto === "canibal"
+                ? "border-[color:var(--tinta)] bg-white shadow-sm"
+                : "border-[color:var(--linea)] bg-white hover:border-[color:var(--linea-fuerte)]"
+            }`}
+          >
+            <p
+              className={`text-[22px] font-semibold tabular-nums ${
+                canibales == null
+                  ? "text-[color:var(--tinta-suave)]"
+                  : canibales === 0
+                    ? "text-[color:var(--tinta-suave)]"
+                    : "text-amber-700"
+              }`}
+            >
+              {canibales == null ? "—" : miles(canibales)}
+            </p>
+            <p className="mt-0.5 text-[12px] text-[color:var(--tinta-media)]">
+              {APARTE.canibal.etiqueta}
+            </p>
+          </button>
+
+          <button
+            onClick={() => abrir("velocidad")}
+            title={APARTE.velocidad.porque}
+            className={`rounded-2xl border px-4 py-3 text-left transition ${
+              abierto === "velocidad"
+                ? "border-[color:var(--tinta)] bg-white shadow-sm"
+                : "border-[color:var(--linea)] bg-white hover:border-[color:var(--linea-fuerte)]"
+            }`}
+          >
+            <p
+              className={`text-[22px] font-semibold tabular-nums ${
+                velocidad?.nota == null
+                  ? "text-[color:var(--tinta-suave)]"
+                  : velocidad.nota >= 90
+                    ? "text-emerald-700"
+                    : velocidad.nota >= 50
+                      ? "text-amber-700"
+                      : "text-red-600"
+              }`}
+            >
+              {velocidad?.nota ?? "—"}
+            </p>
+            <p className="mt-0.5 text-[12px] text-[color:var(--tinta-media)]">
+              {APARTE.velocidad.etiqueta}
+            </p>
+          </button>
         </div>
       )}
 
       {abierto && (
         <div className="mt-5">
           <p className="text-[13px] text-[color:var(--tinta-media)]">
-            {INFORMES.find((i) => i.id === abierto)?.porque}
+            {APARTE[abierto]?.porque ?? INFORMES.find((i) => i.id === abierto)?.porque}
           </p>
 
-          {paginas.length === 0 ? (
+          {abierto === "canibal" && (
+            <div className="mt-4">
+              <SearchConsole clienteId={clienteId} puedeEditar={puedeLanzar} soloCanibal />
+            </div>
+          )}
+
+          {abierto === "velocidad" && (
+            <Velocidad
+              clienteId={clienteId}
+              puedeMedir={puedeLanzar}
+              alMedir={(nota) => setVelocidad({ nota, medido: new Date().toISOString() })}
+            />
+          )}
+
+          {APARTE[abierto] ? null : paginas.length === 0 ? (
             <p className="mt-3 text-[13px] text-[color:var(--tinta-suave)]">Nada por aquí.</p>
           ) : (
             <div className="tarjeta mt-3 overflow-x-auto">

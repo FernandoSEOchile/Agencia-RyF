@@ -1,13 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 /**
  * Core Web Vitals de unas pocas páginas.
  *
- * No se guarda en la base a propósito, de momento: es una medición puntual que
- * se mira y se comenta con el cliente, y guardar histórico sin que nadie lo
- * haya pedido añade una tabla y una pantalla que nadie abriría.
+ * La última medición se guarda porque el cuadro de la rejilla tiene que poder
+ * enseñar una nota al abrir la pestaña, y medir de verdad cuesta medio minuto
+ * por página. Una fila por URL, sobrescrita: interesa la foto de ahora.
  */
 
 interface Medicion {
@@ -39,13 +39,25 @@ function colorNota(n: number | null) {
 export default function Velocidad({
   clienteId,
   puedeMedir,
+  alMedir,
 }: {
   clienteId: string;
   puedeMedir: boolean;
+  /** Avisa de la nota nueva para que el cuadro de arriba se actualice solo. */
+  alMedir?: (nota: number | null) => void;
 }) {
   const [mediciones, setMediciones] = useState<Medicion[] | null>(null);
   const [midiendo, setMidiendo] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Al abrirse se enseña lo último guardado, sin medir: si hubiera que medir
+  // para ver algo, desplegar el cuadro costaría medio minuto por página.
+  useEffect(() => {
+    fetch(`/api/velocidad?cliente=${clienteId}`)
+      .then((r) => r.json())
+      .then((d) => setMediciones(d.mediciones ?? []))
+      .catch(() => {});
+  }, [clienteId]);
 
   async function medir() {
     setMidiendo(true);
@@ -63,7 +75,15 @@ export default function Velocidad({
         setError(d.error ?? `Error ${r.status}`);
         return;
       }
-      setMediciones(d.mediciones ?? []);
+      const nuevas: Medicion[] = d.mediciones ?? [];
+      setMediciones(nuevas);
+
+      const conNota = nuevas.filter((m) => m.nota != null);
+      alMedir?.(
+        conNota.length
+          ? Math.round(conNota.reduce((t, m) => t + (m.nota ?? 0), 0) / conNota.length)
+          : null
+      );
     } catch {
       setError("No se pudo medir. Puede que Google tardara demasiado.");
     } finally {
@@ -72,19 +92,15 @@ export default function Velocidad({
   }
 
   return (
-    <section className="mt-10">
+    <section className="mt-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h2 className="text-[17px] font-semibold">Velocidad en móvil</h2>
-          <p className="mt-0.5 max-w-2xl text-[13px] text-[color:var(--tinta-media)]">
-            Mide la portada y las dos páginas más lentas del último rastreo con PageSpeed de
-            Google. En móvil, que es lo que Google usa para decidir posiciones.
-          </p>
-        </div>
+        <p className="max-w-2xl text-[13px] text-[color:var(--tinta-suave)]">
+          Mide la portada y las dos páginas más lentas del último rastreo.
+        </p>
 
         {puedeMedir && (
           <button onClick={medir} disabled={midiendo} className="boton disabled:opacity-50">
-            {midiendo ? "Midiendo…" : "Medir velocidad"}
+            {midiendo ? "Midiendo…" : mediciones?.length ? "Medir de nuevo" : "Medir velocidad"}
           </button>
         )}
       </div>
