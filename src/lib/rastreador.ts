@@ -24,8 +24,21 @@ import { leerSitemap } from "@/lib/sitemap";
  *    cientos de miles de entradas, y sin tope el rastreo no acaba nunca.
  */
 
-/** Espera entre peticiones. Un poco menos de dos por segundo. */
-const PAUSA = 600;
+/**
+ * Cuántas páginas se piden a la vez, y cuánto se espera entre tandas.
+ *
+ * De una en una con 600 ms de pausa el primer sitio real dio casi cuatro horas
+ * para 2.777 URLs: el freno no era la pausa sino que el propio sitio tardaba
+ * segundo y medio en contestar, y esperábamos parados. De tres en tres queda en
+ * media hora larga.
+ *
+ * Tres a la vez sigue siendo educado —cualquier hosting aguanta más, y
+ * Googlebot pide bastante más que eso—, pero no tanto como para que un
+ * cortafuegos lo confunda con un ataque. Si algún día un cliente se queja,
+ * este es el número que hay que bajar.
+ */
+const A_LA_VEZ = 3;
+const PAUSA = 400;
 
 /** Cuántas URLs como mucho. Por encima de esto hay que hablarlo antes. */
 const TOPE = 3000;
@@ -229,17 +242,16 @@ async function correr(rastreoId: string, dominio: string, plataforma: string) {
 
   let hechas = 0;
 
-  for (const url of urls) {
-    const fila = await visitar(url, rastreoId);
-    await db.pagina.create({ data: fila });
+  for (let i = 0; i < urls.length; i += A_LA_VEZ) {
+    const tanda = urls.slice(i, i + A_LA_VEZ);
+    const filas = await Promise.all(tanda.map((u) => visitar(u, rastreoId)));
 
-    hechas++;
+    await db.pagina.createMany({ data: filas });
+    hechas += filas.length;
 
-    // Se guarda el avance de vez en cuando, no en cada página: escribir en la
-    // tanda mil veces solo para mover un contador es ruido en la base.
-    if (hechas % 10 === 0 || hechas === urls.length) {
-      await db.rastreo.update({ where: { id: rastreoId }, data: { hechas } });
-    }
+    // El avance se guarda por tandas y no por página: escribir en la fila del
+    // rastreo mil veces solo para mover un contador es ruido en la base.
+    await db.rastreo.update({ where: { id: rastreoId }, data: { hechas } });
 
     await dormir(PAUSA);
   }
