@@ -201,6 +201,13 @@ export async function GET(req: NextRequest) {
   problemas.tituloRepetido = titulos.reduce((t, r) => t + r._count.titulo, 0);
   problemas.descripcionRepetida = descripciones.reduce((t, r) => t + r._count.descripcion, 0);
 
+  // Un rastreo anterior al grafo de enlaces no guardó ninguno, y entonces todas
+  // sus páginas tienen cero entrantes y saldrían como huérfanas. Antes que
+  // enseñar un número falso, se quita el informe: quien lo quiera, que vuelva a
+  // rastrear.
+  const hayGrafo = await db.enlace.findFirst({ where: { rastreoId: rastreo.id }, select: { id: true } });
+  if (!hayGrafo) delete problemas.huerfanas;
+
   return Response.json({
     rastreo: {
       id: rastreo.id,

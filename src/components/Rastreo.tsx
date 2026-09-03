@@ -220,7 +220,7 @@ export default function Rastreo({
 
       {problemas && (
         <div className="mt-5 grid gap-3 grid-cols-2 sm:grid-cols-4 lg:grid-cols-7">
-          {INFORMES.map((i) => {
+          {INFORMES.filter((i) => problemas[i.id] !== undefined).map((i) => {
             const n = problemas[i.id];
             const activo = abierto === i.id;
             return (
