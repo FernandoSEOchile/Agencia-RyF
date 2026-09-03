@@ -55,6 +55,7 @@ const PERIODOS = [
   [90, "3 meses"],
   [180, "6 meses"],
   [365, "1 año"],
+  [730, "2 años"],
 ] as const;
 
 const miles = (n: number) => Math.round(n).toLocaleString("es-CL");

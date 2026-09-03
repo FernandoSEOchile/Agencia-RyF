@@ -487,50 +487,102 @@ export interface MesGsc {
 export function LineasTramos({ meses }: { meses: MesGsc[] }) {
   const [encima, setEncima] = useState<number | null>(null);
 
+  /* Qué tramos están apagados. Se puede apagar cualquiera menos el último que
+     quede encendido: un gráfico sin series es una caja vacía, no una vista. */
+  const [ocultos, setOcultos] = useState<Set<string>>(new Set());
+
   if (meses.length < 2) return null;
 
-  const ANCHO = 640;
-  const ALTO = 210;
-  const PAD = { arriba: 16, abajo: 28, lados: 10 };
-  const w = ANCHO - PAD.lados * 2;
+  const visibles = TRAMOS_GSC.filter((t) => !ocultos.has(t.id));
+
+  const ANCHO = 700;
+  const ALTO = 240;
+  const PAD = { arriba: 14, abajo: 30, izquierda: 8, derecha: 46 };
+  const w = ANCHO - PAD.izquierda - PAD.derecha;
   const h = ALTO - PAD.arriba - PAD.abajo;
 
-  const max = Math.max(...meses.flatMap((m) => TRAMOS_GSC.map((t) => m[t.id])), 1);
+  const pico = Math.max(...meses.flatMap((m) => visibles.map((t) => m[t.id])), 1);
 
-  const x = (i: number) => PAD.lados + (i / (meses.length - 1)) * w;
-  const y = (v: number) => PAD.arriba + h - (v / (max * 1.1)) * h;
+  /* El techo se redondea a una cifra limpia para que las líneas de referencia
+     caigan en números que alguien pueda leer, no en 313,7. */
+  const paso = Math.pow(10, Math.floor(Math.log10(pico / 4 || 1)));
+  const escalon = Math.ceil(pico / 4 / paso) * paso;
+  const techo = escalon * 4 || 1;
+
+  const x = (i: number) => PAD.izquierda + (i / (meses.length - 1)) * w;
+  const y = (v: number) => PAD.arriba + h - (v / techo) * h;
 
   const visto = encima != null ? meses[encima] : meses[meses.length - 1];
+
+  /* Etiquetas del eje del tiempo: la primera, la última y las de en medio si
+     caben. Con dieciséis meses, una cada tres. */
+  const cadaCuantos = Math.max(1, Math.ceil(meses.length / 6));
 
   return (
     <div className="tarjeta p-5">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <h3 className="text-[13px] font-medium">Palabras clave por posición</h3>
+        <div>
+          <h3 className="text-[13px] font-medium">Palabras clave por posición</h3>
+          <p className="mt-0.5 text-[12px] text-[color:var(--tinta-suave)]">
+            De Search Console: búsquedas por las que el sitio salió de verdad.
+            {meses.length >= 16 && " Google guarda 16 meses, esto es todo lo que hay."}
+          </p>
+        </div>
         <p className="text-[13px] tabular-nums text-[color:var(--tinta-media)]">
           <span className="font-semibold text-[color:var(--tinta)]">{miles(visto.consultas)}</span>{" "}
           <span className="text-[color:var(--tinta-suave)]">en {mesCorto(visto.mes)}</span>
         </p>
       </div>
 
-      <p className="mt-0.5 text-[12px] text-[color:var(--tinta-suave)]">
-        De Search Console, mes a mes. Son búsquedas por las que el sitio salió de verdad.
-      </p>
+      {/* Leyenda encendible. La casilla no es decorativa: con cinco series
+          superpuestas, poder apagar cuatro es la única forma de mirar una. */}
+      <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2">
+        {TRAMOS_GSC.map((t) => {
+          const apagado = ocultos.has(t.id);
+          const ultimo = visibles.length === 1 && !apagado;
 
-      <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1">
-        {TRAMOS_GSC.map((t) => (
-          <span key={t.id} className="flex items-center gap-1.5 text-[12px] text-[color:var(--tinta-media)]">
-            <span className="inline-block h-0.5 w-4 rounded-full" style={{ background: t.color }} />
-            {t.etiqueta}
-            <span className="tabular-nums font-medium text-[color:var(--tinta)]">
-              {miles(visto[t.id])}
-            </span>
-          </span>
-        ))}
+          return (
+            <button
+              key={t.id}
+              disabled={ultimo}
+              onClick={() =>
+                setOcultos((o) => {
+                  const n = new Set(o);
+                  if (n.has(t.id)) n.delete(t.id);
+                  else n.add(t.id);
+                  return n;
+                })
+              }
+              className={`flex items-center gap-1.5 text-[12px] transition ${
+                apagado ? "opacity-40" : ""
+              } ${ultimo ? "cursor-default" : "hover:opacity-80"}`}
+              title={ultimo ? "Tiene que quedar al menos una" : apagado ? "Mostrar" : "Ocultar"}
+            >
+              <span
+                className="grid h-3.5 w-3.5 place-items-center rounded-[3px] border"
+                style={{
+                  background: apagado ? "transparent" : t.color,
+                  borderColor: apagado ? "var(--linea-fuerte)" : t.color,
+                }}
+              >
+                {!apagado && (
+                  <svg viewBox="0 0 12 12" className="h-2.5 w-2.5">
+                    <path d="M2.5 6.2l2.4 2.4 4.6-5" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                )}
+              </span>
+              <span className="text-[color:var(--tinta-media)]">{t.etiqueta}</span>
+              <span className="tabular-nums font-medium text-[color:var(--tinta)]">
+                {miles(visto[t.id])}
+              </span>
+            </button>
+          );
+        })}
       </div>
 
       <svg
         viewBox={`0 0 ${ANCHO} ${ALTO}`}
-        className="mt-2 w-full"
+        className="mt-3 w-full"
         style={{ height: ALTO }}
         role="img"
         aria-label={`Palabras clave por tramo de posición, de ${mesCorto(meses[0].mes)} a ${mesCorto(meses[meses.length - 1].mes)}`}
@@ -538,19 +590,53 @@ export function LineasTramos({ meses }: { meses: MesGsc[] }) {
         onMouseMove={(e) => {
           const caja = e.currentTarget.getBoundingClientRect();
           const rel = ((e.clientX - caja.left) / caja.width) * ANCHO;
-          const i = Math.round(((rel - PAD.lados) / w) * (meses.length - 1));
+          const i = Math.round(((rel - PAD.izquierda) / w) * (meses.length - 1));
           setEncima(Math.min(meses.length - 1, Math.max(0, i)));
         }}
       >
-        <line x1={PAD.lados} y1={PAD.arriba + h} x2={ANCHO - PAD.lados} y2={PAD.arriba + h} stroke={LINEA} strokeWidth="1" />
+        <defs>
+          {TRAMOS_GSC.map((t) => (
+            <linearGradient key={t.id} id={`g-${t.id}`} x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor={t.color} stopOpacity="0.28" />
+              <stop offset="100%" stopColor={t.color} stopOpacity="0.04" />
+            </linearGradient>
+          ))}
+        </defs>
+
+        {/* Líneas de referencia con su valor a la derecha. Recesivas a
+            propósito: son una regla para medir, no parte del dibujo. */}
+        {[0, 1, 2, 3, 4].map((n) => {
+          const v = escalon * n;
+          return (
+            <g key={n}>
+              <line x1={PAD.izquierda} y1={y(v)} x2={ANCHO - PAD.derecha} y2={y(v)} stroke={LINEA} strokeWidth="1" />
+              <text x={ANCHO - PAD.derecha + 8} y={y(v) + 4} fontSize="11" fill={SUAVE}>
+                {miles(v)}
+              </text>
+            </g>
+          );
+        })}
 
         {encima != null && (
           <line x1={x(encima)} y1={PAD.arriba} x2={x(encima)} y2={PAD.arriba + h} stroke={SUAVE} strokeWidth="1" strokeDasharray="3 3" />
         )}
 
-        {TRAMOS_GSC.map((t) => (
+        {/* Primero todas las áreas y luego todas las líneas: dibujándolas por
+            pares, el relleno de una taparía la línea de la anterior. */}
+        {visibles.map((t) => {
+          const arriba = meses.map((m, i) => `${i ? "L" : "M"}${x(i).toFixed(1)},${y(m[t.id]).toFixed(1)}`).join(" ");
+          return (
+            <path
+              key={`a-${t.id}`}
+              d={`${arriba} L${x(meses.length - 1).toFixed(1)},${PAD.arriba + h} L${x(0).toFixed(1)},${PAD.arriba + h} Z`}
+              fill={`url(#g-${t.id})`}
+            />
+          );
+        })}
+
+        {visibles.map((t) => (
           <path
-            key={t.id}
+            key={`l-${t.id}`}
             d={meses.map((m, i) => `${i ? "L" : "M"}${x(i).toFixed(1)},${y(m[t.id]).toFixed(1)}`).join(" ")}
             fill="none"
             stroke={t.color}
@@ -560,17 +646,25 @@ export function LineasTramos({ meses }: { meses: MesGsc[] }) {
           />
         ))}
 
-        {/* Un punto por tramo en el mes señalado, con anillo blanco para que no
-            se confundan cuando dos líneas se cruzan. */}
         {encima != null &&
-          TRAMOS_GSC.map((t) => (
+          visibles.map((t) => (
             <circle key={t.id} cx={x(encima)} cy={y(visto[t.id])} r="4" fill={t.color} stroke="#fff" strokeWidth="2" />
           ))}
 
-        <text x={PAD.lados} y={ALTO - 8} fontSize="11" fill={SUAVE}>{mesCorto(meses[0].mes)}</text>
-        <text x={ANCHO - PAD.lados} y={ALTO - 8} fontSize="11" fill={SUAVE} textAnchor="end">
-          {mesCorto(meses[meses.length - 1].mes)}
-        </text>
+        {meses.map((m, i) =>
+          i % cadaCuantos === 0 || i === meses.length - 1 ? (
+            <text
+              key={m.mes}
+              x={x(i)}
+              y={ALTO - 8}
+              fontSize="11"
+              fill={SUAVE}
+              textAnchor={i === 0 ? "start" : i === meses.length - 1 ? "end" : "middle"}
+            >
+              {mesCorto(m.mes)}
+            </text>
+          ) : null
+        )}
       </svg>
     </div>
   );

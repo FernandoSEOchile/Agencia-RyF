@@ -54,7 +54,7 @@ async function permiso(clienteId: string) {
 
 export async function GET(req: NextRequest) {
   const clienteId = req.nextUrl.searchParams.get("cliente") || "";
-  const dias = Math.min(Math.max(Number(req.nextUrl.searchParams.get("dias")) || 180, 7), 480);
+  const dias = Math.min(Math.max(Number(req.nextUrl.searchParams.get("dias")) || 180, 7), 760);
 
   const p = await permiso(clienteId);
   if ("error" in p) return Response.json({ error: p.error }, { status: p.codigo });

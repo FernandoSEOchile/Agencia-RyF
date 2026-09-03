@@ -38,13 +38,19 @@ function limites(mes: string) {
   };
 }
 
-/** Los meses del periodo, del más viejo al más nuevo. */
+/**
+ * Los meses del periodo, del más viejo al más nuevo.
+ *
+ * Con dos topes. Abajo, tres meses: un gráfico mensual con un punto no es una
+ * tendencia, es un número, y para eso ya están las cifras de arriba. Arriba,
+ * dieciséis: es todo lo que guarda Search Console, y pedir más devuelve meses
+ * vacíos que se leen como si el sitio no existiera entonces.
+ */
 function mesesDe(dias: number): string[] {
   const salida: string[] = [];
   const hoy = new Date();
 
-  // Search Console guarda 16 meses. Pedir más allá devuelve vacío y confunde.
-  const cuantos = Math.min(Math.ceil(dias / 30), 16);
+  const cuantos = Math.min(Math.max(Math.ceil(dias / 30), 3), 16);
 
   for (let i = cuantos - 1; i >= 0; i--) {
     const d = new Date(Date.UTC(hoy.getUTCFullYear(), hoy.getUTCMonth() - i, 1));
