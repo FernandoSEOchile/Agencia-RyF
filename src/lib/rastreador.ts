@@ -74,8 +74,12 @@ function leer(html: string, base: URL) {
     .map((m) => m[1].toLowerCase())
     .join(",");
 
-  let internos = 0;
   let externos = 0;
+
+  // Los destinos internos van en un conjunto: tres enlaces a la misma página
+  // desde el mismo sitio son un enlace a efectos de si esa página está
+  // enlazada o no, que es la pregunta que se quiere responder.
+  const internos = new Set<string>();
 
   for (const m of html.matchAll(/<a[^>]+href=["']([^"']+)["']/gi)) {
     const href = m[1].trim();
@@ -83,8 +87,11 @@ function leer(html: string, base: URL) {
 
     try {
       const u = new URL(href, base);
-      if (u.hostname.replace(/^www\./, "") === base.hostname.replace(/^www\./, "")) internos++;
-      else externos++;
+      if (u.hostname.replace(/^www\./, "") === base.hostname.replace(/^www\./, "")) {
+        internos.add(normalizar(u));
+      } else {
+        externos++;
+      }
     } catch {
       // Un href que ni siquiera es una URL válida ya es un problema, pero no
       // uno que este contador deba resolver.
@@ -106,11 +113,26 @@ function leer(html: string, base: URL) {
       (html.match(/<link[^>]+rel=["']canonical["'][^>]*href=["']([^"']*)["']/i)?.[1] ?? "").trim() ||
       null,
     noindex: robots.includes("noindex"),
+    h1s: [...sinRuido.matchAll(/<h1[\s>]/gi)].length,
     palabras: plano ? plano.split(" ").length : 0,
-    enlacesInternos: internos,
+    enlacesInternos: internos.size,
     enlacesExternos: externos,
     imagenesSinAlt: sinAlt,
+    salientes: [...internos],
   };
+}
+
+/**
+ * La forma canónica de una URL para compararla con otra.
+ *
+ * Sin esto, «/tienda» y «/tienda/» serían páginas distintas y media web
+ * aparecería como huérfana por un carácter. Se quita también el fragmento y el
+ * www, que no cambian a dónde lleva el enlace.
+ */
+function normalizar(u: URL) {
+  const host = u.hostname.replace(/^www\./, "");
+  const ruta = u.pathname.replace(/\/+$/, "") || "/";
+  return `https://${host}${ruta}${u.search}`;
 }
 
 /** Pide una URL y devuelve la fila lista para guardar. */
@@ -132,45 +154,50 @@ async function visitar(url: string, rastreoId: string) {
     // ni H1, y sacarles conclusiones sería inventarse problemas.
     const esHtml = (r.headers.get("content-type") ?? "").includes("text/html");
 
+    const leido = esHtml
+      ? leer(html, new URL(url))
+      : {
+          titulo: null,
+          descripcion: null,
+          h1: null,
+          canonical: null,
+          noindex: false,
+          h1s: 0,
+          palabras: 0,
+          enlacesInternos: 0,
+          enlacesExternos: 0,
+          imagenesSinAlt: 0,
+          salientes: [] as string[],
+        };
+
+    const { salientes, ...campos } = leido;
+
     return {
-      rastreoId,
-      url,
-      estado: r.status,
-      ms,
-      destino: r.url !== url ? r.url : null,
-      ...(esHtml
-        ? leer(html, new URL(url))
-        : {
-            titulo: null,
-            descripcion: null,
-            h1: null,
-            canonical: null,
-            noindex: false,
-            palabras: 0,
-            enlacesInternos: 0,
-            enlacesExternos: 0,
-            imagenesSinAlt: 0,
-          }),
-      error: null,
+      fila: { rastreoId, url, estado: r.status, ms, destino: r.url !== url ? r.url : null, ...campos, error: null },
+      salientes,
     };
   } catch (e) {
     const m = e instanceof Error ? e.message : "error";
     return {
-      rastreoId,
-      url,
-      estado: null,
-      ms: Date.now() - arranque,
-      destino: null,
-      titulo: null,
-      descripcion: null,
-      h1: null,
-      canonical: null,
-      noindex: false,
-      palabras: 0,
-      enlacesInternos: 0,
-      enlacesExternos: 0,
-      imagenesSinAlt: 0,
-      error: m.includes("timeout") || m.includes("abort") ? "No contestó a tiempo." : m.slice(0, 200),
+      fila: {
+        rastreoId,
+        url,
+        estado: null,
+        ms: Date.now() - arranque,
+        destino: null,
+        titulo: null,
+        descripcion: null,
+        h1: null,
+        canonical: null,
+        noindex: false,
+        h1s: 0,
+        palabras: 0,
+        enlacesInternos: 0,
+        enlacesExternos: 0,
+        imagenesSinAlt: 0,
+        error: m.includes("timeout") || m.includes("abort") ? "No contestó a tiempo." : m.slice(0, 200),
+      },
+      salientes: [] as string[],
     };
   }
 }
@@ -244,10 +271,16 @@ async function correr(rastreoId: string, dominio: string, plataforma: string) {
 
   for (let i = 0; i < urls.length; i += A_LA_VEZ) {
     const tanda = urls.slice(i, i + A_LA_VEZ);
-    const filas = await Promise.all(tanda.map((u) => visitar(u, rastreoId)));
+    const visitas = await Promise.all(tanda.map((u) => visitar(u, rastreoId)));
 
-    await db.pagina.createMany({ data: filas });
-    hechas += filas.length;
+    await db.pagina.createMany({ data: visitas.map((v) => v.fila) });
+
+    const enlaces = visitas.flatMap((v) =>
+      v.salientes.map((hacia) => ({ rastreoId, desde: v.fila.url, hacia }))
+    );
+    if (enlaces.length > 0) await db.enlace.createMany({ data: enlaces });
+
+    hechas += visitas.length;
 
     // El avance se guarda por tandas y no por página: escribir en la fila del
     // rastreo mil veces solo para mover un contador es ruido en la base.
@@ -256,10 +289,37 @@ async function correr(rastreoId: string, dominio: string, plataforma: string) {
     await dormir(PAUSA);
   }
 
+  await contarEntrantes(rastreoId);
+
   await db.rastreo.update({
     where: { id: rastreoId },
     data: { estado: "terminado", hechas, acabado: new Date() },
   });
+}
+
+/**
+ * Cuenta cuántos enlaces internos apunta cada página.
+ *
+ * Solo se puede hacer al final: mientras se rastrea, una página puede parecer
+ * huérfana simplemente porque quien la enlaza todavía no se ha visitado.
+ *
+ * Va en SQL de una sola pasada y no página por página porque son miles de
+ * filas contra cientos de miles de enlaces, y hacerlo en bucle tardaría más
+ * que el rastreo entero.
+ */
+async function contarEntrantes(rastreoId: string) {
+  await db.$executeRaw`
+    UPDATE "Pagina" p
+    SET "entrantes" = COALESCE(e.cuantos, 0)
+    FROM (
+      SELECT "hacia", COUNT(DISTINCT "desde") AS cuantos
+      FROM "Enlace"
+      WHERE "rastreoId" = ${rastreoId}
+      GROUP BY "hacia"
+    ) e
+    WHERE p."rastreoId" = ${rastreoId}
+      AND regexp_replace(regexp_replace(p."url", '^https?://(www\.)?', 'https://'), '/+$', '') = e."hacia"
+  `;
 }
 
 /**

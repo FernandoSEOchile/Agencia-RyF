@@ -11,18 +11,7 @@ import { Cabecera, useOrden, type Columna } from "@/components/Tabla";
  * preguntando «¿qué está roto?» y mirando solo eso.
  */
 
-interface Problemas {
-  rotas: number;
-  redirigidas: number;
-  lentas: number;
-  sinTitulo: number;
-  sinDescripcion: number;
-  sinH1: number;
-  noIndexables: number;
-  sinAlt: number;
-  huerfanas: number;
-  tituloRepetido: number;
-}
+type Problemas = Record<string, number>;
 
 interface Pagina {
   url: string;
@@ -45,16 +34,26 @@ interface Tanda {
   nota?: string | null;
 }
 
-/** Qué mide cada cuadro y por qué importa. Se enseña al pasar el ratón. */
-const INFORMES: { id: keyof Problemas; etiqueta: string; grave?: boolean; porque: string }[] = [
+/**
+ * Qué mide cada cuadro y por qué importa.
+ *
+ * El orden no es alfabético ni por cantidad: va de lo que impide posicionar a
+ * lo que solo lo empeora. Quien abre esta pestaña con prisa arregla los tres
+ * primeros y ya ha hecho lo que más valía.
+ */
+const INFORMES: { id: string; etiqueta: string; grave?: boolean; porque: string }[] = [
   { id: "rotas", etiqueta: "Rotas", grave: true, porque: "Devuelven 404 o ni contestan. El visitante se va y Google deja de rastrearlas." },
-  { id: "noIndexables", etiqueta: "No indexables", grave: true, porque: "El sitio le pide a Google que no las incluya. Se ven bien y nunca salen en buscadores." },
-  { id: "huerfanas", etiqueta: "Huérfanas", porque: "Ningún enlace interno lleva a ellas. Existen en el sitemap y en la práctica están escondidas." },
-  { id: "redirigidas", etiqueta: "Redirigidas", porque: "Están en el sitemap pero acaban en otra dirección. El sitemap debería llevar al destino final." },
-  { id: "tituloRepetido", etiqueta: "Título repetido", porque: "Dos páginas con el mismo título compiten entre ellas por la misma búsqueda." },
+  { id: "noIndexables", etiqueta: "No indexables", grave: true, porque: "El sitio le pide a Google que no las incluya. Se ven perfectas y nunca salen en buscadores." },
+  { id: "huerfanas", etiqueta: "Huérfanas", grave: true, porque: "Ninguna otra página del sitio las enlaza. Existen en el sitemap y en la práctica están escondidas." },
+  { id: "tituloRepetido", etiqueta: "Título repetido", porque: "Dos o más páginas con el mismo título compiten entre ellas por la misma búsqueda." },
+  { id: "descripcionRepetida", etiqueta: "Descripción repetida", porque: "La misma meta description en varias páginas: en el resultado de Google se ven idénticas." },
   { id: "sinTitulo", etiqueta: "Sin título", porque: "Google se inventa uno, y suele elegir peor que tú." },
   { id: "sinDescripcion", etiqueta: "Sin descripción", porque: "Sin meta description, el fragmento del resultado lo escribe Google recortando la página." },
   { id: "sinH1", etiqueta: "Sin H1", porque: "Falta el encabezado principal, que es la primera pista de sobre qué va la página." },
+  { id: "variosH1", etiqueta: "Varios H1", porque: "Más de un encabezado principal: no queda claro cuál es el tema de la página." },
+  { id: "contenidoPobre", etiqueta: "Contenido pobre", porque: "Menos de 300 palabras. Rara vez alcanza para competir por nada." },
+  { id: "redirigidas", etiqueta: "Redirigidas", porque: "Están en el sitemap pero acaban en otra dirección. El sitemap debería llevar al destino final." },
+  { id: "sinEnlacesSalientes", etiqueta: "Sin enlaces internos", porque: "No enlazan a ninguna otra página del sitio: son callejones sin salida." },
   { id: "lentas", etiqueta: "Lentas", porque: "Tardan más de tres segundos en entregarse enteras." },
   { id: "sinAlt", etiqueta: "Imágenes sin alt", porque: "Imágenes sin texto alternativo: ni Google ni un lector de pantalla saben qué son." },
 ];
@@ -79,12 +78,16 @@ export default function Rastreo({
 }) {
   const [tanda, setTanda] = useState<Tanda | null>(null);
   const [problemas, setProblemas] = useState<Problemas | null>(null);
-  const [abierto, setAbierto] = useState<keyof Problemas | null>(null);
+  const [abierto, setAbierto] = useState<string | null>(null);
   const [paginas, setPaginas] = useState<Pagina[]>([]);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const { orden, ordenar, ordenarPor } = useOrden<Col>("url");
+
+  // En los informes de repetidos se ordena por el campo que los agrupa, para
+  // que las que comparten título queden una debajo de otra y se vea el par.
+  const porTitulo = abierto === "tituloRepetido" || abierto === "descripcionRepetida";
 
   const mirar = useCallback(async () => {
     try {
@@ -135,7 +138,7 @@ export default function Rastreo({
     }
   }
 
-  async function abrir(id: keyof Problemas) {
+  async function abrir(id: string) {
     if (abierto === id) {
       setAbierto(null);
       return;
@@ -143,18 +146,15 @@ export default function Rastreo({
     setAbierto(id);
     setPaginas([]);
 
-    // El de títulos repetidos no tiene lista propia: se ve mirando los títulos
-    // en cualquiera de los otros informes, y montarle una consulta aparte por
-    // un caso que se resuelve ordenando no compensa.
-    if (id === "tituloRepetido") return;
-
     const d = await fetch(`/api/rastreo?cliente=${clienteId}&problema=${id}`).then((r) => r.json());
     setPaginas(d.paginas ?? []);
   }
 
-  const filas = ordenarPor(paginas, (p, c) =>
-    c === "url" ? p.url : c === "titulo" ? (p.titulo ?? "") : (p[c] ?? -1)
-  );
+  const filas = porTitulo && orden.col === "url"
+    ? [...paginas].sort((a, b) => (a.titulo ?? "").localeCompare(b.titulo ?? "", "es"))
+    : ordenarPor(paginas, (p, c) =>
+        c === "url" ? p.url : c === "titulo" ? (p.titulo ?? "") : (p[c] ?? -1)
+      );
 
   if (cargando) return <p className="text-[13px] text-[color:var(--tinta-media)]">Mirando…</p>;
 
@@ -219,7 +219,7 @@ export default function Rastreo({
       )}
 
       {problemas && (
-        <div className="mt-5 grid gap-3 sm:grid-cols-3 lg:grid-cols-5">
+        <div className="mt-5 grid gap-3 grid-cols-2 sm:grid-cols-4 lg:grid-cols-7">
           {INFORMES.map((i) => {
             const n = problemas[i.id];
             const activo = abierto === i.id;
@@ -258,11 +258,7 @@ export default function Rastreo({
             {INFORMES.find((i) => i.id === abierto)?.porque}
           </p>
 
-          {abierto === "tituloRepetido" ? (
-            <p className="mt-3 text-[13px] text-[color:var(--tinta-suave)]">
-              Ordena cualquier otro informe por «Título» para ver cuáles se repiten.
-            </p>
-          ) : paginas.length === 0 ? (
+          {paginas.length === 0 ? (
             <p className="mt-3 text-[13px] text-[color:var(--tinta-suave)]">Nada por aquí.</p>
           ) : (
             <div className="tarjeta mt-3 overflow-x-auto">

@@ -149,16 +149,45 @@ model Pagina {
   /// silenciosos: la página existe, se ve bien, y no sale en Google jamás.
   noindex Boolean @default(false)
 
+  /// Cuántos H1 tiene. Más de uno confunde sobre de qué va la página; ninguno
+  /// deja a Google adivinando.
+  h1s Int @default(0)
+
   palabras        Int @default(0)
   enlacesInternos Int @default(0)
   enlacesExternos Int @default(0)
   imagenesSinAlt  Int @default(0)
+
+  /// Cuántos enlaces internos la apuntan a ella. Se rellena al terminar el
+  /// rastreo, cuando ya se conoce el grafo entero: hasta entonces no se puede
+  /// saber, porque quien la enlaza puede ser una página que aún no se ha visto.
+  entrantes Int @default(0)
 
   /// Qué falló, cuando falló.
   error String?
 
   @@index([rastreoId, estado])
   @@index([rastreoId, url])
+  @@index([rastreoId, titulo])
+}
+
+/// Un enlace interno de una página a otra, dentro de un rastreo.
+///
+/// Se guarda el grafo entero y no solo los contadores porque las dos preguntas
+/// que de verdad importan necesitan saber quién apunta a quién: qué páginas no
+/// recibe nadie —las huérfanas de verdad— y qué enlaces llevan a un 404.
+///
+/// Son muchas filas, del orden de cincuenta por página, pero se borran con su
+/// rastreo y viven en la misma tabla que se consulta una vez.
+model Enlace {
+  id        String @id @default(cuid())
+  rastreoId String
+
+  desde String
+  hacia String
+
+  @@index([rastreoId, hacia])
+  @@index([rastreoId, desde])
 }
 
 
