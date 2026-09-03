@@ -9,36 +9,48 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 /**
+ * Una página que existe por sí misma.
+ *
+ * Cuando una URL redirige, lo que se descargó fue el HTML del DESTINO: su
+ * título, su descripción, sus datos estructurados. Contarla en las
+ * comprobaciones de contenido produce fantasmas —la más llamativa, decenas de
+ * «títulos repetidos» que en realidad son la misma página vista desde sus URLs
+ * viejas—. Una redirección es un problema de otra clase y tiene su propio
+ * informe.
+ */
+const PROPIA: Prisma.PaginaWhereInput = { estado: { lt: 400 }, destino: null };
+
+/**
  * Qué se considera un problema, en un solo sitio.
  *
  * Los contadores y las listas salen de aquí para que no puedan discrepar: si el
  * cuadro dice 40 y la lista enseña 37, nadie vuelve a fiarse de la pantalla.
  *
- * Los umbrales no son caprichosos. 60 caracteres es donde Google empieza a
- * recortar el título en el resultado; 160 donde recorta la descripción; 300
- * palabras es el mínimo por debajo del cual una página rara vez tiene bastante
- * que decir para competir por nada.
+ * Los umbrales no son caprichosos: 300 palabras es el mínimo por debajo del
+ * cual una página rara vez tiene bastante que decir para competir por nada, y
+ * tres clics es donde Google empieza a repartir bastante menos autoridad.
  */
 const FILTROS: Record<string, Prisma.PaginaWhereInput> = {
   rotas: { OR: [{ estado: { gte: 400 } }, { estado: null }] },
-  noIndexables: { noindex: true },
-  huerfanas: { entrantes: 0, estado: { lt: 400 } },
+  noIndexables: { noindex: true, destino: null },
+  huerfanas: { ...PROPIA, entrantes: 0 },
   redirigidas: { destino: { not: null } },
-  sinTitulo: { titulo: null, estado: { lt: 400 } },
-  sinDescripcion: { descripcion: null, estado: { lt: 400 } },
-  sinH1: { h1s: 0, estado: { lt: 400 } },
-  variosH1: { h1s: { gt: 1 } },
-  contenidoPobre: { palabras: { lt: 300, gt: 0 }, estado: { lt: 400 } },
-  sinEnlacesSalientes: { enlacesInternos: 0, estado: { lt: 400 } },
-  sinDatos: { tipos: "[]", estado: { lt: 400 } },
-  datosRotos: { ldRoto: true },
-  canonicalAjeno: { canonical: { not: null }, estado: { lt: 400 } },
-  sinCanonical: { canonical: null, estado: { lt: 400 } },
-  profundas: { profundidad: { gt: 3 } },
-  sinLang: { lang: null, estado: { lt: 400 } },
-  sinViewport: { viewport: false, estado: { lt: 400 } },
+  sinTitulo: { ...PROPIA, titulo: null },
+  sinDescripcion: { ...PROPIA, descripcion: null },
+  sinH1: { ...PROPIA, h1s: 0 },
+  variosH1: { ...PROPIA, h1s: { gt: 1 } },
+  contenidoPobre: { ...PROPIA, palabras: { lt: 300, gt: 0 } },
+  sinEnlacesSalientes: { ...PROPIA, enlacesInternos: 0 },
+  sinDatos: { ...PROPIA, tipos: "[]" },
+  datosRotos: { ...PROPIA, ldRoto: true },
+  canonicalAjeno: { ...PROPIA, canonical: { not: null } },
+  sinCanonical: { ...PROPIA, canonical: null },
+  profundas: { ...PROPIA, profundidad: { gt: 3 } },
+  sinLang: { ...PROPIA, lang: null },
+  sinViewport: { ...PROPIA, viewport: false },
+  // El tiempo sí es suyo aunque redirija: lo que tardó, tardó.
   lentas: { ms: { gte: 3000 } },
-  sinAlt: { imagenesSinAlt: { gt: 0 } },
+  sinAlt: { ...PROPIA, imagenesSinAlt: { gt: 0 } },
 };
 
 async function permiso(clienteId: string) {
@@ -114,7 +126,7 @@ export async function GET(req: NextRequest) {
         ? (
             await db.pagina.groupBy({
               by: ["titulo"],
-              where: { ...de, titulo: { not: null }, estado: { lt: 400 } },
+              where: { ...de, ...PROPIA, titulo: { not: null } },
               _count: { titulo: true },
               having: { titulo: { _count: { gt: 1 } } },
             })
@@ -124,7 +136,7 @@ export async function GET(req: NextRequest) {
         : (
             await db.pagina.groupBy({
               by: ["descripcion"],
-              where: { ...de, descripcion: { not: null }, estado: { lt: 400 } },
+              where: { ...de, ...PROPIA, descripcion: { not: null } },
               _count: { descripcion: true },
               having: { descripcion: { _count: { gt: 1 } } },
             })
@@ -133,7 +145,9 @@ export async function GET(req: NextRequest) {
             .filter((v): v is string => v !== null);
 
       const paginas = await db.pagina.findMany({
-        where: porTitulo ? { ...de, titulo: { in: valores } } : { ...de, descripcion: { in: valores } },
+        where: porTitulo
+          ? { ...de, ...PROPIA, titulo: { in: valores } }
+          : { ...de, ...PROPIA, descripcion: { in: valores } },
         orderBy: porTitulo ? [{ titulo: "asc" }, { url: "asc" }] : [{ descripcion: "asc" }, { url: "asc" }],
         take: 300,
       });
@@ -199,13 +213,13 @@ export async function GET(req: NextRequest) {
   const [titulos, descripciones] = await Promise.all([
     db.pagina.groupBy({
       by: ["titulo"],
-      where: { ...de, titulo: { not: null }, estado: { lt: 400 } },
+      where: { ...de, ...PROPIA, titulo: { not: null } },
       _count: { titulo: true },
       having: { titulo: { _count: { gt: 1 } } },
     }),
     db.pagina.groupBy({
       by: ["descripcion"],
-      where: { ...de, descripcion: { not: null }, estado: { lt: 400 } },
+      where: { ...de, ...PROPIA, descripcion: { not: null } },
       _count: { descripcion: true },
       having: { descripcion: { _count: { gt: 1 } } },
     }),
@@ -214,7 +228,7 @@ export async function GET(req: NextRequest) {
   // «Canonical a otra página» compara dos columnas entre sí, y eso Prisma no lo
   // sabe hacer con un filtro: se cuenta a mano sobre las que declaran uno.
   const conCanonical = await db.pagina.findMany({
-    where: { ...de, canonical: { not: null }, estado: { lt: 400 } },
+    where: { ...de, ...PROPIA, canonical: { not: null } },
     select: { url: true, canonical: true },
   });
 

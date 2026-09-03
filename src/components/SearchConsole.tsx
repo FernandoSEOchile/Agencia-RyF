@@ -81,16 +81,28 @@ export default function SearchConsole({
   clienteId,
   puedeEditar,
   onSeguir,
+  soloCanibal,
 }: {
   clienteId: string;
   puedeEditar: boolean;
   onSeguir?: (consulta: string) => void;
+  /**
+   * Arranca en canibalizaciones y esconde el selector de vistas.
+   *
+   * Lo usa la pestaña Técnico, donde la canibalización es una comprobación más
+   * y no el sitio donde uno se pone a explorar Search Console. Es el mismo
+   * componente a propósito: dos implementaciones de «qué páginas compiten
+   * entre sí» acabarían dando dos números distintos.
+   */
+  soloCanibal?: boolean;
 }) {
   const [datos, setDatos] = useState<Respuesta | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [cargando, setCargando] = useState(true);
   const [dias, setDias] = useState<number>(28);
-  const [vista, setVista] = useState<(typeof VISTAS)[number][0]>("oportunidades");
+  const [vista, setVista] = useState<(typeof VISTAS)[number][0]>(
+    soloCanibal ? "canibal" : "oportunidades"
+  );
   const [busca, setBusca] = useState("");
   const [buscaProp, setBuscaProp] = useState("");
   const [orden, setOrden] = useState<{ col: Columna; asc: boolean }>({
@@ -399,7 +411,7 @@ export default function SearchConsole({
       </p>
 
       <div className="mt-5 flex flex-wrap items-center gap-3">
-        <div className="segmentos">
+        <div className={`segmentos ${soloCanibal ? "hidden" : ""}`}>
           {VISTAS.map(([id, n]) => (
             <button
               key={id}
