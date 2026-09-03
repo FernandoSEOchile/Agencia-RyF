@@ -66,6 +66,9 @@ services:
       # único que permite disparar una revisión sin sesión iniciada, así que
       # vale lo mismo que una contraseña: va en el .env del servidor.
       VIGIA_TOKEN: ${VIGIA_TOKEN:-}
+      # Clave de PageSpeed Insights. Opcional: sin ella la API funciona igual,
+      # solo que con un limite de peticiones por minuto bastante justo.
+      PAGESPEED_API_KEY: ${PAGESPEED_API_KEY:-}
     expose:
       - "3000"
 

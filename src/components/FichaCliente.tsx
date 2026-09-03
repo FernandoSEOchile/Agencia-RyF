@@ -9,6 +9,7 @@ import Gasto from "@/components/Gasto";
 import Bitacora from "@/components/Bitacora";
 import Backlinks from "@/components/Backlinks";
 import Rastreo from "@/components/Rastreo";
+import Velocidad from "@/components/Velocidad";
 
 export interface Suceso {
   fecha: string;
@@ -216,7 +217,12 @@ export default function FichaCliente({
         />
       )}
 
-      {activa === "tecnico" && <Rastreo clienteId={clienteId} puedeLanzar={puedeSubir} />}
+      {activa === "tecnico" && (
+        <>
+          <Rastreo clienteId={clienteId} puedeLanzar={puedeSubir} />
+          <Velocidad clienteId={clienteId} puedeMedir={puedeSubir} />
+        </>
+      )}
 
       {activa === "backlinks" && <Backlinks clienteId={clienteId} puedeEditar={puedeSubir} />}
 
