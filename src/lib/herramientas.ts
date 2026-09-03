@@ -230,6 +230,12 @@ export function herramientasDe(ctx: Contexto) {
         .int()
         .optional()
         .describe("ID de la categoría madre. Omítelo para dejarla en el primer nivel."),
+      faqs: z
+        .array(z.object({ pregunta: z.string(), respuesta: z.string() }))
+        .optional()
+        .describe(
+          "Preguntas frecuentes de la categoría. Solo funciona en sitios que las tengan configuradas; si no, se ignoran y listar_categorias te dirá que este sitio no guarda FAQ."
+        ),
     }),
     run: async (i) => {
       if (!ctx.puedeEscribir) return soloLectura();
@@ -266,24 +272,33 @@ export function herramientasDe(ctx: Contexto) {
   const escribirCategoria = betaZodTool({
     name: "escribir_categoria",
     description:
-      "Escribe la descripción SEO de una categoría de producto, la que se muestra al pie de la página. Admite HTML: encabezados, listas, tablas y bloques <details> para preguntas frecuentes. Devuelve el texto anterior.",
+      "Escribe la descripción SEO de una categoría de producto, la que se muestra al pie de la página. Admite HTML: encabezados, listas y tablas. Devuelve el texto anterior. Cada sitio guarda ese texto donde diga su configuración, así que no te preocupes por dónde acaba.",
     inputSchema: z.object({
       id: z.number().int().describe("ID del término."),
       seo: z.string().describe("HTML de la descripción."),
+      faqs: z
+        .array(z.object({ pregunta: z.string(), respuesta: z.string() }))
+        .optional()
+        .describe(
+          "Preguntas frecuentes de la categoría. Solo funciona en sitios que las tengan configuradas; si no, se ignoran y listar_categorias te dirá que este sitio no guarda FAQ."
+        ),
     }),
     run: async (i) => {
       if (!ctx.puedeEscribir) return soloLectura();
-      const r = await api<{ nombre: string; bytes: number }>(ctx.clienteId, "POST", "/terms", {
-        id: i.id,
-        taxonomia: "product_cat",
-        seo: i.seo,
-      });
+      const r = await api<{ nombre: string; bytes: number; faqs: number | null }>(
+        ctx.clienteId,
+        "POST",
+        "/terms",
+        { id: i.id, taxonomia: "product_cat", seo: i.seo, ...(i.faqs ? { faqs: i.faqs } : {}) }
+      );
       if (!r.ok) return problema(r.mensaje || r.codigo || `HTTP ${r.estado}`);
       await anotar({
         usuarioId: ctx.usuarioId,
         clienteId: ctx.clienteId,
         accion: "categoria_escribir",
-        resumen: `${r.datos?.nombre} · ${r.datos?.bytes} bytes`,
+        resumen: `${r.datos?.nombre} · ${r.datos?.bytes} bytes${
+          r.datos?.faqs ? ` · ${r.datos.faqs} preguntas` : ""
+        }`,
       });
       return JSON.stringify(r.datos);
     },

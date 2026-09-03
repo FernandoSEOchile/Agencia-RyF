@@ -1,7 +1,7 @@
 {
- "version": "1.17.0",
+ "version": "1.18.0",
  "probado": "6.0",
  "php": "7.4",
- "notas": "El panel puede pedir al sitio que se actualice, y crear productos y categorias de WooCommerce.",
- "publicado": "2026-09-02T15:15:24.892Z"
+ "notas": "Cada tienda puede decir donde guarda la descripcion SEO y las preguntas frecuentes de sus categorias.",
+ "publicado": "2026-09-03T15:36:06.883Z"
 }
