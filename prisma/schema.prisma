@@ -545,6 +545,31 @@ model Exploracion {
   @@index([creado])
 }
 
+/// Una investigación de palabras clave ya pagada.
+///
+/// Mismo trato que las exploraciones de dominio: se guarda entera para que
+/// volver a mirarla sea gratis. Buscar dos veces «regalos corporativos» en la
+/// misma semana no debería costar dos veces, y sin caché acabaría costando
+/// cada vez que alguien recarga la página.
+model Investigacion {
+  id      String @id @default(cuid())
+  semilla String
+  pais    Int    @default(2152)
+
+  /// Las sugerencias completas, en JSON.
+  datos String
+
+  /// Cuántas trajo, para poder ordenar el historial sin abrir el JSON.
+  cuantas Int @default(0)
+
+  coste     Float?
+  usuarioId String?
+  creado    DateTime @default(now())
+
+  @@unique([semilla, pais])
+  @@index([creado])
+}
+
 /// Hasta dónde se contó ya el registro de un mes en la bitácora.
 ///
 /// Sin esta marca, actualizar significa releer el mes entero y volver a
