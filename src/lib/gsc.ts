@@ -251,6 +251,66 @@ function haceDias(n: number): string {
  * retraso: pedir hasta hoy devuelve los últimos días vacíos y hunde la media
  * sin que haya pasado nada.
  */
+export interface DiaTrafico {
+  fecha: string;
+  clics: number;
+  impresiones: number;
+  posicion: number;
+}
+
+/**
+ * Clics, impresiones y posición media, día a día.
+ *
+ * Es otra consulta distinta a `consultas` y no un añadido: agrupar por fecha y
+ * agrupar por término son dos preguntas, y Search Console cobra —en tiempo, no
+ * en dinero— por cada dimensión que se le pide. Pedir las dos juntas devolvería
+ * el producto cartesiano de términos por días, que para un sitio mediano son
+ * cientos de miles de filas para pintar una línea.
+ *
+ * Los tres últimos días se dejan fuera: Google los completa con retraso y una
+ * caída al final del gráfico que solo significa «todavía no están todos los
+ * datos» hace que alguien piense que el sitio se hundió.
+ */
+export async function porDia(
+  conexionId: string,
+  propiedad: string,
+  dias = 180
+): Promise<DiaTrafico[]> {
+  const t = await token(conexionId);
+
+  const r = await fetch(`${API}/sites/${encodeURIComponent(propiedad)}/searchAnalytics/query`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${t}`, "Content-Type": "application/json" },
+    body: JSON.stringify({
+      startDate: haceDias(dias + 3),
+      endDate: haceDias(3),
+      dimensions: ["date"],
+      rowLimit: 500,
+      type: "web",
+    }),
+    signal: AbortSignal.timeout(30000),
+    cache: "no-store",
+  });
+
+  if (r.status === 403) {
+    throw new Error("Esa cuenta de Google ya no tiene acceso a esta propiedad.");
+  }
+  if (!r.ok) throw new Error(`Search Console respondió ${r.status}.`);
+
+  const j = await r.json();
+
+  type Cruda = { keys: string[]; clicks: number; impressions: number; position: number };
+
+  return ((j.rows ?? []) as Cruda[])
+    .map((f) => ({
+      fecha: f.keys[0],
+      clics: Math.round(f.clicks ?? 0),
+      impresiones: Math.round(f.impressions ?? 0),
+      posicion: Number((f.position ?? 0).toFixed(1)),
+    }))
+    .sort((a, b) => a.fecha.localeCompare(b.fecha));
+}
+
 export async function consultas(
   conexionId: string,
   propiedad: string,

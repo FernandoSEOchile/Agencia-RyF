@@ -9,6 +9,7 @@ import Gasto from "@/components/Gasto";
 import Bitacora from "@/components/Bitacora";
 import Backlinks from "@/components/Backlinks";
 import Rastreo from "@/components/Rastreo";
+import Panorama from "@/components/Panorama";
 
 export interface Suceso {
   fecha: string;
@@ -38,6 +39,7 @@ export interface ResumenConversacion {
 
 const PESTAÑAS = [
   { id: "chat", etiqueta: "Trabajar" },
+  { id: "panorama", etiqueta: "Panorama" },
   { id: "sitemap", etiqueta: "Sitemap" },
   { id: "arquitectura", etiqueta: "Arquitectura" },
   { id: "tecnico", etiqueta: "Técnico" },
@@ -228,6 +230,8 @@ export default function FichaCliente({
           onCrear={llevarAlChat}
         />
       )}
+
+      {activa === "panorama" && <Panorama clienteId={clienteId} />}
 
       {/* Velocidad y canibalizaciones viven dentro de Rastreo, como dos cuadros
           más de su rejilla: son comprobaciones técnicas y se miran ahí. */}
