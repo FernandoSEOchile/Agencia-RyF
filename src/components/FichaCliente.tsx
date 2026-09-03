@@ -8,6 +8,7 @@ import Posiciones, { type KeywordVista } from "@/components/Posiciones";
 import Gasto from "@/components/Gasto";
 import Bitacora from "@/components/Bitacora";
 import Backlinks from "@/components/Backlinks";
+import Rastreo from "@/components/Rastreo";
 
 export interface Suceso {
   fecha: string;
@@ -37,6 +38,7 @@ const PESTAÑAS = [
   { id: "chat", etiqueta: "Trabajar" },
   { id: "sitemap", etiqueta: "Sitemap" },
   { id: "arquitectura", etiqueta: "Arquitectura" },
+  { id: "tecnico", etiqueta: "Técnico" },
   { id: "posiciones", etiqueta: "Posiciones" },
   { id: "backlinks", etiqueta: "Backlinks" },
   { id: "bitacora", etiqueta: "Bitácora" },
@@ -213,6 +215,8 @@ export default function FichaCliente({
           onCrear={llevarAlChat}
         />
       )}
+
+      {activa === "tecnico" && <Rastreo clienteId={clienteId} puedeLanzar={puedeSubir} />}
 
       {activa === "backlinks" && <Backlinks clienteId={clienteId} puedeEditar={puedeSubir} />}
 

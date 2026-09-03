@@ -88,7 +88,80 @@ model Cliente {
   bitacoras     Bitacora[]
   backlinks     Backlinks?
   revisiones    Revision[]
+  rastreos      Rastreo[]
 }
+
+/// Una pasada del rastreador sobre un sitio.
+///
+/// Se guarda como tanda y no como columnas sueltas en el cliente porque lo que
+/// se quiere responder casi siempre es «¿esto estaba roto la semana pasada?».
+/// Con una sola foto no hay forma de saber si algo empeoró o si lleva así
+/// desde siempre.
+model Rastreo {
+  id        String  @id @default(cuid())
+  cliente   Cliente @relation(fields: [clienteId], references: [id], onDelete: Cascade)
+  clienteId String
+
+  /// «corriendo», «terminado», «error» o «interrumpido».
+  ///
+  /// «interrumpido» existe porque el rastreo vive en memoria del proceso: si el
+  /// contenedor se reinicia a mitad, nadie va a marcar la tanda como acabada y
+  /// sin este estado se quedaría en «corriendo» para siempre.
+  estado String @default("corriendo")
+
+  /// Cuántas URLs traía el sitemap y cuántas se llegaron a pedir.
+  total   Int @default(0)
+  hechas  Int @default(0)
+
+  nota String?
+
+  creado   DateTime  @default(now())
+  tocado   DateTime  @updatedAt
+  acabado  DateTime?
+
+  paginas Pagina[]
+
+  @@index([clienteId, creado])
+}
+
+/// Una URL tal como respondió durante un rastreo.
+model Pagina {
+  id        String  @id @default(cuid())
+  rastreo   Rastreo @relation(fields: [rastreoId], references: [id], onDelete: Cascade)
+  rastreoId String
+
+  url String
+
+  /// Código HTTP. Nulo cuando ni siquiera se pudo conectar.
+  estado Int?
+  /// Milisegundos hasta tener la página entera, no solo las cabeceras.
+  ms     Int?
+
+  /// A dónde acabó, si hubo redirección. Vacío si no la hubo.
+  destino String?
+
+  titulo      String?
+  descripcion String?
+  h1          String?
+  canonical   String?
+
+  /// Si el sitio pide a Google que NO la indexe. Es el fallo más caro de los
+  /// silenciosos: la página existe, se ve bien, y no sale en Google jamás.
+  noindex Boolean @default(false)
+
+  palabras        Int @default(0)
+  enlacesInternos Int @default(0)
+  enlacesExternos Int @default(0)
+  imagenesSinAlt  Int @default(0)
+
+  /// Qué falló, cuando falló.
+  error String?
+
+  @@index([rastreoId, estado])
+  @@index([rastreoId, url])
+}
+
+
 
 /// Una comprobación del vigía sobre un sitio.
 ///
