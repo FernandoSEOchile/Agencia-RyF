@@ -2,7 +2,7 @@ import { NextRequest } from "next/server";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { veTodo } from "@/lib/clientes";
-import { porDia } from "@/lib/gsc";
+import { porDia, consultas } from "@/lib/gsc";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -53,7 +53,7 @@ async function permiso(clienteId: string) {
 
 export async function GET(req: NextRequest) {
   const clienteId = req.nextUrl.searchParams.get("cliente") || "";
-  const dias = Math.min(Math.max(Number(req.nextUrl.searchParams.get("dias")) || 180, 28), 480);
+  const dias = Math.min(Math.max(Number(req.nextUrl.searchParams.get("dias")) || 180, 7), 480);
 
   const p = await permiso(clienteId);
   if ("error" in p) return Response.json({ error: p.error }, { status: p.codigo });
@@ -78,6 +78,33 @@ export async function GET(req: NextRequest) {
     }
   } else {
     avisoGsc = "Este sitio no tiene Search Console conectado, así que no hay datos de tráfico.";
+  }
+
+  /* ---------------- Distribución real de posiciones, de Search Console -------
+   *
+   * Esta es la de verdad: son las consultas por las que el sitio SALIÓ, con la
+   * posición media que tuvo. La de DataForSEO es una estimación de su base y
+   * suele diferir; enseñar las dos y decir cuál es cuál vale más que discutir
+   * cuál tiene razón.
+   */
+  const reparto = { top3: 0, top10: 0, top20: 0, top50: 0, resto: 0 };
+  let consultasTotales = 0;
+
+  if (cliente.gscConexionId && cliente.gscPropiedad && !avisoGsc) {
+    try {
+      const filas = await consultas(cliente.gscConexionId, cliente.gscPropiedad, dias);
+      consultasTotales = filas.length;
+
+      for (const f of filas) {
+        if (f.posicion <= 3) reparto.top3++;
+        else if (f.posicion <= 10) reparto.top10++;
+        else if (f.posicion <= 20) reparto.top20++;
+        else if (f.posicion <= 50) reparto.top50++;
+        else reparto.resto++;
+      }
+    } catch {
+      // Si esta falla no se pierde la pantalla: el resto ya está.
+    }
   }
 
   /* ---------------- Posiciones medidas, por tramo y por día ---------------- */
@@ -158,6 +185,45 @@ export async function GET(req: NextRequest) {
 
   const conNota = velocidad.filter((v) => v.nota != null);
 
+  /* ---------------- Histórico del dominio, de lo ya explorado ----------------
+   *
+   * Es la curva que enseña Semrush: cuántas palabras hay en cada tramo, mes a
+   * mes, del dominio ENTERO y no solo de las que seguimos nosotros. Sale de la
+   * exploración que ya se pagó alguna vez, así que abrir esta pestaña no cuesta
+   * nada; si el dominio nunca se exploró, sencillamente no hay curva.
+   */
+  const limpio = cliente.dominio
+    .trim()
+    .toLowerCase()
+    .replace(/^https?:\/\//, "")
+    .replace(/^www\./, "")
+    .replace(/\/.*$/, "");
+
+  const exploracion = await db.exploracion.findFirst({
+    where: { dominio: limpio },
+    orderBy: { creado: "desc" },
+    select: { datos: true, creado: true },
+  });
+
+  let historico: unknown[] = [];
+  let exploradoEl: string | null = null;
+
+  if (exploracion) {
+    try {
+      const p = JSON.parse(exploracion.datos) as {
+        historico?: { mes: string; keywords: number; trafico: number; tramos?: Record<string, number> }[];
+      };
+
+      // Las exploraciones anteriores a hoy guardaron el histórico sin los
+      // tramos. Se descartan en vez de pintarlas a cero, que sería enseñar una
+      // caída que no ocurrió.
+      historico = (p.historico ?? []).filter((f) => f.tramos);
+      exploradoEl = exploracion.creado.toISOString().slice(0, 10);
+    } catch {
+      historico = [];
+    }
+  }
+
   return Response.json({
     cliente: { nombre: cliente.nombre, dominio: cliente.dominio },
     dias,
@@ -167,6 +233,10 @@ export async function GET(req: NextRequest) {
     trabajo,
     tecnico,
     keywords,
+    reparto,
+    consultasTotales,
+    historico,
+    exploradoEl,
     velocidad: conNota.length
       ? Math.round(conNota.reduce((t, v) => t + (v.nota ?? 0), 0) / conNota.length)
       : null,

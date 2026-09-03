@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Linea, Tramos, Cifra, type DiaPosiciones } from "@/components/Grafico";
+import { Linea, Tramos, Cifra, Historico, Reparto, type DiaPosiciones, type MesTramos } from "@/components/Grafico";
 
 /**
  * El panorama de un cliente: cómo va, en una pantalla.
@@ -31,11 +31,16 @@ interface Datos {
   trabajo: { fecha: string; cuantos: number }[];
   tecnico: { paginas: number; rotas: number; noIndexables: number; medido: string } | null;
   keywords: number;
+  reparto: { top3: number; top10: number; top20: number; top50: number; resto: number };
+  consultasTotales: number;
+  historico: MesTramos[];
+  exploradoEl: string | null;
   velocidad: number | null;
   enlaces: { medido: string; resumen: Record<string, number> | null } | null;
 }
 
 const PERIODOS = [
+  [28, "1 mes"],
   [90, "3 meses"],
   [180, "6 meses"],
   [365, "1 año"],
@@ -185,8 +190,30 @@ export default function Panorama({ clienteId }: { clienteId: string }) {
           />
         </div>
 
-        <Tramos dias={d.posiciones} />
+        <div className="grid gap-4 lg:grid-cols-2">
+          <Reparto reparto={d.reparto} total={d.consultasTotales} />
+          {d.posiciones.length > 1 && <Tramos dias={d.posiciones} />}
+        </div>
+
+        {d.historico.length > 1 && <Historico meses={d.historico} />}
       </div>
+
+      {d.historico.length > 1 && d.exploradoEl && (
+        <p className="mt-3 text-[13px] text-[color:var(--tinta-media)]">
+          La curva de posiciones sale de la exploración del dominio del {d.exploradoEl} y es una{" "}
+          <span className="font-medium text-[color:var(--tinta)]">estimación de DataForSEO</span>,
+          no una medición. Sirve para ver la forma de la tendencia; las cifras exactas son las de
+          Search Console.
+        </p>
+      )}
+
+      {d.historico.length <= 1 && (
+        <p className="mt-3 text-[13px] text-[color:var(--tinta-media)]">
+          Para ver la curva de palabras clave por posición mes a mes, explora este dominio desde{" "}
+          <span className="font-medium text-[color:var(--tinta)]">Explorar dominio</span>. Se paga
+          una vez y queda guardada.
+        </p>
+      )}
 
       {d.trabajo.length > 0 && (
         <p className="mt-3 text-[13px] text-[color:var(--tinta-media)]">

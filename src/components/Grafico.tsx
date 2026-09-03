@@ -320,6 +320,205 @@ export function Tramos({ dias }: { dias: DiaPosiciones[] }) {
   );
 }
 
+/* Los tramos del histórico del dominio.
+ *
+ * Una rampa de un solo tono, de oscuro a claro, y no cinco colores distintos.
+ * Los tramos son una escala ORDENADA —del top 3 al puesto 100— y darles cinco
+ * identidades sugiere que son cosas distintas cuando son la misma cosa a
+ * distinta altura. Con la rampa, «cuánto oscuro hay arriba» se lee de un
+ * vistazo y sin depender de distinguir colores. */
+const RAMPA = [
+  { id: "pos1", etiqueta: "Puesto 1", color: "#0b3566" },
+  { id: "pos2a3", etiqueta: "2 y 3", color: "#14508f" },
+  { id: "pos4a10", etiqueta: "4 a 10", color: "#2a78d6" },
+  { id: "pos11a20", etiqueta: "11 a 20", color: "#7fb0e8" },
+  { id: "pos21a50", etiqueta: "21 a 50", color: "#b9d5f3" },
+  { id: "pos51a100", etiqueta: "51 a 100", color: "#dfeaf7" },
+] as const;
+
+export interface MesTramos {
+  mes: string;
+  keywords: number;
+  trafico: number;
+  tramos: Record<string, number>;
+}
+
+/** «2026-09» -> «sep 26». */
+function mesCorto(iso: string) {
+  const meses = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
+  const [a, m] = iso.split("-");
+  return `${meses[Number(m) - 1]} ${a.slice(2)}`;
+}
+
+/**
+ * La curva de palabras clave por posición, mes a mes.
+ *
+ * Es el gráfico que enseña Semrush en la portada de un dominio, y el que
+ * contesta «¿esto va hacia arriba?» mejor que ningún otro: el total de palabras
+ * sube igual con diez nuevas en el top 3 que con diez en la página nueve, y
+ * solo la primera cosa es crecer.
+ *
+ * Área apilada y no líneas sueltas porque la pregunta es de parte y todo.
+ */
+export function Historico({ meses }: { meses: MesTramos[] }) {
+  const [encima, setEncima] = useState<number | null>(null);
+
+  if (meses.length < 2) return null;
+
+  const ANCHO = 640;
+  const ALTO = 210;
+  const PAD = { arriba: 16, abajo: 28, lados: 10 };
+  const w = ANCHO - PAD.lados * 2;
+  const h = ALTO - PAD.arriba - PAD.abajo;
+
+  const total = (m: MesTramos) => RAMPA.reduce((t, r) => t + (m.tramos[r.id] ?? 0), 0);
+  const max = Math.max(...meses.map(total), 1);
+
+  const x = (i: number) => PAD.lados + (i / (meses.length - 1)) * w;
+  const y = (v: number) => PAD.arriba + h - (v / max) * h;
+
+  /* Se dibuja de abajo arriba acumulando: cada banda es la suma de las de
+     debajo, y su borde inferior es el borde superior de la anterior. */
+  const bandas: { color: string; d: string }[] = [];
+  const suelo = meses.map(() => 0);
+
+  for (let r = RAMPA.length - 1; r >= 0; r--) {
+    const clave = RAMPA[r].id;
+    const techo = meses.map((m, i) => suelo[i] + (m.tramos[clave] ?? 0));
+
+    const arriba = techo.map((v, i) => `${i ? "L" : "M"}${x(i).toFixed(1)},${y(v).toFixed(1)}`).join(" ");
+    const abajo = [...suelo]
+      .map((v, i) => ({ v, i }))
+      .reverse()
+      .map(({ v, i }) => `L${x(i).toFixed(1)},${y(v).toFixed(1)}`)
+      .join(" ");
+
+    bandas.unshift({ color: RAMPA[r].color, d: `${arriba} ${abajo} Z` });
+    for (let i = 0; i < meses.length; i++) suelo[i] = techo[i];
+  }
+
+  const ultimo = meses[meses.length - 1];
+  const marcado = encima != null ? meses[encima] : null;
+  const visto = marcado ?? ultimo;
+
+  return (
+    <div className="tarjeta p-5">
+      <div className="flex flex-wrap items-baseline justify-between gap-3">
+        <h3 className="text-[13px] font-medium">Palabras clave por posición</h3>
+        <p className="text-[13px] tabular-nums text-[color:var(--tinta-media)]">
+          <span className="font-semibold text-[color:var(--tinta)]">{miles(total(visto))}</span>{" "}
+          <span className="text-[color:var(--tinta-suave)]">en {mesCorto(visto.mes)}</span>
+        </p>
+      </div>
+
+      <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1">
+        {RAMPA.map((r) => (
+          <span key={r.id} className="flex items-center gap-1.5 text-[12px] text-[color:var(--tinta-media)]">
+            <span className="inline-block h-2.5 w-2.5 rounded-sm" style={{ background: r.color }} />
+            {r.etiqueta}
+            <span className="tabular-nums font-medium text-[color:var(--tinta)]">
+              {miles(visto.tramos[r.id] ?? 0)}
+            </span>
+          </span>
+        ))}
+      </div>
+
+      <svg
+        viewBox={`0 0 ${ANCHO} ${ALTO}`}
+        className="mt-2 w-full"
+        style={{ height: ALTO }}
+        role="img"
+        aria-label={`Palabras clave por tramo de posición, de ${mesCorto(meses[0].mes)} a ${mesCorto(ultimo.mes)}`}
+        onMouseLeave={() => setEncima(null)}
+        onMouseMove={(e) => {
+          const caja = e.currentTarget.getBoundingClientRect();
+          const rel = ((e.clientX - caja.left) / caja.width) * ANCHO;
+          const i = Math.round(((rel - PAD.lados) / w) * (meses.length - 1));
+          setEncima(Math.min(meses.length - 1, Math.max(0, i)));
+        }}
+      >
+        {bandas.map((b, i) => (
+          <path key={i} d={b.d} fill={b.color} stroke="#fff" strokeWidth="0.75" />
+        ))}
+
+        <line x1={PAD.lados} y1={PAD.arriba + h} x2={ANCHO - PAD.lados} y2={PAD.arriba + h} stroke={LINEA} strokeWidth="1" />
+
+        {encima != null && (
+          <line x1={x(encima)} y1={PAD.arriba} x2={x(encima)} y2={PAD.arriba + h} stroke={TINTA} strokeWidth="1" strokeDasharray="3 3" />
+        )}
+
+        <text x={PAD.lados} y={ALTO - 8} fontSize="11" fill={SUAVE}>{mesCorto(meses[0].mes)}</text>
+        <text x={ANCHO - PAD.lados} y={ALTO - 8} fontSize="11" fill={SUAVE} textAnchor="end">{mesCorto(ultimo.mes)}</text>
+      </svg>
+    </div>
+  );
+}
+
+/**
+ * Cuántas consultas caen en cada tramo, ahora mismo.
+ *
+ * Barras y no una tarta: la pregunta es comparar magnitudes entre tramos, y en
+ * una tarta comparar dos porciones que no son contiguas es un ejercicio de fe.
+ *
+ * La rampa es la misma que el histórico, así que el mismo tono significa el
+ * mismo tramo en los dos gráficos y no hay que releer la leyenda.
+ */
+export function Reparto({
+  reparto,
+  total,
+}: {
+  reparto: { top3: number; top10: number; top20: number; top50: number; resto: number };
+  total: number;
+}) {
+  const BARRAS = [
+    { id: "top3", etiqueta: "1 a 3", valor: reparto.top3, color: "#0b3566" },
+    { id: "top10", etiqueta: "4 a 10", valor: reparto.top10, color: "#2a78d6" },
+    { id: "top20", etiqueta: "11 a 20", valor: reparto.top20, color: "#7fb0e8" },
+    { id: "top50", etiqueta: "21 a 50", valor: reparto.top50, color: "#b9d5f3" },
+    { id: "resto", etiqueta: "51+", valor: reparto.resto, color: "#dfeaf7" },
+  ];
+
+  if (total === 0) return null;
+
+  const max = Math.max(...BARRAS.map((b) => b.valor), 1);
+
+  return (
+    <div className="tarjeta p-5">
+      <div className="flex flex-wrap items-baseline justify-between gap-2">
+        <h3 className="text-[13px] font-medium">Posiciones reales en Google</h3>
+        <p className="text-[13px] tabular-nums text-[color:var(--tinta-media)]">
+          <span className="font-semibold text-[color:var(--tinta)]">{miles(total)}</span>{" "}
+          <span className="text-[color:var(--tinta-suave)]">consultas</span>
+        </p>
+      </div>
+
+      <p className="mt-0.5 text-[12px] text-[color:var(--tinta-suave)]">
+        De Search Console: búsquedas por las que el sitio apareció de verdad, con su posición media.
+      </p>
+
+      <div className="mt-4 flex flex-col gap-2.5">
+        {BARRAS.map((b) => (
+          <div key={b.id} className="flex items-center gap-3">
+            <span className="w-16 shrink-0 text-right text-[12px] tabular-nums text-[color:var(--tinta-media)]">
+              {b.etiqueta}
+            </span>
+            <div className="h-5 flex-1 overflow-hidden rounded-r-[4px] bg-black/[0.03]">
+              <div
+                className="h-full rounded-r-[4px]"
+                style={{ width: `${Math.max((b.valor / max) * 100, b.valor ? 1.5 : 0)}%`, background: b.color }}
+                title={`${miles(b.valor)} consultas entre las posiciones ${b.etiqueta}`}
+              />
+            </div>
+            <span className="w-14 shrink-0 text-[12px] font-medium tabular-nums">
+              {miles(b.valor)}
+            </span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 /** Un número grande con su variación. Para lo que no necesita gráfico. */
 export function Cifra({
   etiqueta,

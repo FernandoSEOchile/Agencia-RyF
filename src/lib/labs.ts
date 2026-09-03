@@ -32,6 +32,15 @@ export interface FotoMes {
   keywords: number;
   trafico: number;
   valor: number;
+  /**
+   * Cuántas palabras había en cada tramo ese mes.
+   *
+   * Venían en la misma respuesta y se estaban descartando. Son las que dibujan
+   * la curva de «cuántas palabras tengo arriba y desde cuándo», que es la
+   * pregunta que de verdad se le hace a un histórico: el total de keywords sube
+   * igual con diez en el top 3 que con diez en la página nueve.
+   */
+  tramos: TramoPosiciones;
 }
 
 export interface KeywordDominio {
@@ -193,6 +202,7 @@ export async function explorarDominio(dominio: string, pais = 2152): Promise<Pan
           keywords: num(m.count),
           trafico: Math.round(num(m.etv)),
           valor: Math.round(num(m.estimated_paid_traffic_cost)),
+          tramos: tramos(m),
         };
       })
       .filter((f) => f.mes !== "0-00")
