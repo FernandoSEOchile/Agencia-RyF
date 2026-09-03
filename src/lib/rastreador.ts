@@ -114,12 +114,61 @@ function leer(html: string, base: URL) {
       null,
     noindex: robots.includes("noindex"),
     h1s: [...sinRuido.matchAll(/<h1[\s>]/gi)].length,
+    ...estructurados(html),
+    lang: (html.match(/<html[^>]+lang=["']([^"']+)["']/i)?.[1] ?? "").trim().slice(0, 20) || null,
+    viewport: /<meta[^>]+name=["']viewport["']/i.test(html),
+    charset: /<meta[^>]+charset=/i.test(html),
     palabras: plano ? plano.split(" ").length : 0,
     enlacesInternos: internos.size,
     enlacesExternos: externos,
     imagenesSinAlt: sinAlt,
     salientes: [...internos],
   };
+}
+
+/**
+ * Qué datos estructurados declara la página.
+ *
+ * Se distingue «no tiene» de «tiene y está roto», que es peor: el sitio cree
+ * que le está contando a Google que eso es un producto con su precio, y Google
+ * descarta el bloque entero sin avisar a nadie.
+ *
+ * Se recorren todos los bloques porque es normal tener varios —uno para la
+ * organización, otro para las migas, otro para el producto— y basta con que
+ * uno esté mal para perderlo.
+ */
+function estructurados(html: string) {
+  const bloques = [
+    ...html.matchAll(
+      /<script[^>]+type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi
+    ),
+  ];
+
+  const tipos = new Set<string>();
+  let roto = false;
+
+  for (const b of bloques) {
+    try {
+      const dato = JSON.parse(b[1].trim());
+
+      // Un bloque puede ser un objeto, una lista, o un @graph con todo dentro.
+      const nodos = Array.isArray(dato)
+        ? dato
+        : Array.isArray(dato?.["@graph"])
+          ? dato["@graph"]
+          : [dato];
+
+      for (const n of nodos) {
+        const t = n?.["@type"];
+        if (typeof t === "string") tipos.add(t);
+        else if (Array.isArray(t)) t.forEach((x) => typeof x === "string" && tipos.add(x));
+      }
+    } catch {
+      roto = true;
+    }
+  }
+
+  return { tipos: JSON.stringify([...tipos]), ldRoto: roto };
 }
 
 /**
@@ -163,6 +212,11 @@ async function visitar(url: string, rastreoId: string) {
           canonical: null,
           noindex: false,
           h1s: 0,
+          tipos: "[]",
+          ldRoto: false,
+          lang: null,
+          viewport: false,
+          charset: false,
           palabras: 0,
           enlacesInternos: 0,
           enlacesExternos: 0,
@@ -191,6 +245,11 @@ async function visitar(url: string, rastreoId: string) {
         canonical: null,
         noindex: false,
         h1s: 0,
+        tipos: "[]",
+        ldRoto: false,
+        lang: null,
+        viewport: false,
+        charset: false,
         palabras: 0,
         enlacesInternos: 0,
         enlacesExternos: 0,
@@ -290,11 +349,130 @@ async function correr(rastreoId: string, dominio: string, plataforma: string) {
   }
 
   await contarEntrantes(rastreoId);
+  await medirProfundidad(rastreoId, dominio);
 
   await db.rastreo.update({
     where: { id: rastreoId },
-    data: { estado: "terminado", hechas, acabado: new Date() },
+    data: {
+      estado: "terminado",
+      hechas,
+      acabado: new Date(),
+      sitio: JSON.stringify(await mirarRobots(dominio)),
+    },
   });
+}
+
+/**
+ * A cuántos clics de la portada está cada página.
+ *
+ * Se calcula en memoria y no en SQL porque es un recorrido por anchura, y eso
+ * en SQL es una consulta recursiva que nadie que venga después va a querer
+ * tocar. Cien mil enlaces caben de sobra en memoria.
+ *
+ * Importa porque Google reparte menos autoridad cuanto más hondo está algo, y
+ * una ficha a seis clics de la portada es, en la práctica, una ficha que nadie
+ * encuentra.
+ */
+async function medirProfundidad(rastreoId: string, dominio: string) {
+  const [paginas, enlaces] = await Promise.all([
+    db.pagina.findMany({ where: { rastreoId }, select: { id: true, url: true } }),
+    db.enlace.findMany({ where: { rastreoId }, select: { desde: true, hacia: true } }),
+  ]);
+
+  const clave = (u: string) => {
+    try {
+      return normalizar(new URL(u));
+    } catch {
+      return u;
+    }
+  };
+
+  const salidas = new Map<string, string[]>();
+  for (const e of enlaces) {
+    const d = clave(e.desde);
+    const lista = salidas.get(d);
+    if (lista) lista.push(e.hacia);
+    else salidas.set(d, [e.hacia]);
+  }
+
+  const limpio = dominio.replace(/^https?:\/\//, "").replace(/^www\./, "").replace(/\/.*$/, "");
+  const portada = `https://${limpio}/`;
+
+  const nivel = new Map<string, number>([[normalizar(new URL(portada)), 0]]);
+  let frente = [normalizar(new URL(portada))];
+  let d = 0;
+
+  while (frente.length > 0) {
+    d++;
+    const siguiente: string[] = [];
+
+    for (const u of frente) {
+      for (const v of salidas.get(u) ?? []) {
+        if (!nivel.has(v)) {
+          nivel.set(v, d);
+          siguiente.push(v);
+        }
+      }
+    }
+
+    frente = siguiente;
+  }
+
+  // Se agrupan por nivel para actualizar de una vez por nivel en vez de una vez
+  // por página: son media docena de consultas en lugar de tres mil.
+  const porNivel = new Map<number, string[]>();
+  for (const p of paginas) {
+    const n = nivel.get(clave(p.url));
+    if (n === undefined) continue;
+    const lista = porNivel.get(n);
+    if (lista) lista.push(p.id);
+    else porNivel.set(n, [p.id]);
+  }
+
+  for (const [n, ids] of porNivel) {
+    await db.pagina.updateMany({ where: { id: { in: ids } }, data: { profundidad: n } });
+  }
+}
+
+/**
+ * Qué dice el robots.txt del sitio.
+ *
+ * Se mira una vez por rastreo, no por página. Lo que interesa es lo que puede
+ * dejar una sección entera fuera de Google sin que nadie se entere: un
+ * `Disallow: /` olvidado tras una migración es el clásico.
+ */
+async function mirarRobots(dominio: string) {
+  const limpio = dominio.replace(/^https?:\/\//, "").replace(/^www\./, "").replace(/\/.*$/, "");
+
+  try {
+    const r = await fetch(`https://${limpio}/robots.txt`, {
+      signal: AbortSignal.timeout(10000),
+      headers: { "User-Agent": "AppSEO-Rastreador/1.0" },
+      cache: "no-store",
+    });
+
+    if (!r.ok) return { robots: false, estado: r.status };
+
+    const texto = await r.text();
+    const lineas = texto.split(/\r?\n/).map((l) => l.trim());
+
+    const bloqueos = lineas
+      .filter((l) => /^disallow:/i.test(l))
+      .map((l) => l.replace(/^disallow:\s*/i, "").trim())
+      .filter(Boolean);
+
+    return {
+      robots: true,
+      estado: r.status,
+      // Un «Disallow: /» a secas cierra el sitio entero a los buscadores.
+      cierraTodo: bloqueos.includes("/"),
+      bloqueos: bloqueos.slice(0, 30),
+      declaraSitemap: /^sitemap:/im.test(texto),
+      bytes: texto.length,
+    };
+  } catch (e) {
+    return { robots: false, error: e instanceof Error ? e.message.slice(0, 120) : "error" };
+  }
 }
 
 /**

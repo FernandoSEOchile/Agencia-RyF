@@ -54,9 +54,25 @@ const INFORMES: { id: string; etiqueta: string; grave?: boolean; porque: string 
   { id: "contenidoPobre", etiqueta: "Contenido pobre", porque: "Menos de 300 palabras. Rara vez alcanza para competir por nada." },
   { id: "redirigidas", etiqueta: "Redirigidas", porque: "Están en el sitemap pero acaban en otra dirección. El sitemap debería llevar al destino final." },
   { id: "sinEnlacesSalientes", etiqueta: "Sin enlaces internos", porque: "No enlazan a ninguna otra página del sitio: son callejones sin salida." },
+  { id: "sinDatos", etiqueta: "Sin datos estructurados", porque: "No declaran JSON-LD. Sin eso Google no puede mostrar precio, valoraciones ni migas en el resultado." },
+  { id: "datosRotos", etiqueta: "Datos rotos", grave: true, porque: "Tienen JSON-LD pero no se puede leer. Peor que no tenerlo: el sitio cree que lo está diciendo y Google lo descarta entero." },
+  { id: "canonicalAjeno", etiqueta: "Canonical a otra", porque: "Declaran que la versión buena es otra página. Nunca van a posicionar ellas mismas — a veces es lo correcto, a veces es un error del tema." },
+  { id: "sinCanonical", etiqueta: "Sin canonical", porque: "Sin canonical, cualquier variante de la URL puede tomarse como una página distinta." },
+  { id: "profundas", etiqueta: "A más de 3 clics", porque: "Están hondas: Google reparte menos autoridad cuanto más lejos de la portada." },
+  { id: "sinLang", etiqueta: "Sin idioma", porque: "El HTML no declara en qué idioma está." },
+  { id: "sinViewport", etiqueta: "Sin viewport", porque: "Sin la etiqueta viewport el móvil renderiza la versión de escritorio encogida." },
   { id: "lentas", etiqueta: "Lentas", porque: "Tardan más de tres segundos en entregarse enteras." },
   { id: "sinAlt", etiqueta: "Imágenes sin alt", porque: "Imágenes sin texto alternativo: ni Google ni un lector de pantalla saben qué son." },
 ];
+
+interface Sitio {
+  robots: boolean;
+  estado?: number;
+  cierraTodo?: boolean;
+  bloqueos?: string[];
+  declaraSitemap?: boolean;
+  error?: string;
+}
 
 type Col = "url" | "estado" | "ms" | "titulo";
 
@@ -78,6 +94,7 @@ export default function Rastreo({
 }) {
   const [tanda, setTanda] = useState<Tanda | null>(null);
   const [problemas, setProblemas] = useState<Problemas | null>(null);
+  const [sitio, setSitio] = useState<Sitio | null>(null);
   const [abierto, setAbierto] = useState<string | null>(null);
   const [paginas, setPaginas] = useState<Pagina[]>([]);
   const [cargando, setCargando] = useState(true);
@@ -98,6 +115,7 @@ export default function Rastreo({
       }
       setTanda(d.rastreo);
       setProblemas(d.problemas ?? null);
+      setSitio(d.sitio ?? null);
     } catch {
       setError("No se pudo leer el rastreo.");
     } finally {
@@ -216,6 +234,31 @@ export default function Rastreo({
               : "El último rastreo falló."}
           {tanda.nota && ` · ${tanda.nota}`}
         </p>
+      )}
+
+      {sitio && (
+        <div
+          className={`mt-4 rounded-2xl border px-5 py-3 text-[13px] ${
+            sitio.cierraTodo || !sitio.robots
+              ? "border-red-200 bg-red-50 text-red-700"
+              : "border-[color:var(--linea)] bg-white text-[color:var(--tinta-media)]"
+          }`}
+        >
+          <span className="font-medium">robots.txt:</span>{" "}
+          {!sitio.robots ? (
+            <>no existe o no responde{sitio.error ? ` · ${sitio.error}` : ""}. Google rastrea igual,
+            pero nadie le está diciendo qué evitar ni dónde está el sitemap.</>
+          ) : sitio.cierraTodo ? (
+            <>lleva un <code className="font-mono">Disallow: /</code>. Eso cierra el sitio entero a
+            los buscadores.</>
+          ) : (
+            <>
+              en su sitio
+              {sitio.bloqueos?.length ? ` · ${sitio.bloqueos.length} reglas de bloqueo` : " · sin bloqueos"}
+              {sitio.declaraSitemap ? " · declara el sitemap" : " · no declara el sitemap"}
+            </>
+          )}
+        </div>
       )}
 
       {problemas && (

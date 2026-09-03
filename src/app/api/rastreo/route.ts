@@ -30,6 +30,13 @@ const FILTROS: Record<string, Prisma.PaginaWhereInput> = {
   variosH1: { h1s: { gt: 1 } },
   contenidoPobre: { palabras: { lt: 300, gt: 0 }, estado: { lt: 400 } },
   sinEnlacesSalientes: { enlacesInternos: 0, estado: { lt: 400 } },
+  sinDatos: { tipos: "[]", estado: { lt: 400 } },
+  datosRotos: { ldRoto: true },
+  canonicalAjeno: { canonical: { not: null }, estado: { lt: 400 } },
+  sinCanonical: { canonical: null, estado: { lt: 400 } },
+  profundas: { profundidad: { gt: 3 } },
+  sinLang: { lang: null, estado: { lt: 400 } },
+  sinViewport: { viewport: false, estado: { lt: 400 } },
   lentas: { ms: { gte: 3000 } },
   sinAlt: { imagenesSinAlt: { gt: 0 } },
 };
@@ -150,11 +157,17 @@ export async function GET(req: NextRequest) {
 
     if (!donde) return Response.json({ error: "Ese informe no existe." }, { status: 400 });
 
-    const paginas = await db.pagina.findMany({
+    let paginas = await db.pagina.findMany({
       where: { ...de, ...donde },
       orderBy: { url: "asc" },
-      take: 300,
+      take: problema === "canonicalAjeno" ? 3000 : 300,
     });
+
+    if (problema === "canonicalAjeno") {
+      const l = (u: string) =>
+        u.replace(/^https?:\/\/(www\.)?/, "").replace(/\/+$/, "").toLowerCase();
+      paginas = paginas.filter((x) => x.canonical && l(x.url) !== l(x.canonical)).slice(0, 300);
+    }
 
     return Response.json({
       problema,
@@ -198,6 +211,23 @@ export async function GET(req: NextRequest) {
     }),
   ]);
 
+  // «Canonical a otra página» compara dos columnas entre sí, y eso Prisma no lo
+  // sabe hacer con un filtro: se cuenta a mano sobre las que declaran uno.
+  const conCanonical = await db.pagina.findMany({
+    where: { ...de, canonical: { not: null }, estado: { lt: 400 } },
+    select: { url: true, canonical: true },
+  });
+
+  const mismaPagina = (a: string, b: string) => {
+    const l = (u: string) =>
+      u.replace(/^https?:\/\/(www\.)?/, "").replace(/\/+$/, "").toLowerCase();
+    return l(a) === l(b);
+  };
+
+  problemas.canonicalAjeno = conCanonical.filter(
+    (x) => x.canonical && !mismaPagina(x.url, x.canonical)
+  ).length;
+
   problemas.tituloRepetido = titulos.reduce((t, r) => t + r._count.titulo, 0);
   problemas.descripcionRepetida = descripciones.reduce((t, r) => t + r._count.descripcion, 0);
 
@@ -219,6 +249,7 @@ export async function GET(req: NextRequest) {
       nota: rastreo.nota,
     },
     problemas,
+    sitio: rastreo.sitio ? JSON.parse(rastreo.sitio) : null,
   });
 }
 

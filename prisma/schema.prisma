@@ -115,6 +115,11 @@ model Rastreo {
 
   nota String?
 
+  /// Lo que se comprueba una vez por sitio y no página por página: el
+  /// robots.txt, sobre todo. En JSON porque son cuatro datos sueltos que no
+  /// merecen cuatro columnas.
+  sitio String?
+
   creado   DateTime  @default(now())
   tocado   DateTime  @updatedAt
   acabado  DateTime?
@@ -162,6 +167,24 @@ model Pagina {
   /// rastreo, cuando ya se conoce el grafo entero: hasta entonces no se puede
   /// saber, porque quien la enlaza puede ser una página que aún no se ha visto.
   entrantes Int @default(0)
+
+  /// A cuántos clics de la portada está, siguiendo enlaces. Nulo si no se llega
+  /// a ella por ningún camino. Google reparte menos autoridad a lo que está
+  /// hondo, y por encima de tres o cuatro clics una página deja de importar.
+  profundidad Int?
+
+  /// Los tipos de datos estructurados que declara, en JSON: ["Product",
+  /// "BreadcrumbList"]. Vacío cuando no declara ninguno.
+  tipos String @default("[]")
+
+  /// Tiene JSON-LD pero no se puede leer. Es peor que no tenerlo: el sitio
+  /// cree que se lo está contando a Google y Google lo descarta entero.
+  ldRoto Boolean @default(false)
+
+  /// Lo mínimo que debe declarar un HTML moderno.
+  lang     String?
+  viewport Boolean @default(false)
+  charset  Boolean @default(false)
 
   /// Qué falló, cuando falló.
   error String?
