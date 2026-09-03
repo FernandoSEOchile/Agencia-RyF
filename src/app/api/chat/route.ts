@@ -101,6 +101,9 @@ export async function POST(req: NextRequest) {
       rol: "user",
       contenido: mensaje ?? "",
       imagenes: adjuntas.length ? JSON.stringify(adjuntas) : null,
+      // Los hilos son del cliente y en uno pueden escribir varios, así que
+      // «quién dijo esto» deja de ser obvio y hay que anotarlo.
+      usuarioId,
     },
   });
 

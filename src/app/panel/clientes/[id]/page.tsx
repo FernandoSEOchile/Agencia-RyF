@@ -78,23 +78,38 @@ export default async function Ficha({
       take: 50,
       include: { usuario: { select: { nombre: true } } },
     }),
+    // Todos los hilos del cliente, de quien sea. Ver lo que pidió un compañero
+    // es la mitad del valor de tener el historial guardado.
     db.conversacion.findMany({
-      where: { clienteId: id, usuarioId: sesion.user.id },
+      where: { clienteId: id },
       orderBy: { tocado: "desc" },
       take: 30,
-      select: { id: true, titulo: true, tocado: true, _count: { select: { mensajes: true } } },
+      select: {
+        id: true,
+        titulo: true,
+        tocado: true,
+        usuarioId: true,
+        _count: { select: { mensajes: true } },
+      },
     }),
   ]);
 
-  // La conversación abierta: la pedida por URL si es de esta persona y este
-  // cliente, o la más reciente. Las de otros usuarios no se abren nunca:
-  // cada quien tiene sus hilos, como en cualquier chat.
+  // Los nombres de quienes abrieron hilos, para poner cara a cada uno. Se
+  // piden en una sola consulta y no uno por uno.
+  const nombres = new Map(
+    (
+      await db.usuario.findMany({
+        where: { id: { in: [...new Set(conversaciones.map((x) => x.usuarioId))] } },
+        select: { id: true, nombre: true },
+      })
+    ).map((u) => [u.id, u.nombre])
+  );
+
+  // La conversación abierta: la pedida por URL, o la última que se tocó. El
+  // único filtro es el cliente, para que nadie llegue a un hilo de un sitio al
+  // que no tiene acceso poniendo el id en la dirección.
   const conversacion = await db.conversacion.findFirst({
-    where: {
-      clienteId: id,
-      usuarioId: sesion.user.id,
-      ...(c ? { id: c } : {}),
-    },
+    where: { clienteId: id, ...(c ? { id: c } : {}) },
     orderBy: { tocado: "desc" },
     include: { mensajes: { orderBy: { creado: "asc" }, take: 60 } },
   });
@@ -159,8 +174,15 @@ export default async function Ficha({
     const s = await auth();
     if (!s?.user?.id) redirect("/entrar");
     const convId = String(datos.get("conversacionId") || "");
-    // Solo el dueño borra sus hilos; el filtro por usuario lo garantiza.
-    await db.conversacion.deleteMany({ where: { id: convId, usuarioId: s.user.id } });
+
+    // Los hilos se ven entre todos pero no se borran entre todos: cada quien
+    // borra los suyos, y un administrador cualquiera. Sin esto, un clic de más
+    // en la lista se llevaría el trabajo de un compañero sin preguntar.
+    const esAdmin = (s.user as { rol?: string }).rol === "ADMIN";
+
+    await db.conversacion.deleteMany({
+      where: { id: convId, clienteId: id, ...(esAdmin ? {} : { usuarioId: s.user.id }) },
+    });
     redirect(`/panel/clientes/${id}`);
   }
 
@@ -296,6 +318,7 @@ export default async function Ficha({
           titulo: x.titulo,
           fecha: x.tocado.toISOString().slice(5, 16).replace("T", " "),
           mensajes: x._count.mensajes,
+          autor: x.usuarioId === sesion.user!.id ? null : (nombres.get(x.usuarioId) ?? "otra persona"),
         }))}
         borrar={borrarConversacion}
         sucesos={sucesos}

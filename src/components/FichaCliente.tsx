@@ -34,6 +34,8 @@ export interface ResumenConversacion {
   titulo: string;
   fecha: string;
   mensajes: number;
+  /** Quién lo abrió, si no fuiste tú. Nulo en los propios. */
+  autor: string | null;
 }
 
 const PESTAÑAS = [
@@ -135,7 +137,7 @@ export default function FichaCliente({
           {conversaciones.length > 1 && (
             <aside className="hidden w-52 shrink-0 sm:block">
               <p className="text-[11px] font-semibold uppercase tracking-wide text-neutral-400">
-                Conversaciones
+                Conversaciones del equipo
               </p>
               <ul className="mt-2 space-y-1">
                 {conversaciones.map((cv) => {
@@ -154,10 +156,20 @@ export default function FichaCliente({
                         <span className="mt-0.5 block text-[10px] tabular-nums text-neutral-400">
                           {cv.fecha} · {cv.mensajes} msj
                         </span>
+                        {cv.autor && (
+                          <span className="mt-0.5 block text-[10px] font-medium text-[color:var(--acento)]">
+                            {cv.autor}
+                          </span>
+                        )}
                       </a>
-                      {/* Borrar: visible al pasar el ratón, nunca sobre el hilo abierto
-                          con una respuesta en curso. */}
-                      <form action={borrar} className="absolute right-1.5 top-1.5 opacity-0 transition group-hover:opacity-100">
+                      {/* Borrar: visible al pasar el ratón, y solo en los hilos
+                          propios. Los de otros se leen, no se borran. */}
+                      <form
+                        action={borrar}
+                        className={`absolute right-1.5 top-1.5 opacity-0 transition group-hover:opacity-100 ${
+                          cv.autor ? "hidden" : ""
+                        }`}
+                      >
                         <input type="hidden" name="conversacionId" value={cv.id} />
                         <button
                           type="submit"
@@ -185,6 +197,7 @@ export default function FichaCliente({
                 {conversaciones.map((cv) => (
                   <option key={cv.id} value={cv.id}>
                     {cv.titulo} · {cv.fecha}
+                    {cv.autor ? ` · ${cv.autor}` : ""}
                   </option>
                 ))}
               </select>
