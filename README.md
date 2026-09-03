@@ -63,3 +63,29 @@ src/
 - Importación de productos/categorías por CSV.
 - Guardado de generaciones e histórico.
 - Generación asistida de textos ancla en el módulo de enlazado.
+
+## Desarrollo en local
+
+El panel necesita PostgreSQL. En vez de instalarlo en el sistema, el proyecto
+usa una copia en carpeta que vive **fuera del repositorio**, en
+`C:\Programas Claude\pglocal`, y escucha en el puerto **5433** para no chocar
+con ningún otro Postgres del equipo.
+
+```bash
+npm run local:base     # arranca la base de desarrollo
+npm run dev            # el panel en http://localhost:3000
+npm run local:base:parar
+```
+
+Si la carpeta no existe, se rehace bajando los binarios de PostgreSQL 17 de
+`get.enterprisedb.com` y ejecutando:
+
+```bash
+pgsql/bin/initdb -D datos -U appseo -A trust -E UTF8 --locale=C
+npx prisma db push
+EMAIL=tu@correo NOMBRE="Tu Nombre" CLAVE="tu contraseña" node scripts/usuario-rapido.mjs
+```
+
+La base local arranca **vacía**, y así conviene dejarla: restaurar en el
+portátil una copia de producción pondría ahí las credenciales de escritura de
+los sitios de los clientes.

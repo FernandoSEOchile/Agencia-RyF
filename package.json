@@ -10,7 +10,10 @@
     "panel:usuario": "node --env-file=.env --env-file=.env.local scripts/crear-usuario.mjs",
     "panel:importar": "node --env-file=.env --env-file=.env.local scripts/importar-clientes.mjs",
     "panel:postgres": "node scripts/a-postgres.mjs",
-    "plugin:publicar": "node scripts/publicar-plugin.mjs"
+    "plugin:publicar": "node scripts/publicar-plugin.mjs",
+    "local:base": "node scripts/base-local.mjs arrancar",
+    "local:base:parar": "node scripts/base-local.mjs parar",
+    "local:base:estado": "node scripts/base-local.mjs estado"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.122.0",
