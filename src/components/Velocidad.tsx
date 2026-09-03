@@ -113,7 +113,17 @@ export default function Velocidad({
 
       {error && <p className="mt-3 text-[13px] font-medium text-red-600">{error}</p>}
 
-      {mediciones && mediciones.length > 0 && (
+      {mediciones && mediciones.length > 0 && mediciones.every((m) => m.error) && (
+        <p className="mt-3 text-[13px] font-medium text-red-600">{mediciones[0].error}</p>
+      )}
+
+      {mediciones && mediciones.length === 0 && !midiendo && !error && (
+        <p className="mt-3 text-[13px] text-[color:var(--tinta-suave)]">
+          Todavía no se ha medido nada en este sitio.
+        </p>
+      )}
+
+      {mediciones && mediciones.some((m) => !m.error) && (
         <div className="tarjeta mt-4 divide-y divide-[color:var(--linea)] overflow-hidden">
           {mediciones.map((m) => (
             <div key={m.url} className="flex flex-wrap items-center gap-x-8 gap-y-3 px-5 py-4">

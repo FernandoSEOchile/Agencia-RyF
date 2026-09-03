@@ -3,10 +3,11 @@ import "server-only";
 /**
  * Velocidad y Core Web Vitals, con PageSpeed Insights de Google.
  *
- * Es gratis: sin clave admite unas pocas consultas por minuto, y con una clave
- * de Google Cloud sube a 25.000 al día. La clave se pone en el entorno del
- * servidor como `PAGESPEED_API_KEY`; sin ella funciona igual, solo que hay que
- * ir más despacio.
+ * **Hace falta una `PAGESPEED_API_KEY`** en el entorno del servidor. La API
+ * admite llamadas sin clave, pero esa cuota es anónima y compartida entre todo
+ * el mundo, así que en la práctica está agotada siempre y devuelve 429. La
+ * clave es gratis —Google Cloud, mismo proyecto que Search Console— y da 25.000
+ * mediciones al día.
  *
  * Aquí está la razón de que esto NO forme parte del rastreo: cada medición
  * tarda entre quince y cuarenta segundos porque Google carga la página de
@@ -67,9 +68,22 @@ export async function medir(
       cache: "no-store",
     });
 
+    // El 429 sin clave no es «espera un rato»: la cuota anónima de PageSpeed es
+    // compartida entre todo el mundo y está agotada casi siempre. El mensaje
+    // dice qué hay que hacer, porque «reintenta» no arregla nada aquí.
     if (r.status === 429) {
-      return { ...vacia, error: "Google pide esperar: demasiadas mediciones seguidas." };
+      return {
+        ...vacia,
+        error: process.env.PAGESPEED_API_KEY
+          ? "Se agotó la cuota diaria de la clave de PageSpeed. Vuelve mañana."
+          : "PageSpeed no tiene clave configurada y la cuota gratuita compartida está agotada. Hace falta una PAGESPEED_API_KEY: se saca gratis en Google Cloud y da 25.000 mediciones al día.",
+      };
     }
+
+    if (r.status === 400) {
+      return { ...vacia, error: "Google no pudo cargar esa página para medirla." };
+    }
+
     if (!r.ok) return { ...vacia, error: `PageSpeed respondió ${r.status}.` };
 
     const j = await r.json();
