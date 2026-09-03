@@ -4,12 +4,16 @@ import { useCallback, useEffect, useState } from "react";
 import { Cabecera, useOrden, type Columna } from "@/components/Tabla";
 
 /**
- * El almacén de palabras clave, con su fecha y su botón de refrescar.
+ * Palabras clave: lo que ya tenemos y lo que falta por comprar, en una pantalla.
  *
- * La fecha se enseña en cada fila y no en una esquina porque el dato viejo y el
- * de hoy conviven en la misma tabla: una palabra puede llevar ocho meses ahí y
- * la de al lado haberse pedido esta mañana. Sin la fecha por fila, alguien
- * decidiría con la vieja creyéndola nueva.
+ * Separarlo en dos —almacén por un lado, buscador de pago por otro— obligaba a
+ * mirar en dos sitios antes de decidir si valía la pena pagar, que es
+ * exactamente la decisión que se toma aquí. Así que escribes una vez: sale al
+ * instante lo guardado, y al lado el botón que trae lo que no está.
+ *
+ * Después de pagar no hay dos listas: lo comprado entra al almacén y la tabla
+ * lo vuelve a leer de ahí. Una sola fuente de verdad, y la fecha de cada dato
+ * a la vista.
  */
 
 interface Termino {
@@ -45,19 +49,20 @@ const INTENCION: Record<string, string> = {
 
 const miles = (n: number) => n.toLocaleString("es-CL");
 
-/** Cuántos días lleva sin refrescarse. Es lo que decide si el dato vale. */
+/** Días desde que se refrescó. Es lo que decide si el dato todavía vale. */
 function dias(iso: string) {
   return Math.floor((Date.now() - new Date(iso).getTime()) / 86_400_000);
 }
 
-export default function Terminos({ puedeActualizar }: { puedeActualizar: boolean }) {
+export default function Palabras({ puedePagar }: { puedePagar: boolean }) {
+  const [busca, setBusca] = useState("");
   const [terminos, setTerminos] = useState<Termino[]>([]);
   const [total, setTotal] = useState(0);
   const [cargando, setCargando] = useState(true);
+  const [pagando, setPagando] = useState(false);
   const [aviso, setAviso] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const [busca, setBusca] = useState("");
   const [minimo, setMinimo] = useState(0);
   const [maxPalabras, setMaxPalabras] = useState(0);
   const [viejasDe, setViejasDe] = useState(0);
@@ -70,7 +75,7 @@ export default function Terminos({ puedeActualizar }: { puedeActualizar: boolean
 
     try {
       const p = new URLSearchParams();
-      if (busca.trim()) p.set("busca", busca.trim());
+      if (busca.trim()) p.set("busca", busca.trim().toLowerCase());
       if (minimo) p.set("minimo", String(minimo));
       if (maxPalabras) p.set("maxPalabras", String(maxPalabras));
       if (viejasDe) p.set("viejasDe", String(viejasDe));
@@ -85,17 +90,52 @@ export default function Terminos({ puedeActualizar }: { puedeActualizar: boolean
     }
   }, [busca, minimo, maxPalabras, viejasDe]);
 
-  // Se espera un momento antes de consultar para no lanzar una petición por
-  // cada tecla mientras alguien escribe en el buscador.
+  // Se espera un momento para no lanzar una consulta por cada tecla.
   useEffect(() => {
     const t = setTimeout(cargar, 300);
     return () => clearTimeout(t);
   }, [cargar]);
 
+  /** Compra palabras nuevas alrededor de la semilla escrita. */
+  async function investigar() {
+    const semilla = busca.trim().toLowerCase();
+    if (!semilla) return;
+
+    setPagando(true);
+    setAviso(null);
+    setError(null);
+
+    try {
+      const r = await fetch("/api/keywords", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ semilla }),
+      });
+      const d = await r.json();
+
+      if (!r.ok) {
+        setError(d.error ?? `Error ${r.status}`);
+        return;
+      }
+
+      setAviso(
+        `${miles(d.cuantas)} palabras traídas · ${miles(d.nuevas)} que no teníamos · costó US$${Number(d.coste).toFixed(4)}` +
+          (d.avisos?.length ? ` · ${d.avisos.join(" · ")}` : "")
+      );
+
+      await cargar();
+    } catch {
+      setError("No se pudo lanzar la búsqueda.");
+    } finally {
+      setPagando(false);
+    }
+  }
+
+  /** Vuelve a pedir el volumen de lo que se está viendo. */
   async function actualizar() {
     if (terminos.length === 0) return;
 
-    setCargando(true);
+    setPagando(true);
     setAviso(null);
     setError(null);
 
@@ -112,14 +152,12 @@ export default function Terminos({ puedeActualizar }: { puedeActualizar: boolean
         return;
       }
 
-      setAviso(
-        `${miles(d.tocadas)} palabras actualizadas · costó US$${Number(d.coste).toFixed(4)}`
-      );
+      setAviso(`${miles(d.tocadas)} palabras actualizadas · costó US$${Number(d.coste).toFixed(4)}`);
       await cargar();
     } catch {
       setError("No se pudo actualizar.");
     } finally {
-      setCargando(false);
+      setPagando(false);
     }
   }
 
@@ -128,20 +166,36 @@ export default function Terminos({ puedeActualizar }: { puedeActualizar: boolean
   );
 
   const volumenTotal = terminos.reduce((s, t) => s + t.volumen, 0);
+  const hayBusqueda = busca.trim().length > 0;
+  const ocupado = cargando || pagando;
 
   return (
     <>
-      <div className="flex flex-wrap items-end gap-4">
-        <label className="flex min-w-[220px] flex-1 flex-col gap-1">
-          <span className="rotulo">Buscar</span>
+      <div className="flex flex-wrap items-end gap-3">
+        <label className="flex min-w-[280px] flex-1 flex-col gap-1">
+          <span className="rotulo">Palabra</span>
           <input
             value={busca}
             onChange={(e) => setBusca(e.target.value)}
-            placeholder="regalos, floristería, corporativo…"
-            className="w-full rounded-xl border border-[color:var(--linea-fuerte)] bg-white px-3.5 py-2 text-[14px] outline-none transition focus:border-[color:var(--acento)]"
+            placeholder="regalos corporativos"
+            spellCheck={false}
+            className="w-full rounded-xl border border-[color:var(--linea-fuerte)] bg-white px-4 py-2.5 text-[14px] outline-none transition focus:border-[color:var(--acento)]"
           />
         </label>
 
+        {puedePagar && (
+          <button
+            onClick={investigar}
+            disabled={ocupado || !hayBusqueda}
+            className="boton-fuerte disabled:opacity-40"
+            title="Pregunta a DataForSEO por todo lo que rodea a esta palabra. Cuesta unos céntimos y lo que traiga se queda guardado."
+          >
+            {pagando ? "Buscando…" : "Buscar palabras nuevas"}
+          </button>
+        )}
+      </div>
+
+      <div className="mt-4 flex flex-wrap items-end gap-4">
         <label className="flex flex-col gap-1">
           <span className="rotulo">Volumen mínimo</span>
           <input
@@ -150,7 +204,7 @@ export default function Terminos({ puedeActualizar }: { puedeActualizar: boolean
             value={minimo || ""}
             onChange={(e) => setMinimo(Number(e.target.value) || 0)}
             placeholder="0"
-            className="w-28 rounded-lg border border-[color:var(--linea-fuerte)] bg-white px-3 py-2 text-[13px] tabular-nums outline-none focus:border-[color:var(--acento)]"
+            className="w-28 rounded-lg border border-[color:var(--linea-fuerte)] bg-white px-3 py-1.5 text-[13px] tabular-nums outline-none focus:border-[color:var(--acento)]"
           />
         </label>
 
@@ -162,7 +216,7 @@ export default function Terminos({ puedeActualizar }: { puedeActualizar: boolean
             value={maxPalabras || ""}
             onChange={(e) => setMaxPalabras(Number(e.target.value) || 0)}
             placeholder="todas"
-            className="w-28 rounded-lg border border-[color:var(--linea-fuerte)] bg-white px-3 py-2 text-[13px] tabular-nums outline-none focus:border-[color:var(--acento)]"
+            className="w-28 rounded-lg border border-[color:var(--linea-fuerte)] bg-white px-3 py-1.5 text-[13px] tabular-nums outline-none focus:border-[color:var(--acento)]"
           />
         </label>
 
@@ -171,7 +225,7 @@ export default function Terminos({ puedeActualizar }: { puedeActualizar: boolean
           <select
             value={viejasDe}
             onChange={(e) => setViejasDe(Number(e.target.value))}
-            className="rounded-lg border border-[color:var(--linea-fuerte)] bg-white px-3 py-2 text-[13px] outline-none focus:border-[color:var(--acento)]"
+            className="rounded-lg border border-[color:var(--linea-fuerte)] bg-white px-3 py-1.5 text-[13px] outline-none focus:border-[color:var(--acento)]"
           >
             <option value={0}>cualquiera</option>
             <option value={30}>más de 1 mes</option>
@@ -186,18 +240,21 @@ export default function Terminos({ puedeActualizar }: { puedeActualizar: boolean
           {cargando
             ? "Buscando…"
             : `${miles(total)} ${total === 1 ? "palabra guardada" : "palabras guardadas"}` +
+              (hayBusqueda ? ` para «${busca.trim()}»` : "") +
               (total > terminos.length ? ` · se muestran ${miles(terminos.length)}` : "") +
-              ` · ${miles(volumenTotal)} búsquedas al mes entre las mostradas`}
+              (terminos.length > 0
+                ? ` · ${miles(volumenTotal)} búsquedas al mes entre ellas`
+                : "")}
         </p>
 
-        {puedeActualizar && terminos.length > 0 && (
+        {puedePagar && terminos.length > 0 && (
           <button
             onClick={actualizar}
-            disabled={cargando}
+            disabled={ocupado}
             className="boton disabled:opacity-50"
-            title="Vuelve a pedir el volumen de las palabras que se están viendo. Cuesta unos céntimos por tanda, no por palabra."
+            title="Vuelve a pedir el volumen de las que se están viendo. Se cobra por tanda, no por palabra."
           >
-            Actualizar estas {miles(terminos.length)}
+            {terminos.length === 1 ? "Actualizar esta" : `Actualizar estas ${miles(terminos.length)}`}
           </button>
         )}
       </div>
@@ -208,12 +265,14 @@ export default function Terminos({ puedeActualizar }: { puedeActualizar: boolean
       {!cargando && terminos.length === 0 ? (
         <div className="mt-6 rounded-2xl border border-dashed border-[color:var(--linea-fuerte)] px-6 py-16 text-center">
           <p className="text-[15px] font-medium">
-            {total === 0 && !busca ? "El almacén todavía está vacío." : "Nada coincide con eso."}
+            {hayBusqueda
+              ? `No tenemos nada guardado para «${busca.trim()}».`
+              : "El almacén todavía está vacío."}
           </p>
           <p className="mx-auto mt-2 max-w-md text-[13px] text-[color:var(--tinta-media)]">
-            {total === 0 && !busca
-              ? "Se llena solo: cada palabra que investigues y cada dominio que explores dejan aquí lo que trajeron."
-              : "Prueba con menos filtros."}
+            {hayBusqueda && puedePagar
+              ? "Pulsa «Buscar palabras nuevas» y lo que traiga se queda aquí para siempre."
+              : "Se llena solo: cada palabra que investigues y cada dominio que explores dejan aquí lo que trajeron."}
           </p>
         </div>
       ) : (

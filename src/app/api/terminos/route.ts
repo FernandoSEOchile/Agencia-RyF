@@ -35,7 +35,16 @@ export async function GET(req: NextRequest) {
 
   const donde: Prisma.TerminoWhereInput = { pais };
 
-  if (texto) donde.keyword = { contains: texto, mode: "insensitive" };
+  // Buscar «regalos corporativos» tiene que devolver también «merchandising
+  // empresarial»: salió de esa investigación aunque no contenga la frase, y es
+  // justo el hallazgo por el que se pagó. Por eso se mira el texto y el origen.
+  if (texto) {
+    donde.OR = [
+      { keyword: { contains: texto, mode: "insensitive" } },
+      { origenes: { contains: `semilla:${texto}` } },
+    ];
+  }
+
   if (minimo) donde.volumen = { gte: minimo };
   if (maxPalabras) donde.palabras = { lte: maxPalabras };
   if (origen) donde.origenes = { contains: origen };

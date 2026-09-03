@@ -108,7 +108,7 @@ export default async function Panel() {
 
           <div className="flex items-center gap-2">
           <Link href="/panel/terminos" className="boton">
-            Palabras
+            Palabras clave
           </Link>
           <Link href="/panel/explorar" className="boton">
             Explorar dominio

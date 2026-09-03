@@ -2,19 +2,22 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { auth, signOut } from "@/lib/auth";
 import Barra from "@/components/Barra";
-import Terminos from "@/components/Terminos";
+import Palabras from "@/components/Palabras";
 
-export const metadata = { title: "Almacén de palabras · Panel AppSEO" };
+export const metadata = { title: "Palabras clave · Panel AppSEO" };
 export const dynamic = "force-dynamic";
 
 /**
- * Todo lo que la agencia ha ido acumulando.
+ * Palabras clave: el almacén y la compra, en una sola pantalla.
  *
- * No es una pantalla de consulta a un proveedor: es lo que ya se pagó alguna
- * vez, junto y consultable. Por eso mirar aquí no cuesta nada y el único botón
- * que gasta dinero dice lo que hace.
+ * Estuvieron un rato separados y no funcionaba: para decidir si valía la pena
+ * pagar había que mirar antes en la otra pantalla si ya lo teníamos, y esa es
+ * justo la decisión que se toma aquí.
+ *
+ * Va fuera de la ficha de cliente por lo mismo que Explorar: lo que más se
+ * investiga son mercados que todavía no son de nadie.
  */
-export default async function PaginaTerminos() {
+export default async function PaginaPalabras() {
   const sesion = await auth();
   if (!sesion?.user?.id) redirect("/entrar");
 
@@ -40,27 +43,22 @@ export default async function PaginaTerminos() {
       />
 
       <main className="contenedor py-10">
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-          <Link href="/panel" className="boton-sutil">
-            ← Clientes
-          </Link>
-          <Link href="/panel/keywords" className="boton-sutil">
-            Investigar una palabra nueva
-          </Link>
-        </div>
+        <Link href="/panel" className="boton-sutil">
+          ← Clientes
+        </Link>
 
-        <h1 className="mt-4 text-[32px] font-semibold leading-tight">Almacén de palabras</h1>
+        <h1 className="mt-4 text-[32px] font-semibold leading-tight">Palabras clave</h1>
         <p className="mt-1 max-w-2xl text-[15px] text-[color:var(--tinta-media)]">
-          Todo lo que hemos ido encontrando: cada investigación de una palabra y cada dominio
-          explorado dejan aquí lo que trajeron. Consultarlo es gratis — ya está pagado.
+          Escribe una palabra: sale al instante todo lo que ya tenemos guardado sobre ella, gratis
+          porque ya está pagado. Si falta algo, el botón trae lo que no está y se queda aquí.
         </p>
         <p className="mt-2 max-w-2xl text-[13px] text-[color:var(--tinta-suave)]">
-          Cada fila lleva la fecha de su dato. En rojo, las que llevan más de seis meses sin
-          refrescarse: esas ya no son de fiar para decidir nada.
+          Cada fila lleva la fecha de su dato. En rojo las que llevan más de seis meses sin
+          refrescarse: esas ya no sirven para decidir nada.
         </p>
 
         <div className="mt-7">
-          <Terminos puedeActualizar={rol !== "LECTOR"} />
+          <Palabras puedePagar={rol !== "LECTOR"} />
         </div>
       </main>
     </>
