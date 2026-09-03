@@ -545,6 +545,50 @@ model Exploracion {
   @@index([creado])
 }
 
+/// El almacén de palabras clave de la agencia.
+///
+/// Se llena solo: cada investigación de una semilla y cada exploración de un
+/// dominio vuelca aquí lo que trajo. La diferencia con Investigacion y
+/// Exploracion —que guardan el JSON entero— es que aquí sí se puede preguntar:
+/// «todas las de más de 300 búsquedas», «¿ya había visto esta?», «¿en cuántos
+/// competidores aparece?».
+///
+/// Es lo único de este panel que se vuelve más valioso solo por usarlo.
+model Termino {
+  id      String @id @default(cuid())
+  keyword String
+  pais    Int    @default(2152)
+
+  volumen     Int     @default(0)
+  cpc         Float?
+  competencia Float?
+  /// «informational», «commercial», «transactional» o «navigational».
+  intencion   String?
+  /// Variación del volumen contra el mismo mes del año pasado, en porcentaje.
+  tendencia   Int?
+  palabras    Int     @default(1)
+
+  /// De dónde salió, en JSON: semillas y dominios. Una palabra que aparece en
+  /// cinco competidores dice algo que su volumen no dice.
+  origenes String @default("[]")
+
+  /// Cuántas veces la hemos vuelto a encontrar.
+  veces Int @default(1)
+
+  /// Cuándo se vio por primera vez y cuándo se refrescó el dato.
+  ///
+  /// Las dos fechas importan y son distintas: la primera dice desde cuándo la
+  /// conocemos, la segunda si el volumen que enseñamos sigue valiendo. Sin la
+  /// segunda alguien decidiría con una cifra de hace ocho meses creyéndola de
+  /// hoy.
+  creado      DateTime @default(now())
+  actualizado DateTime @default(now())
+
+  @@unique([keyword, pais])
+  @@index([pais, volumen])
+  @@index([actualizado])
+}
+
 /// Una investigación de palabras clave ya pagada.
 ///
 /// Mismo trato que las exploraciones de dominio: se guarda entera para que

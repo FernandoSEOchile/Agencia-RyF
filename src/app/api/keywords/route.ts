@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { investigar, CHILE } from "@/lib/keywords";
 import { apuntar } from "@/lib/gasto";
 import { anotar } from "@/lib/clientes";
+import { guardar } from "@/lib/terminos";
 
 export const runtime = "nodejs";
 export const maxDuration = 300;
@@ -95,6 +96,9 @@ export async function POST(req: NextRequest) {
     },
   });
 
+  // Al almacén, para que lo pagado sirva también fuera de esta búsqueda.
+  const volcado = await guardar(r.sugerencias, `semilla:${semilla}`, pais);
+
   // Sin cliente, igual que la exploración de dominios: se investiga tanto para
   // clientes como para propuestas, y separarlo obligaría a elegir antes de
   // buscar.
@@ -116,6 +120,7 @@ export async function POST(req: NextRequest) {
     ok: true,
     coste: r.coste,
     cuantas: r.sugerencias.length,
+    nuevas: volcado.nuevas,
     sugerencias: r.sugerencias,
     avisos: r.avisos,
   });

@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { explorarDominio } from "@/lib/labs";
 import { apuntar } from "@/lib/gasto";
 import { anotar } from "@/lib/clientes";
+import { guardar } from "@/lib/terminos";
 
 export const runtime = "nodejs";
 export const maxDuration = 300;
@@ -92,6 +93,19 @@ export async function POST(req: NextRequest) {
       usuarioId: u.id,
     },
   });
+
+  // Las palabras por las que posiciona este dominio también son datos pagados:
+  // van al almacén igual que las de una investigación. Aquí no viene intención
+  // ni tendencia, y `guardar` sabe no pisar lo que ya supiera de antes.
+  await guardar(
+    panorama.keywords.map((k) => ({
+      keyword: k.keyword,
+      volumen: k.volumen,
+      cpc: k.cpc,
+    })),
+    `dominio:${objetivo}`,
+    codigo
+  );
 
   // Sin cliente: esto se usa sobre todo con dominios que todavía no lo son, y
   // el gasto de prospección es un gasto de la agencia, no de nadie en concreto.
