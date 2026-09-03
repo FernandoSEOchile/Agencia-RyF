@@ -317,14 +317,31 @@ export async function consultas(
   dias = 28,
   limite = 2000
 ): Promise<FilaConsulta[]> {
+  return consultasEntre(conexionId, propiedad, haceDias(dias + 3), haceDias(3), limite);
+}
+
+/**
+ * Lo mismo, entre dos fechas concretas.
+ *
+ * Existe aparte porque los tramos por mes necesitan meses naturales y no «los
+ * últimos N días»: un gráfico mensual cuyos puntos no coinciden con los meses
+ * del calendario es imposible de comparar con cualquier otro informe.
+ */
+export async function consultasEntre(
+  conexionId: string,
+  propiedad: string,
+  desde: string,
+  hasta: string,
+  limite = 2000
+): Promise<FilaConsulta[]> {
   const t = await token(conexionId);
 
   const r = await fetch(`${API}/sites/${encodeURIComponent(propiedad)}/searchAnalytics/query`, {
     method: "POST",
     headers: { Authorization: `Bearer ${t}`, "Content-Type": "application/json" },
     body: JSON.stringify({
-      startDate: haceDias(dias + 3),
-      endDate: haceDias(3),
+      startDate: desde,
+      endDate: hasta,
       // Consulta y página a la vez: sin la segunda no se sabe qué URL está
       // rankeando, que es justo lo que hace falta para decidir dónde tocar. Y
       // de paso deja ver cuándo hay dos páginas peleando por lo mismo.

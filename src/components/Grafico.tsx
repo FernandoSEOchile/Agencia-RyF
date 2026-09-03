@@ -33,6 +33,13 @@ const LINEA = "#e6e6e1";
 
 const miles = (n: number) => Math.round(n).toLocaleString("es-CL");
 
+/** «2026-09» -> «sep 26». */
+function mesCorto(iso: string) {
+  const meses = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
+  const [a, m] = iso.split("-");
+  return `${meses[Number(m) - 1]} ${a.slice(2)}`;
+}
+
 /** Fecha corta para el eje: «14 sep». */
 function dia(iso: string) {
   const [, m, d] = iso.split("-");
@@ -343,13 +350,6 @@ export interface MesTramos {
   tramos: Record<string, number>;
 }
 
-/** «2026-09» -> «sep 26». */
-function mesCorto(iso: string) {
-  const meses = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
-  const [a, m] = iso.split("-");
-  return `${meses[Number(m) - 1]} ${a.slice(2)}`;
-}
-
 /**
  * La curva de palabras clave por posición, mes a mes.
  *
@@ -449,6 +449,128 @@ export function Historico({ meses }: { meses: MesTramos[] }) {
 
         <text x={PAD.lados} y={ALTO - 8} fontSize="11" fill={SUAVE}>{mesCorto(meses[0].mes)}</text>
         <text x={ANCHO - PAD.lados} y={ALTO - 8} fontSize="11" fill={SUAVE} textAnchor="end">{mesCorto(ultimo.mes)}</text>
+      </svg>
+    </div>
+  );
+}
+
+/* Los tramos de Search Console. Mismos tonos que el histórico estimado, para
+   que el mismo color signifique lo mismo en los dos gráficos de la pantalla. */
+const TRAMOS_GSC = [
+  { id: "top3", etiqueta: "Top 3", color: "#0b3566" },
+  { id: "top10", etiqueta: "4 a 10", color: "#2a78d6" },
+  { id: "top20", etiqueta: "11 a 20", color: "#7fb0e8" },
+  { id: "top50", etiqueta: "21 a 50", color: "#b9d5f3" },
+  { id: "resto", etiqueta: "51+", color: "#d8e5f2" },
+] as const;
+
+export interface MesGsc {
+  mes: string;
+  top3: number;
+  top10: number;
+  top20: number;
+  top50: number;
+  resto: number;
+  consultas: number;
+}
+
+/**
+ * Palabras clave por posición, mes a mes, con datos de Search Console.
+ *
+ * Líneas y no área apilada, al revés que el histórico estimado: aquí lo que se
+ * quiere ver es si el top 3 crece **por sí mismo**, y en una pila esa banda se
+ * mueve arriba y abajo por lo que hagan las de debajo aunque ella no cambie.
+ *
+ * Cada línea es un tramo y ninguna se suma a otra, así que se pueden leer las
+ * cinco a la vez sin hacer restas mentales.
+ */
+export function LineasTramos({ meses }: { meses: MesGsc[] }) {
+  const [encima, setEncima] = useState<number | null>(null);
+
+  if (meses.length < 2) return null;
+
+  const ANCHO = 640;
+  const ALTO = 210;
+  const PAD = { arriba: 16, abajo: 28, lados: 10 };
+  const w = ANCHO - PAD.lados * 2;
+  const h = ALTO - PAD.arriba - PAD.abajo;
+
+  const max = Math.max(...meses.flatMap((m) => TRAMOS_GSC.map((t) => m[t.id])), 1);
+
+  const x = (i: number) => PAD.lados + (i / (meses.length - 1)) * w;
+  const y = (v: number) => PAD.arriba + h - (v / (max * 1.1)) * h;
+
+  const visto = encima != null ? meses[encima] : meses[meses.length - 1];
+
+  return (
+    <div className="tarjeta p-5">
+      <div className="flex flex-wrap items-baseline justify-between gap-2">
+        <h3 className="text-[13px] font-medium">Palabras clave por posición</h3>
+        <p className="text-[13px] tabular-nums text-[color:var(--tinta-media)]">
+          <span className="font-semibold text-[color:var(--tinta)]">{miles(visto.consultas)}</span>{" "}
+          <span className="text-[color:var(--tinta-suave)]">en {mesCorto(visto.mes)}</span>
+        </p>
+      </div>
+
+      <p className="mt-0.5 text-[12px] text-[color:var(--tinta-suave)]">
+        De Search Console, mes a mes. Son búsquedas por las que el sitio salió de verdad.
+      </p>
+
+      <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1">
+        {TRAMOS_GSC.map((t) => (
+          <span key={t.id} className="flex items-center gap-1.5 text-[12px] text-[color:var(--tinta-media)]">
+            <span className="inline-block h-0.5 w-4 rounded-full" style={{ background: t.color }} />
+            {t.etiqueta}
+            <span className="tabular-nums font-medium text-[color:var(--tinta)]">
+              {miles(visto[t.id])}
+            </span>
+          </span>
+        ))}
+      </div>
+
+      <svg
+        viewBox={`0 0 ${ANCHO} ${ALTO}`}
+        className="mt-2 w-full"
+        style={{ height: ALTO }}
+        role="img"
+        aria-label={`Palabras clave por tramo de posición, de ${mesCorto(meses[0].mes)} a ${mesCorto(meses[meses.length - 1].mes)}`}
+        onMouseLeave={() => setEncima(null)}
+        onMouseMove={(e) => {
+          const caja = e.currentTarget.getBoundingClientRect();
+          const rel = ((e.clientX - caja.left) / caja.width) * ANCHO;
+          const i = Math.round(((rel - PAD.lados) / w) * (meses.length - 1));
+          setEncima(Math.min(meses.length - 1, Math.max(0, i)));
+        }}
+      >
+        <line x1={PAD.lados} y1={PAD.arriba + h} x2={ANCHO - PAD.lados} y2={PAD.arriba + h} stroke={LINEA} strokeWidth="1" />
+
+        {encima != null && (
+          <line x1={x(encima)} y1={PAD.arriba} x2={x(encima)} y2={PAD.arriba + h} stroke={SUAVE} strokeWidth="1" strokeDasharray="3 3" />
+        )}
+
+        {TRAMOS_GSC.map((t) => (
+          <path
+            key={t.id}
+            d={meses.map((m, i) => `${i ? "L" : "M"}${x(i).toFixed(1)},${y(m[t.id]).toFixed(1)}`).join(" ")}
+            fill="none"
+            stroke={t.color}
+            strokeWidth="2"
+            strokeLinejoin="round"
+            strokeLinecap="round"
+          />
+        ))}
+
+        {/* Un punto por tramo en el mes señalado, con anillo blanco para que no
+            se confundan cuando dos líneas se cruzan. */}
+        {encima != null &&
+          TRAMOS_GSC.map((t) => (
+            <circle key={t.id} cx={x(encima)} cy={y(visto[t.id])} r="4" fill={t.color} stroke="#fff" strokeWidth="2" />
+          ))}
+
+        <text x={PAD.lados} y={ALTO - 8} fontSize="11" fill={SUAVE}>{mesCorto(meses[0].mes)}</text>
+        <text x={ANCHO - PAD.lados} y={ALTO - 8} fontSize="11" fill={SUAVE} textAnchor="end">
+          {mesCorto(meses[meses.length - 1].mes)}
+        </text>
       </svg>
     </div>
   );

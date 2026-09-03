@@ -129,6 +129,35 @@ model Rastreo {
   @@index([clienteId, creado])
 }
 
+/// Cuántas consultas tuvo un sitio en cada tramo de posición, un mes concreto.
+///
+/// Sale de Search Console, una llamada por mes. Se guarda porque un mes cerrado
+/// ya no cambia: pedirlo otra vez cada vez que alguien abre el panorama serían
+/// doce llamadas a Google para dibujar la misma línea de siempre.
+///
+/// El mes en curso sí se vuelve a pedir, porque le siguen entrando datos.
+model TramoMes {
+  id        String @id @default(cuid())
+  clienteId String
+
+  /// «2026-09».
+  mes String
+
+  top3  Int @default(0)
+  top10 Int @default(0)
+  top20 Int @default(0)
+  top50 Int @default(0)
+  resto Int @default(0)
+
+  /// El total, para no tener que sumar los cinco al pintarlo.
+  consultas Int @default(0)
+
+  calculado DateTime @default(now())
+
+  @@unique([clienteId, mes])
+  @@index([clienteId, mes])
+}
+
 /// La última medición de velocidad de una URL.
 ///
 /// Se guarda para que la pestaña Técnico pueda enseñar una nota sin volver a

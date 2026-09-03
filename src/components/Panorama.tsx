@@ -1,7 +1,17 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Linea, Tramos, Cifra, Historico, Reparto, type DiaPosiciones, type MesTramos } from "@/components/Grafico";
+import {
+  Linea,
+  Tramos,
+  Cifra,
+  Historico,
+  Reparto,
+  LineasTramos,
+  type DiaPosiciones,
+  type MesTramos,
+  type MesGsc,
+} from "@/components/Grafico";
 
 /**
  * El panorama de un cliente: cómo va, en una pantalla.
@@ -33,6 +43,7 @@ interface Datos {
   keywords: number;
   reparto: { top3: number; top10: number; top20: number; top50: number; resto: number };
   consultasTotales: number;
+  tramosMes: MesGsc[];
   historico: MesTramos[];
   exploradoEl: string | null;
   velocidad: number | null;
@@ -189,6 +200,8 @@ export default function Panorama({ clienteId }: { clienteId: string }) {
             invertido
           />
         </div>
+
+        {d.tramosMes.length > 1 && <LineasTramos meses={d.tramosMes} />}
 
         <div className="grid gap-4 lg:grid-cols-2">
           <Reparto reparto={d.reparto} total={d.consultasTotales} />

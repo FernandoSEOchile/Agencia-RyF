@@ -3,6 +3,7 @@ import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { veTodo } from "@/lib/clientes";
 import { porDia, consultas } from "@/lib/gsc";
+import { porMes, type Mes } from "@/lib/tramos";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -104,6 +105,22 @@ export async function GET(req: NextRequest) {
       }
     } catch {
       // Si esta falla no se pierde la pantalla: el resto ya está.
+    }
+  }
+
+  /* ---------------- Los mismos tramos, pero mes a mes -------------------------
+   *
+   * Una llamada por mes, guardada: es la curva de Semrush con datos reales. Va
+   * después del reparto y no en paralelo porque las dos hablan con Google y
+   * lanzarlas juntas es la forma más rápida de que nos limite.
+   */
+  let tramosMes: Mes[] = [];
+
+  if (cliente.gscConexionId && cliente.gscPropiedad && !avisoGsc) {
+    try {
+      tramosMes = await porMes(clienteId, cliente.gscConexionId, cliente.gscPropiedad, dias);
+    } catch {
+      tramosMes = [];
     }
   }
 
@@ -235,6 +252,7 @@ export async function GET(req: NextRequest) {
     keywords,
     reparto,
     consultasTotales,
+    tramosMes,
     historico,
     exploradoEl,
     velocidad: conNota.length
