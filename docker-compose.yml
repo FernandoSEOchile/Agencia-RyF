@@ -62,6 +62,10 @@ services:
       # para todas las tiendas que se conecten.
       SHOPIFY_CLIENT_ID: ${SHOPIFY_CLIENT_ID:-}
       SHOPIFY_CLIENT_SECRET: ${SHOPIFY_CLIENT_SECRET:-}
+      # Con esta ficha el cron del servidor lanza las rondas del vigía. Es lo
+      # único que permite disparar una revisión sin sesión iniciada, así que
+      # vale lo mismo que una contraseña: va en el .env del servidor.
+      VIGIA_TOKEN: ${VIGIA_TOKEN:-}
     expose:
       - "3000"
 

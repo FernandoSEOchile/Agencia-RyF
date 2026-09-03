@@ -97,6 +97,14 @@ h2,
            hover:text-[color:var(--tinta)];
   }
 
+  /* Un botón que reclama la mirada porque algo está roto. Se usa poco a
+     propósito: si dos botones gritan, no grita ninguno. */
+  .boton-alerta {
+    @apply inline-flex items-center justify-center gap-1.5 rounded-full border border-red-200
+           bg-red-50 px-4 py-1.5 text-[13px] font-semibold text-red-700
+           transition duration-150 hover:bg-red-100 disabled:opacity-40;
+  }
+
   /* Control segmentado, en lugar de pestañas subrayadas. */
   .segmentos {
     @apply inline-flex items-center gap-0.5 rounded-full bg-black/[0.045] p-1;

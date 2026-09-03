@@ -4,6 +4,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { auth, signOut } from "@/lib/auth";
 import { clientesDe } from "@/lib/clientes";
+import { ultimas } from "@/lib/vigia";
 import { db } from "@/lib/db";
 import Barra from "@/components/Barra";
 import Plataforma, { IconoWordPress } from "@/components/Plataforma";
@@ -72,6 +73,12 @@ export default async function Panel() {
   const conEscritura = clientes.filter((c) => c.soloLectura === false).length;
   const atrasados = clientes.filter((c) => c.version && c.version !== ultima).length;
 
+  // Lo que vio el vigía en su última pasada. Se cuenta aparte del sondeo del
+  // conector porque son cosas distintas: la web puede estar caída con el
+  // conector respondiendo, y al cliente le importa la primera.
+  const revisiones = await ultimas(clientes.map((c) => c.id));
+  const caidos = [...revisiones.values()].filter((r) => !r.webOk).length;
+
   return (
     <>
       <Barra
@@ -102,6 +109,9 @@ export default async function Panel() {
           <div className="flex items-center gap-2">
           <Link href="/panel/explorar" className="boton">
             Explorar dominio
+          </Link>
+          <Link href="/panel/errores" className={caidos > 0 ? "boton-alerta" : "boton"}>
+            Fallos{caidos > 0 && ` · ${caidos}`}
           </Link>
           {(rol === "ADMIN" || rol === "GESTOR") && (
             <Link href="/panel/gasto" className="boton">

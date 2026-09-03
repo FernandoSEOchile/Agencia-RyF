@@ -87,6 +87,40 @@ model Cliente {
   gastos        Gasto[]
   bitacoras     Bitacora[]
   backlinks     Backlinks?
+  revisiones    Revision[]
+}
+
+/// Una comprobación del vigía sobre un sitio.
+///
+/// Se guarda el histórico y no solo la última, porque «está caído» y «se cae
+/// tres veces al día desde el martes» son dos problemas distintos y el segundo
+/// no se ve sin las anteriores.
+///
+/// Mide dos cosas que fallan por separado: la portada pública, que es lo que
+/// ve el cliente, y el conector, que es lo que necesita el panel. Un sitio
+/// puede tener la web perfecta y el conector muerto, y conviene distinguirlo.
+model Revision {
+  id     String   @id @default(cuid())
+  creado DateTime @default(now())
+
+  cliente   Cliente @relation(fields: [clienteId], references: [id], onDelete: Cascade)
+  clienteId String
+
+  /// Resultado de la portada pública.
+  webOk     Boolean
+  webEstado Int?
+  /// Milisegundos que tardó en contestar. Sirve para ver una web que se está
+  /// degradando antes de que se caiga del todo.
+  webMs     Int?
+
+  /// Resultado del conector. Nulo en Shopify, que no lleva conector.
+  conectorOk Boolean?
+
+  /// Qué falló, en una frase. Vacío cuando todo fue bien.
+  detalle String?
+
+  @@index([clienteId, creado])
+  @@index([creado])
 }
 
 /// Qué usuario puede trabajar sobre qué cliente.

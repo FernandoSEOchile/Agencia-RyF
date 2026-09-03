@@ -36,6 +36,59 @@ function problema(mensaje: string) {
   return `ERROR: ${mensaje}`;
 }
 
+/**
+ * Deja anotado en el registro todo fallo de una herramienta.
+ *
+ * Se envuelve la lista entera en vez de anotar dentro de cada `run` por una
+ * razón práctica: un registro que depende de que quien escribe la herramienta
+ * se acuerde de anotar acaba con la mitad de los fallos sin anotar, y son
+ * justo los de las herramientas nuevas —las que más fallan—.
+ *
+ * Se muta `run` sobre el mismo objeto y no se devuelve una copia porque el SDK
+ * espera la forma exacta que produce `betaZodTool`.
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function conRegistro<T extends { name: string; run: (...a: any[]) => unknown }>(
+  herramientas: T[],
+  ctx: Contexto
+): T[] {
+  for (const h of herramientas) {
+    const original = h.run.bind(h);
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    h.run = (async (...args: any[]) => {
+      const guardar = (resumen: string) =>
+        anotar({
+          usuarioId: ctx.usuarioId,
+          clienteId: ctx.clienteId,
+          accion: h.name,
+          resumen,
+          resultado: "error",
+        }).catch(() => {
+          // Si ni siquiera se puede anotar el fallo, no se convierte eso en un
+          // segundo fallo que tape al primero.
+        });
+
+      try {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const salida = await original(...(args as any));
+
+        if (typeof salida === "string" && salida.startsWith("ERROR: ")) {
+          await guardar(salida.slice(7));
+        }
+
+        return salida;
+      } catch (e) {
+        await guardar(e instanceof Error ? e.message : "fallo sin mensaje");
+        throw e;
+      }
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    }) as any;
+  }
+
+  return herramientas;
+}
+
 export function herramientasDe(ctx: Contexto) {
   const soloLectura = () =>
     problema(
@@ -788,10 +841,90 @@ export function herramientasDe(ctx: Contexto) {
     },
   });
 
+  const verPagina = betaZodTool({
+    name: "ver_pagina",
+    description:
+      "Abre una URL y devuelve lo que ve un visitante: código de respuesta, cuánto tardó, título, meta description, encabezados y el texto visible. Úsala para comprobar que lo que acabas de crear se ve de verdad, para mirar una página que da problemas, o para leer una web ajena. No pasa por el conector: pide la página desde fuera, como Google.",
+    inputSchema: z.object({
+      url: z.string().describe("Dirección completa, con https://"),
+      texto: z
+        .boolean()
+        .default(true)
+        .describe("Traer el texto visible. Ponlo en falso si solo quieres saber si responde."),
+    }),
+    run: async (i) => {
+      let destino: URL;
+      try {
+        destino = new URL(i.url);
+      } catch {
+        return problema(`«${i.url}» no es una dirección válida. Tiene que empezar por https://`);
+      }
+
+      if (destino.protocol !== "https:" && destino.protocol !== "http:") {
+        return problema("Solo se pueden abrir direcciones http o https.");
+      }
+
+      const arranque = Date.now();
+
+      let r: Response;
+      try {
+        r = await fetch(destino, {
+          redirect: "follow",
+          headers: { "User-Agent": "AppSEO/1.0 (+https://panel.agenciaryf.com)" },
+          signal: AbortSignal.timeout(20000),
+          cache: "no-store",
+        });
+      } catch (e) {
+        const m = e instanceof Error ? e.message : "error desconocido";
+        return problema(
+          m.includes("timeout") || m.includes("abort")
+            ? "La página no contestó en 20 segundos."
+            : `No se pudo abrir: ${m}`
+        );
+      }
+
+      const ms = Date.now() - arranque;
+      const html = await r.text();
+
+      const buscar = (re: RegExp) => (html.match(re)?.[1] ?? "").trim();
+
+      // Se recorta el texto porque una página larga traída entera se paga en
+      // cada turno posterior de la conversación, no solo en este.
+      const limpio = html
+        .replace(/<script[\s\S]*?<\/script>/gi, " ")
+        .replace(/<style[\s\S]*?<\/style>/gi, " ")
+        .replace(/<[^>]+>/g, " ")
+        .replace(/&nbsp;/g, " ")
+        .replace(/\s+/g, " ")
+        .trim();
+
+      return JSON.stringify({
+        url: r.url,
+        estado: r.status,
+        ok: r.status < 400,
+        redirigida: r.url !== destino.toString() ? r.url : undefined,
+        ms,
+        titulo: buscar(/<title[^>]*>([\s\S]*?)<\/title>/i),
+        descripcion: buscar(
+          /<meta[^>]+name=["']description["'][^>]*content=["']([^"']*)["']/i
+        ),
+        h1: [...html.matchAll(/<h1[^>]*>([\s\S]*?)<\/h1>/gi)]
+          .map((m) => m[1].replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim())
+          .slice(0, 5),
+        h2: [...html.matchAll(/<h2[^>]*>([\s\S]*?)<\/h2>/gi)]
+          .map((m) => m[1].replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim())
+          .slice(0, 20),
+        palabras: limpio ? limpio.split(" ").length : 0,
+        texto: i.texto ? limpio.slice(0, 6000) : undefined,
+      });
+    },
+  });
+
   // Lo que no toca el sitio sirve igual en WordPress y en Shopify: analizar la
   // competencia, leer Search Console, la memoria, la bitácora. Solo cambia la
   // capa que lee y escribe contenido.
   const transversales = [
+    verPagina,
     competencia,
     enlaces,
     bitacora,
@@ -803,10 +936,10 @@ export function herramientasDe(ctx: Contexto) {
   ];
 
   if (ctx.plataforma === "shopify") {
-    return [...herramientasShopify(ctx), ...transversales];
+    return conRegistro([...herramientasShopify(ctx), ...transversales], ctx);
   }
 
-  return [
+  return conRegistro([
     salud,
     ...transversales,
     auditar,
@@ -825,5 +958,5 @@ export function herramientasDe(ctx: Contexto) {
     escribirCss,
     tema,
     registro,
-  ];
+  ], ctx);
 }
