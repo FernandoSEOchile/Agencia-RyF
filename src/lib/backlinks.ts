@@ -49,6 +49,13 @@ export interface PerfilEnlaces {
     nofollow: number;
     rotos: number;
     paginasEnlazadas: number;
+    /// De 0 a 100. Por encima de 30 el perfil empieza a oler a enlaces comprados.
+    spam: number;
+    /// Dominios que enlazaban y ya no. Un goteo es normal; una caída no.
+    perdidos: number;
+    /// De qué paises y qué extensiones vienen los enlaces, de mayor a menor.
+    paises: { clave: string; enlaces: number }[];
+    extensiones: { clave: string; enlaces: number }[];
   };
   dominios: DominioEnlazante[];
   enlaces: Enlace[];
@@ -141,6 +148,14 @@ export async function analizarEnlaces(dominio: string): Promise<PerfilEnlaces> {
   const num = (v: unknown) => (typeof v === "number" ? v : 0);
   const txt = (v: unknown) => (typeof v === "string" && v ? v : null);
 
+  /** Convierte un diccionario clave→enlaces en una lista ordenada. */
+  const reparto = (v: unknown) =>
+    Object.entries((v ?? {}) as Record<string, unknown>)
+      .filter(([k, n]) => k && typeof n === "number")
+      .map(([clave, n]) => ({ clave, enlaces: n as number }))
+      .sort((x, y) => y.enlaces - x.enlaces)
+      .slice(0, 8);
+
   return {
     dominio: objetivo,
     resumen: {
@@ -153,6 +168,12 @@ export async function analizarEnlaces(dominio: string): Promise<PerfilEnlaces> {
       nofollow: num((r.referring_links_attributes as Record<string, unknown> | undefined)?.nofollow),
       rotos: num(r.broken_backlinks),
       paginasEnlazadas: num(r.referring_pages),
+      spam: num(r.backlinks_spam_score),
+      perdidos: num(r.referring_domains_lost ?? r.lost_referring_domains),
+      // El proveedor devuelve estos dos como diccionarios de clave a numero, no
+      // como listas: se ordenan aqui para que la pantalla solo tenga que pintar.
+      paises: reparto(r.referring_links_countries),
+      extensiones: reparto(r.referring_links_tld),
     },
     dominios: (((dominios.datos?.items as unknown[]) ?? []) as Record<string, unknown>[]).map((d) => ({
       dominio: String(d.domain ?? ""),

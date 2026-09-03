@@ -13,6 +13,11 @@ interface Perfil {
     nofollow: number;
     rotos: number;
     paginasEnlazadas: number;
+    // Opcionales porque las fotos guardadas antes de medirlos no los traen.
+    spam?: number;
+    perdidos?: number;
+    paises?: { clave: string; enlaces: number }[];
+    extensiones?: { clave: string; enlaces: number }[];
   };
   dominios: { dominio: string; enlaces: number; rank: number; primeraVez: string | null; perdido: boolean }[];
   enlaces: { desde: string; hacia: string; ancla: string | null; rank: number; dofollow: boolean; visto: string | null }[];
@@ -181,12 +186,23 @@ export default function Backlinks({
         </div>
       ) : (
         <>
-          <dl className="tarjeta mt-4 grid grid-cols-2 divide-x divide-[color:var(--linea)] overflow-hidden sm:grid-cols-4">
+          <dl className="tarjeta mt-4 grid grid-cols-2 divide-x divide-[color:var(--linea)] overflow-hidden sm:grid-cols-4 lg:grid-cols-7">
             {[
+              ["Fuerza del dominio", String(p.resumen.rank ?? 0), ""],
               ["Dominios que enlazan", numero(p.resumen.dominiosEnlazantes), ""],
               ["Enlaces totales", numero(p.resumen.enlaces), ""],
               ["Páginas enlazadas", numero(p.resumen.paginasEnlazadas), ""],
               ["Enlaces rotos", numero(p.resumen.rotos), p.resumen.rotos ? "text-amber-600" : ""],
+              [
+                "Dominios perdidos",
+                numero(p.resumen.perdidos ?? 0),
+                (p.resumen.perdidos ?? 0) > 0 ? "text-amber-600" : "",
+              ],
+              [
+                "Spam",
+                String(p.resumen.spam ?? 0),
+                (p.resumen.spam ?? 0) >= 30 ? "text-red-600" : "text-emerald-700",
+              ],
             ].map(([k, v, color]) => (
               <div key={String(k)} className="px-5 py-4">
                 <dt className="rotulo">{String(k)}</dt>
@@ -194,6 +210,26 @@ export default function Backlinks({
               </div>
             ))}
           </dl>
+
+          {(p.resumen.paises?.length || p.resumen.extensiones?.length) && (
+            <div className="mt-4 flex flex-wrap gap-x-10 gap-y-4">
+              {[
+                ["De dónde vienen", p.resumen.paises ?? []],
+                ["Con qué extensión", p.resumen.extensiones ?? []],
+              ].map(([titulo, lista]) => (
+                <div key={String(titulo)}>
+                  <h3 className="rotulo">{String(titulo)}</h3>
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {(lista as { clave: string; enlaces: number }[]).map((x) => (
+                      <span key={x.clave} className="pastilla bg-black/[0.05] text-[color:var(--tinta-media)]">
+                        {x.clave} <span className="tabular-nums">{numero(x.enlaces)}</span>
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
 
           <p className="mt-3 text-[13px] text-[color:var(--tinta-media)]">
             Lo que pesa es la columna de la izquierda. Mil enlaces desde cinco dominios valen mucho
