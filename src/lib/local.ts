@@ -34,6 +34,19 @@ const ABANDONO = 10 * 60 * 1000;
 /** Cuántos resultados se miran por punto. Más allá del 20 nadie mira. */
 const PROFUNDIDAD = 20;
 
+/**
+ * El zoom con el que se pregunta desde cada punto.
+ *
+ * No es un detalle cosmético: con 17z —nivel de calle— Google contesta «No
+ * Search Results» y devuelve cero resultados, y el mapa se llenaba de puntos
+ * rojos que parecían «aquí no apareces» cuando en realidad no se había
+ * preguntado bien. Con 14z devuelve los veinte de siempre.
+ *
+ * Si algún día hay que tocarlo, hacia abajo: cuanto menor el número, más
+ * abierta la zona que Google considera.
+ */
+const ZOOM = "14z";
+
 const dormir = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 const obj = (v: unknown) => (v && typeof v === "object" ? (v as Record<string, unknown>) : {});
@@ -226,14 +239,16 @@ async function correr(
   for (const p of puntos) {
     let puesto: number | null = null;
     let primero: string | null = null;
+    let resultados = 0;
 
     try {
       const r = await mapa(c, datos.keyword, {
-        location_coordinate: `${p.lat.toFixed(6)},${p.lng.toFixed(6)},17z`,
+        location_coordinate: `${p.lat.toFixed(6)},${p.lng.toFixed(6)},${ZOOM}`,
       });
       coste += r.coste;
 
       const fichas = r.items.filter((i) => i.type === "maps_search");
+      resultados = fichas.length;
 
       fichas.forEach((f, i) => {
         const suyo = datos.cid
@@ -251,7 +266,16 @@ async function correr(
     }
 
     await db.puntoRejilla.create({
-      data: { rejillaId, fila: p.fila, columna: p.columna, lat: p.lat, lng: p.lng, puesto, primero },
+      data: {
+        rejillaId,
+        fila: p.fila,
+        columna: p.columna,
+        lat: p.lat,
+        lng: p.lng,
+        puesto,
+        primero,
+        resultados,
+      },
     });
 
     hechos++;

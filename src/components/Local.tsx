@@ -24,6 +24,7 @@ interface Punto {
   lng: number;
   puesto: number | null;
   primero: string | null;
+  resultados: number;
 }
 
 interface Barrido {
@@ -44,6 +45,8 @@ interface Barrido {
   media: number | null;
   visible: number;
   top3: number;
+  medidos: number;
+  sinDatos: number;
 }
 
 interface Ficha {
@@ -64,7 +67,10 @@ interface Ficha {
  * la gente ve, del 4 al 10 estás si despliegan, y no aparecer es otra cosa
  * distinta de ir vigésimo.
  */
-function color(puesto: number | null) {
+function color(puesto: number | null, resultados = 1) {
+  // Gris cuando no hubo resultados: no es que el negocio no aparezca, es que
+  // no hay respuesta. Pintarlo de rojo sería afirmar algo que no sabemos.
+  if (resultados === 0) return "#9e9e9e";
   if (puesto == null) return "#c0392b";
   if (puesto <= 3) return "#1e8e3e";
   if (puesto <= 6) return "#7cb342";
@@ -165,13 +171,14 @@ export default function Local({
       });
 
       for (const p of barrido.puntos) {
-        const texto = p.puesto == null ? "—" : String(p.puesto);
+        const texto = p.resultados === 0 ? "?" : p.puesto == null ? "—" : String(p.puesto);
 
         L.marker([p.lat, p.lng], {
           icon: L.divIcon({
             className: "",
             html: `<span style="display:grid;place-items:center;width:30px;height:30px;border-radius:50%;background:${color(
-              p.puesto
+              p.puesto,
+              p.resultados
             )};color:#fff;font:700 13px/1 system-ui;box-shadow:0 1px 4px rgba(0,0,0,.35);border:2px solid #fff">${texto}</span>`,
             iconSize: [30, 30],
             iconAnchor: [15, 15],
@@ -179,9 +186,11 @@ export default function Local({
         })
           .addTo(mapa.current)
           .bindTooltip(
-            p.puesto == null
-              ? `No aparece aquí${p.primero ? `. Sale primero: ${p.primero}` : ""}`
-              : `Puesto ${p.puesto}`,
+            p.resultados === 0
+              ? "Google no devolvió resultados en este punto"
+              : p.puesto == null
+                ? `No aparece aquí${p.primero ? `. Sale primero: ${p.primero}` : ""}`
+                : `Puesto ${p.puesto}`,
             { direction: "top" }
           );
       }
@@ -427,7 +436,9 @@ export default function Local({
               <p className="mt-1 text-[26px] font-semibold leading-none tabular-nums">
                 {barrido.visible}%
               </p>
-              <p className="mt-1.5 text-[12px] text-[color:var(--tinta-suave)]">de la zona</p>
+              <p className="mt-1.5 text-[12px] text-[color:var(--tinta-suave)]">
+                de los {barrido.medidos} puntos con datos
+              </p>
             </div>
             <div className="tarjeta px-5 py-4">
               <p className="rotulo">En el top 3</p>
@@ -461,6 +472,7 @@ export default function Local({
                 ["7 a 10", "#f9ab00"],
                 ["11 a 20", "#f57c00"],
                 ["no aparece", "#c0392b"],
+                ["sin datos", "#9e9e9e"],
               ].map(([t, c]) => (
                 <span key={t} className="flex items-center gap-1.5">
                   <span className="inline-block h-2.5 w-2.5 rounded-full" style={{ background: c }} />

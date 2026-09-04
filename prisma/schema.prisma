@@ -221,6 +221,14 @@ model PuntoRejilla {
   /// grande: no aparecer no es ir último, es no estar.
   puesto Int?
 
+  /// Cuántos resultados devolvió Google en ese punto.
+  ///
+  /// Existe porque cero resultados y «no apareces» son cosas distintas que se
+  /// veían iguales en el mapa: un punto sin datos pintado de rojo dice que el
+  /// negocio no sale ahí, y lo que pasó es que nadie preguntó bien. Con este
+  /// número se pintan en gris y se quedan fuera de los porcentajes.
+  resultados Int @default(0)
+
   /// Quién sale primero ahí cuando no somos nosotros. Es la mitad útil del
   /// dato: saber que no apareces no dice nada; saber quién ocupa tu sitio, sí.
   primero String?

@@ -52,8 +52,13 @@ export async function GET(req: NextRequest) {
 
   if (!rejilla) return Response.json({ rejilla: null, anteriores });
 
-  const conPuesto = rejilla.puntos.filter((x) => x.puesto != null);
+  // Los puntos donde Google no devolvió nada no cuentan para nada: no son
+  // «no aparece», son «no se sabe». Meterlos en el porcentaje de visibilidad
+  // inventaría una cifra peor que la real.
+  const conDatos = rejilla.puntos.filter((x) => x.resultados > 0);
+  const conPuesto = conDatos.filter((x) => x.puesto != null);
   const puestos = conPuesto.map((x) => x.puesto as number);
+  const sinDatos = rejilla.puntos.length - conDatos.length;
 
   return Response.json({
     rejilla: {
@@ -77,12 +82,15 @@ export async function GET(req: NextRequest) {
         lng: x.lng,
         puesto: x.puesto,
         primero: x.primero,
+        resultados: x.resultados,
       })),
       // La media solo sobre los puntos donde aparece: mezclar los que no
       // aparecen como si fueran un puesto 21 inventaría un número.
       media: puestos.length ? Number((puestos.reduce((t, v) => t + v, 0) / puestos.length).toFixed(1)) : null,
-      visible: rejilla.puntos.length ? Math.round((conPuesto.length / rejilla.puntos.length) * 100) : 0,
+      visible: conDatos.length ? Math.round((conPuesto.length / conDatos.length) * 100) : 0,
       top3: puestos.filter((v) => v <= 3).length,
+      medidos: conDatos.length,
+      sinDatos,
     },
     anteriores,
   });
