@@ -130,7 +130,7 @@ export async function redactarMes(
   });
 
   const anthropic = await cliente();
-  const m = await modelo();
+  const m = await modelo("mecanica");
 
   const texto = [
     modo === "actualizar"

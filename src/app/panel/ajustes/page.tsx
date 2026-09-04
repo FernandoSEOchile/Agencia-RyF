@@ -426,8 +426,10 @@ export default async function Ajustes({
         <section className="mt-5 rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm">
           <h2 className="text-sm font-semibold text-neutral-900">Modelo</h2>
           <p className="mt-0.5 text-xs text-neutral-500">
-            Cambiarlo afecta a lo que cuesta cada mensaje y a la calidad de lo que escribe. Un modelo menor
-            rinde igual en tareas mecánicas y cuesta una fracción.
+            En automático cada parte del panel usa el que le corresponde: el rápido para resumir la
+            bitácora, el equilibrado para escribir y editar, y el potente para analizar. Fijar uno concreto
+            lo aplica a todo y desactiva esa elección: úsalo si hay que forzar algo puntualmente, y vuelve
+            a automático después.
           </p>
 
           <form action={cambiarModelo} className="mt-4 grid gap-2">

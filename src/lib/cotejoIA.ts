@@ -105,7 +105,7 @@ export async function cotejarConIA(
   if (pendientes.length === 0) return [];
 
   const anthropic = await cliente();
-  const m = await modelo();
+  const m = await modelo("redaccion");
   const salida: ResultadoIA[] = [];
 
   for (let i = 0; i < pendientes.length; i += LOTE) {

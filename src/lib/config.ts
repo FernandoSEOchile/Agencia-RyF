@@ -25,11 +25,27 @@ export const MODELOS = [
 export const MODELO_POR_DEFECTO = "claude-opus-5";
 
 /**
- * El que se usa cuando «automático» no tiene nada mejor que decidir, y para
- * todo lo que no es el chat: la bitácora, la lectura de plantillas y el chat
- * de arquitectura piden un modelo concreto y no pasan por el enrutador.
+ * Qué clase de trabajo es, que es lo que decide el modelo.
+ *
+ * Poner un selector de modelo en cada pantalla parece dar control, pero
+ * pregunta algo que quien usa el panel no puede responder —«¿le pongo Haiku a
+ * la lectura del Excel?»— y basta con que uno quede mal puesto para que la
+ * calidad baje sin que nadie se entere. Aquí cada sitio declara qué hace, que
+ * sí lo sabe, y la correspondencia con el modelo se decide en un solo lugar.
  */
-export const MODELO_EQUILIBRADO = "claude-sonnet-5";
+export type Tarea =
+  /** Transformar algo que ya está: resumir, reformular, extraer un dato. */
+  | "mecanica"
+  /** Escribir o editar: es el grueso del trabajo del panel. */
+  | "redaccion"
+  /** Decidir, comparar, explicar por qué. Donde equivocarse cuesta caro. */
+  | "analisis";
+
+export const MODELO_DE_TAREA: Record<Tarea, string> = {
+  mecanica: "claude-haiku-4-5",
+  redaccion: "claude-sonnet-5",
+  analisis: "claude-opus-5",
+};
 
 async function leer(clave: string): Promise<string | null> {
   const fila = await db.config.findUnique({ where: { clave } });
@@ -118,10 +134,16 @@ export async function modeloConfigurado(): Promise<string> {
   return process.env.ANTHROPIC_MODEL || MODELO_POR_DEFECTO;
 }
 
-/** Modelo con el que responde el asistente. Siempre uno concreto. */
-export async function modelo(): Promise<string> {
+/**
+ * El modelo para una clase de trabajo. Siempre uno concreto.
+ *
+ * Un modelo fijado a mano en ajustes manda sobre esto: existe para el día en
+ * que haya que forzar algo —un modelo saturado, una respuesta rara que se
+ * quiere reproducir—, no para el uso diario.
+ */
+export async function modelo(tarea: Tarea = "redaccion"): Promise<string> {
   const m = await modeloConfigurado();
-  return m === "automatico" ? MODELO_EQUILIBRADO : m;
+  return m === "automatico" ? MODELO_DE_TAREA[tarea] : m;
 }
 
 export async function guardarModelo(valor: string) {

@@ -104,7 +104,7 @@ async function conocidas(limite = 4) {
  */
 export async function detectarEsquema(muestra: string): Promise<EsquemaAst> {
   const anthropic = await cliente();
-  const m = await modelo();
+  const m = await modelo("redaccion");
   const ejemplos = await conocidas();
 
   const contexto = ejemplos.length

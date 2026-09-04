@@ -383,7 +383,7 @@ export async function redactar(
   clienteId: string
 ) {
   const anthropic = await cliente();
-  const m = await modelo();
+  const m = await modelo("redaccion");
 
   const r = await anthropic.messages.parse({
     model: m,

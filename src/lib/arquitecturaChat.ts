@@ -365,7 +365,7 @@ export async function conversarArquitectura(
   const anthropic = await cliente();
 
   const runner = anthropic.beta.messages.toolRunner({
-    model: await modelo(),
+    model: await modelo("analisis"),
     max_tokens: 16000,
     system: [{ type: "text", text: sistema, cache_control: { type: "ephemeral" } }],
     thinking: { type: "adaptive" },

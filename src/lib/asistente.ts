@@ -10,7 +10,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import { herramientasDe, type Contexto } from "@/lib/herramientas";
 import { CRITERIO_DISENO } from "@/lib/diseno";
 import { CRITERIO_CONTENIDO } from "@/lib/contenido";
-import { claveApi, modelo, modeloConfigurado, espacioTrabajo } from "@/lib/config";
+import { claveApi, modelo, espacioTrabajo, type Tarea } from "@/lib/config";
 
 /**
  * Cliente de la API, con la clave que mande el panel.
@@ -250,15 +250,16 @@ const ANALIZAR =
 const CONSULTAR =
   /^(?:por favor,?\s*)?(?:cu[aá]nt|cu[aá]l|qu[eé] (?:hay|tiene|dice)|list|muestra|mu[eé]stra|dime|dame|ens[eé]ña|ver |busca|comprueba|verifica|est[aá] |hay )/i;
 
-export type Carril = { modelo: string; pensar: boolean };
+export type Carril = { tarea: Tarea; pensar: boolean };
 
-export function enrutar(historial: Turno[], configurado: string): Carril {
-  // Si alguien fijó un modelo en ajustes, manda ese. El automático es una
-  // ayuda, no una autoridad por encima de lo que se pidió expresamente.
-  if (configurado !== "automatico") {
-    return { modelo: configurado, pensar: configurado !== "claude-haiku-4-5" };
-  }
-
+/**
+ * De qué clase es lo que se acaba de pedir.
+ *
+ * Devuelve la clase de trabajo, no el modelo: quién es Haiku y quién es Opus
+ * se decide en config.ts, junto al resto del panel. Aquí solo se lee lo que
+ * pidió la persona, que es lo único que este archivo sabe.
+ */
+export function enrutar(historial: Turno[]): Carril {
   const ultimo = [...historial].reverse().find((t) => t.rol === "user");
   const texto = (ultimo?.contenido ?? "").trim();
 
@@ -266,20 +267,20 @@ export function enrutar(historial: Turno[], configurado: string): Carril {
   const conImagen = (ultimo?.imagenes?.length ?? 0) > 0;
 
   if (conImagen || texto.length > 400 || ANALIZAR.test(texto)) {
-    return { modelo: "claude-opus-5", pensar: true };
+    return { tarea: "analisis", pensar: true };
   }
 
   // Consultar es preguntar por algo que ya está: no hay nada que redactar y el
   // largo delata cuándo la pregunta trae condiciones que sí hay que entender.
   if (texto.length < 160 && CONSULTAR.test(texto) && !texto.includes("?")) {
-    return { modelo: "claude-haiku-4-5", pensar: false };
+    return { tarea: "mecanica", pensar: false };
   }
 
-  // El resto —escribir, corregir, reemplazar— con el equilibrado. Razona salvo
-  // en las órdenes directas, donde la persona ya decidió y deliberar solo
-  // añade espera.
+  // El resto —escribir, corregir, reemplazar— es el grueso. Razona salvo en
+  // las órdenes directas, donde la persona ya decidió y deliberar solo añade
+  // espera.
   const directa = texto.length < 200 && ORDEN_DIRECTA.test(texto);
-  return { modelo: "claude-sonnet-5", pensar: !directa };
+  return { tarea: "redaccion", pensar: !directa };
 }
 
 /**
@@ -336,12 +337,14 @@ export async function conversar(
   uso: Uso = usoVacio()
 ) {
   const anthropic = await cliente();
-  const carril = enrutar(historial, await modeloConfigurado());
-  uso.modelo = carril.modelo;
-  emitir({ tipo: "modelo", modelo: carril.modelo });
+  // El modelo fijado a mano en ajustes gana: `modelo()` ya lo resuelve, así que
+  // el enrutador propone y esa función dispone.
+  const carril = enrutar(historial);
+  uso.modelo = await modelo(carril.tarea);
+  emitir({ tipo: "modelo", modelo: uso.modelo });
 
   const runner = anthropic.beta.messages.toolRunner({
-    model: carril.modelo,
+    model: uso.modelo,
     max_tokens: 32000,
     system: [{ type: "text", text: sistema, cache_control: { type: "ephemeral" } }],
     ...(carril.pensar ? { thinking: { type: "adaptive" as const } } : {}),
