@@ -3,7 +3,6 @@
 import { useConfirmar } from "@/components/Confirmar";
 import { useEffect, useState } from "react";
 import Esqueleto from "@/components/Esqueleto";
-  const { confirmar, dialogo } = useConfirmar();
 
 interface Entrada {
   id: string;
@@ -55,6 +54,7 @@ export default function Bitacora({
   puedeEditar: boolean;
 }) {
   const [datos, setDatos] = useState<Datos | null>(null);
+  const { confirmar, dialogo } = useConfirmar();
   const [cargando, setCargando] = useState(true);
   const [ocupado, setOcupado] = useState(false);
   const [error, setError] = useState<string | null>(null);

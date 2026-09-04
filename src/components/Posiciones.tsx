@@ -2,7 +2,6 @@
 
 import { useConfirmar } from "@/components/Confirmar";
 import { useState } from "react";
-  const { confirmar, dialogo } = useConfirmar();
 import SearchConsole from "@/components/SearchConsole";
 import { dinero } from "@/lib/formato";
 
@@ -72,6 +71,7 @@ export default function Posiciones({
   hayGsc: boolean;
 }) {
   const [fuente, setFuente] = useState<(typeof FUENTES)[number][0]>(hayGsc ? "gsc" : "api");
+  const { confirmar, dialogo } = useConfirmar();
   const [abierto, setAbierto] = useState(false);
   const [texto, setTexto] = useState("");
   const [ubicacion, setUbicacion] = useState(2152);
