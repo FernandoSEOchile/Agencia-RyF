@@ -10,6 +10,7 @@ import Bitacora from "@/components/Bitacora";
 import Backlinks from "@/components/Backlinks";
 import Rastreo from "@/components/Rastreo";
 import Panorama from "@/components/Panorama";
+import Local from "@/components/Local";
 
 export interface Suceso {
   fecha: string;
@@ -43,6 +44,7 @@ const PESTAÑAS = [
   { id: "sitemap", etiqueta: "Sitemap" },
   { id: "arquitectura", etiqueta: "Arquitectura" },
   { id: "tecnico", etiqueta: "Técnico" },
+  { id: "local", etiqueta: "Local" },
   { id: "posiciones", etiqueta: "Posiciones" },
   { id: "backlinks", etiqueta: "Backlinks" },
   { id: "bitacora", etiqueta: "Bitácora" },
@@ -232,6 +234,10 @@ export default function FichaCliente({
       )}
 
       {activa === "panorama" && <Panorama clienteId={clienteId} />}
+
+      {activa === "local" && (
+        <Local clienteId={clienteId} nombreCliente={nombre} puedeBuscar={puedeSubir} />
+      )}
 
       {/* Velocidad y canibalizaciones viven dentro de Rastreo, como dos cuadros
           más de su rejilla: son comprobaciones técnicas y se miran ahí. */}

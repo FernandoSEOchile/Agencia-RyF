@@ -129,6 +129,75 @@ model Rastreo {
   @@index([clienteId, creado])
 }
 
+/// Un barrido de posiciones locales sobre una cuadrícula geográfica.
+///
+/// Mide algo que ninguna otra pantalla del panel mide: en SEO local no existe
+/// «la posición». Un negocio puede salir primero para quien busca desde su
+/// misma calle y no aparecer para quien busca a tres kilómetros. La cuadrícula
+/// es la única forma de ver esa realidad, y también la única forma de
+/// enseñarle a un cliente por qué su vecino sí lo encuentra y él no.
+model Rejilla {
+  id        String @id @default(cuid())
+  clienteId String
+
+  /// Qué se busca y qué ficha se busca dentro de los resultados.
+  keyword String
+  negocio String
+
+  /// El identificador que Google le da a la ficha. Se compara por esto y no
+  /// por el nombre: dos locales de la misma cadena tienen el mismo nombre, y
+  /// un nombre puede escribirse de cinco maneras.
+  cid String?
+
+  centroLat Float
+  centroLng Float
+
+  /// Puntos por lado —siempre impar, para que haya centro— y kilómetros entre
+  /// uno y otro.
+  lado       Int   @default(9)
+  separacion Float @default(1)
+
+  /// «corriendo», «terminado», «error» o «interrumpido».
+  estado String @default("corriendo")
+  total  Int    @default(0)
+  hechos Int    @default(0)
+
+  coste Float @default(0)
+  nota  String?
+
+  creado  DateTime  @default(now())
+  tocado  DateTime  @updatedAt
+  acabado DateTime?
+
+  puntos PuntoRejilla[]
+
+  @@index([clienteId, creado])
+}
+
+/// Qué puesto tenía el negocio en un punto concreto del mapa.
+model PuntoRejilla {
+  id        String  @id @default(cuid())
+  rejilla   Rejilla @relation(fields: [rejillaId], references: [id], onDelete: Cascade)
+  rejillaId String
+
+  fila    Int
+  columna Int
+
+  lat Float
+  lng Float
+
+  /// Nulo cuando el negocio no aparece entre los resultados de ese punto. Es
+  /// un dato distinto de «puesto 20», y por eso no se guarda como un número
+  /// grande: no aparecer no es ir último, es no estar.
+  puesto Int?
+
+  /// Quién sale primero ahí cuando no somos nosotros. Es la mitad útil del
+  /// dato: saber que no apareces no dice nada; saber quién ocupa tu sitio, sí.
+  primero String?
+
+  @@index([rejillaId])
+}
+
 /// Cuántas consultas tuvo un sitio en cada tramo de posición, un mes concreto.
 ///
 /// Sale de Search Console, una llamada por mes. Se guarda porque un mes cerrado
