@@ -129,6 +129,36 @@ model Rastreo {
   @@index([clienteId, creado])
 }
 
+/// Una auditoría de la ficha de Google Business de un negocio.
+///
+/// Se guardan todas y no solo la última porque el valor está en la comparación:
+/// «tenías 58 y ahora tienes 74» es un informe; «tienes 74» es un dato suelto.
+model AuditoriaFicha {
+  id        String @id @default(cuid())
+  clienteId String
+
+  negocio String
+  cid     String?
+
+  /// De 0 a 100, calculada por el código con reglas fijas.
+  nota Int
+
+  /// Los cuatro bloques con sus puntos, y los hallazgos, en JSON.
+  bloques   String
+  hallazgos String
+
+  /// Lo que escribió el modelo: resumen, arreglos rápidos y puntos fuertes.
+  informe String?
+
+  /// La ficha tal como vino, por si hace falta revisar de dónde salió una nota.
+  datos String
+
+  coste  Float @default(0)
+  creado DateTime @default(now())
+
+  @@index([clienteId, creado])
+}
+
 /// Un barrido de posiciones locales sobre una cuadrícula geográfica.
 ///
 /// Mide algo que ninguna otra pantalla del panel mide: en SEO local no existe

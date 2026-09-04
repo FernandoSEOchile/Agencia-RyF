@@ -11,6 +11,7 @@ import Backlinks from "@/components/Backlinks";
 import Rastreo from "@/components/Rastreo";
 import Panorama from "@/components/Panorama";
 import Local from "@/components/Local";
+import FichaLocal from "@/components/FichaLocal";
 
 export interface Suceso {
   fecha: string;
@@ -236,7 +237,12 @@ export default function FichaCliente({
       {activa === "panorama" && <Panorama clienteId={clienteId} />}
 
       {activa === "local" && (
-        <Local clienteId={clienteId} nombreCliente={nombre} puedeBuscar={puedeSubir} />
+        <>
+          <FichaLocal clienteId={clienteId} nombreCliente={nombre} puedeAuditar={puedeSubir} />
+          <div className="mt-12 border-t border-[color:var(--linea)] pt-8">
+            <Local clienteId={clienteId} nombreCliente={nombre} puedeBuscar={puedeSubir} />
+          </div>
+        </>
       )}
 
       {/* Velocidad y canibalizaciones viven dentro de Rastreo, como dos cuadros
