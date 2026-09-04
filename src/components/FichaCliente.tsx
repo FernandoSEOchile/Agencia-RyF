@@ -137,6 +137,8 @@ export default function FichaCliente({
   conversaciones,
   borrar,
   limpiar,
+  reconectar,
+  esWordPress,
   totalConversaciones,
   arquitectura,
   keywords,
@@ -154,6 +156,8 @@ export default function FichaCliente({
   conversaciones: ResumenConversacion[];
   borrar: (datos: FormData) => Promise<void>;
   limpiar: () => Promise<void>;
+  reconectar: (datos: FormData) => Promise<void>;
+  esWordPress: boolean;
   totalConversaciones: number;
   arquitectura: ArquitecturaVista | null;
   keywords: KeywordVista[];
@@ -240,7 +244,7 @@ export default function FichaCliente({
           perder una respuesta a medio escribir ni cortar un envío en curso. */}
       <div className={activa === "chat" ? "block" : "hidden"}>
         <div className="mt-5 flex gap-6">
-          {conversaciones.length > 1 && (
+          {conversaciones.length >= 1 && (
             <aside className="hidden w-52 shrink-0 sm:block">
               <p className="text-[11px] font-semibold uppercase tracking-wide text-[color:var(--tinta-suave)]">
                 Conversaciones del equipo
@@ -487,9 +491,25 @@ export default function FichaCliente({
                 </p>
               </div>
 
-              <a href="/panel/clientes/nuevo" className="boton shrink-0">
-                Pegar cadena nueva
-              </a>
+              {esWordPress ? (
+                <form action={reconectar} className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
+                  <input type="hidden" name="volver" value={`/panel/clientes/${clienteId}`} />
+                  <input
+                    name="cadena"
+                    required
+                    placeholder="Pega aquí la cadena de conexión"
+                    aria-label="Cadena de conexión"
+                    className="min-w-[260px] flex-1 rounded-xl border border-[color:var(--linea-fuerte)] bg-white px-3.5 py-2 font-mono text-[12px] outline-none transition focus:border-[color:var(--acento)]"
+                  />
+                  <button type="submit" className="boton shrink-0">
+                    Reconectar
+                  </button>
+                </form>
+              ) : (
+                <a href="/panel/clientes/nuevo" className="boton shrink-0">
+                  Volver a autorizar en Shopify
+                </a>
+              )}
             </div>
           )}
         </div>

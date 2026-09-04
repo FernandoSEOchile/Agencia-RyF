@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { Cabecera, useOrden, type Columna } from "@/components/Tabla";
 import { dinero } from "@/lib/formato";
+import Esqueleto from "@/components/Esqueleto";
 
 interface Perfil {
   dominio: string;
@@ -129,7 +130,7 @@ export default function Backlinks({
   }
 
   if (cargando && !datos) {
-    return <p className="mt-5 text-[13px] text-[color:var(--tinta-suave)]">Cargando…</p>;
+    return <Esqueleto tipo="cifras" />;
   }
 
   const p = datos?.perfil;

@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Cabecera, useOrden, type Columna } from "@/components/Tabla";
 import SearchConsole from "@/components/SearchConsole";
 import Velocidad from "@/components/Velocidad";
+import Esqueleto from "@/components/Esqueleto";
 
 /**
  * Rastreo técnico del sitio.
@@ -237,7 +238,7 @@ export default function Rastreo({
               : (p[c] ?? -1)
       );
 
-  if (cargando) return <p className="text-[13px] text-[color:var(--tinta-media)]">Mirando…</p>;
+  if (cargando) return <Esqueleto tipo="cifras" />;
 
   return (
     <>

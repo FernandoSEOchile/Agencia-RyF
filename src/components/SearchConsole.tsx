@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Periodo, { usePeriodo } from "@/components/Periodo";
+import Esqueleto from "@/components/Esqueleto";
 
 interface Fila {
   consulta: string;
@@ -158,7 +159,12 @@ export default function SearchConsole({
   }
 
   if (cargando && !datos) {
-    return <p className="mt-4 text-[13px] text-[color:var(--tinta-suave)]">Consultando Search Console…</p>;
+    return (
+      <>
+        <Esqueleto tipo="cifras" />
+        <Esqueleto tipo="tabla" />
+      </>
+    );
   }
 
   const aviso = error && (

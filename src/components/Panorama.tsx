@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Periodo, { usePeriodo } from "@/components/Periodo";
+import Esqueleto from "@/components/Esqueleto";
 import {
   Linea,
   Tramos,
@@ -108,7 +109,12 @@ export default function Panorama({
   }, [cargar]);
 
   if (cargando && !d) {
-    return <p className="text-[13px] text-[color:var(--tinta-media)]">Reuniendo los datos…</p>;
+    return (
+      <>
+        <Esqueleto tipo="cifras" />
+        <Esqueleto tipo="grafico" />
+      </>
+    );
   }
 
   if (error) return <p className="text-[13px] font-medium text-red-600">{error}</p>;

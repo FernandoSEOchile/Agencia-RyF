@@ -239,7 +239,9 @@ export default function Palabras({ puedePagar }: { puedePagar: boolean }) {
       <div className="mt-5 flex flex-wrap items-center gap-x-4 gap-y-2">
         <p className="text-[13px] text-[color:var(--tinta-media)]">
           {cargando
-            ? "Buscando…"
+            ? hayBusqueda
+              ? "Buscando…"
+              : "Leyendo lo guardado…"
             : `${miles(total)} ${total === 1 ? "palabra guardada" : "palabras guardadas"}` +
               (hayBusqueda ? ` para «${busca.trim()}»` : "") +
               (total > terminos.length ? ` · se muestran ${miles(terminos.length)}` : "") +

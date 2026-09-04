@@ -9,6 +9,7 @@ import { aplicacion } from "@/lib/gsc";
 import Barra from "@/components/Barra";
 import Plataforma from "@/components/Plataforma";
 import { fecha } from "@/lib/formato";
+import { conectarSitio } from "@/lib/conectarSitio";
 
 export const dynamic = "force-dynamic";
 
@@ -145,7 +146,7 @@ export default async function Ficha({
     { etiqueta: "Categorías", valor: cats ? String(cats.length) : "—" },
     {
       etiqueta: "Con descripción",
-      valor: cats?.length ? `${conTexto} · ${Math.round((100 * conTexto) / cats.length)} %` : "—",
+      valor: cats?.length ? `${conTexto} · ${Math.round((100 * conTexto) / cats.length)}%` : "—",
     },
     { etiqueta: "Operaciones", valor: log?.datos?.total?.toLocaleString("es-CL") ?? "—" },
   ];
@@ -350,6 +351,8 @@ export default async function Ficha({
         }))}
         borrar={borrarConversacion}
         limpiar={limpiarConversaciones}
+        reconectar={conectarSitio}
+        esWordPress={cliente.plataforma !== "shopify"}
         totalConversaciones={totalConversaciones}
         sucesos={sucesos}
         datos={datos}

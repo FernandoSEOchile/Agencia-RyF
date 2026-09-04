@@ -440,6 +440,7 @@ export default function Chat({
                   type="button"
                   onClick={() => setAdjuntas((prev) => prev.filter((_, j) => j !== k))}
                   title="Quitar"
+                  aria-label={`Quitar ${a.nombre}`}
                   className="absolute -right-1.5 -top-1.5 grid h-5 w-5 place-items-center rounded-full bg-[color:var(--tinta)] text-xs text-white opacity-0 transition group-hover:opacity-100"
                 >
                   ×
@@ -469,6 +470,7 @@ export default function Chat({
             onClick={() => archivos.current?.click()}
             disabled={ocupado}
             title="Adjuntar imagen"
+            aria-label="Adjuntar imagen"
             className="grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-[color:var(--linea-fuerte)] text-[color:var(--tinta-media)] transition hover:border-[color:var(--acento)] hover:text-[color:var(--acento)] disabled:opacity-40"
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">

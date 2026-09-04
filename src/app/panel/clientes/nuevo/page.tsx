@@ -7,6 +7,7 @@ import { leerCadena, dominioDe, salud } from "@/lib/conector";
 import { anotar } from "@/lib/clientes";
 import Barra from "@/components/Barra";
 import { IconoWordPress, IconoShopify } from "@/components/Plataforma";
+import { conectarSitio } from "@/lib/conectarSitio";
 
 export const metadata = { title: "Conectar sitio · AppSEO" };
 
@@ -23,80 +24,6 @@ export default async function NuevoCliente({
   const { error } = await searchParams;
   const listo = cifradoListo();
 
-  /**
-   * Alta de una tienda Shopify.
-   *
-   * Shopify no permite instalar nada dentro de la tienda, así que en vez de una
-   * cadena que genera un plugin, aquí se pega el token de una «app
-   * personalizada» que el propio dueño crea en su admin. El efecto es el mismo:
-   * una credencial que el panel guarda cifrada y comprueba antes de aceptar.
-   */
-  async function conectar(datos: FormData) {
-    "use server";
-
-    const s = await auth();
-    const rolAccion = (s?.user as { rol?: string } | undefined)?.rol;
-    if (!s?.user?.id || (rolAccion !== "ADMIN" && rolAccion !== "GESTOR")) redirect("/entrar");
-
-    const cadena = String(datos.get("cadena") || "");
-    const nombre = String(datos.get("nombre") || "").trim();
-
-    let cfg;
-    try {
-      cfg = leerCadena(cadena);
-    } catch (e) {
-      redirect("/panel/clientes/nuevo?error=" + encodeURIComponent((e as Error).message));
-    }
-
-    // Se comprueba contra el sitio ANTES de guardar. Un cliente que aparece en
-    // la lista pero cuya credencial no sirve es peor que no tenerlo.
-    const prueba = await salud({ urlRest: cfg.rest, keyId: cfg.key_id, secreto: cfg.secret });
-    if (!prueba.ok) {
-      redirect(
-        "/panel/clientes/nuevo?error=" +
-          encodeURIComponent(
-            "El sitio no aceptó la credencial: " + (prueba.mensaje || prueba.codigo || `HTTP ${prueba.estado}`)
-          )
-      );
-    }
-
-    const dominio = dominioDe(cfg.site);
-
-    const cliente = await db.cliente.upsert({
-      where: { dominio },
-      update: {
-        urlRest: cfg.rest,
-        keyId: cfg.key_id,
-        secreto: cifrar(cfg.secret),
-        activo: true,
-        version: prueba.datos?.conector,
-        soloLectura: prueba.datos?.solo_lectura,
-        ultimaSonda: new Date(),
-        estadoSonda: "ok",
-      },
-      create: {
-        nombre: nombre || dominio,
-        dominio,
-        plataforma: "wordpress",
-        urlRest: cfg.rest,
-        keyId: cfg.key_id,
-        secreto: cifrar(cfg.secret),
-        version: prueba.datos?.conector,
-        soloLectura: prueba.datos?.solo_lectura,
-        ultimaSonda: new Date(),
-        estadoSonda: "ok",
-      },
-    });
-
-    await anotar({
-      usuarioId: s.user.id,
-      clienteId: cliente.id,
-      accion: "cliente_conectar",
-      resumen: `${dominio} conectado · conector v${prueba.datos?.conector}`,
-    });
-
-    redirect(`/panel/clientes/${cliente.id}`);
-  }
 
   return (
     <>
@@ -135,7 +62,7 @@ export default async function NuevoCliente({
 
       {error && <p className="mt-6 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p>}
 
-      <form action={conectar} className="mt-8 flex flex-col gap-4">
+      <form action={conectarSitio} className="mt-8 flex flex-col gap-4">
         <label className="flex flex-col gap-1.5">
           <span className="text-xs font-medium uppercase tracking-wide text-neutral-500">
             Nombre del cliente <span className="normal-case text-neutral-400">(opcional)</span>

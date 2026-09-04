@@ -2,6 +2,7 @@
 
 import { useConfirmar } from "@/components/Confirmar";
 import { useEffect, useState } from "react";
+import Esqueleto from "@/components/Esqueleto";
   const { confirmar, dialogo } = useConfirmar();
 
 interface Entrada {
@@ -177,7 +178,7 @@ export default function Bitacora({
   }
 
   if (cargando && !datos) {
-    return <p className="mt-5 text-[13px] text-[color:var(--tinta-suave)]">Cargando la bitácora…</p>;
+    return <Esqueleto tipo="texto" />;
   }
 
   return (

@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import "leaflet/dist/leaflet.css";
 import { dinero, fecha } from "@/lib/formato";
+import Esqueleto from "@/components/Esqueleto";
 
 /**
  * Posiciones locales sobre un mapa.
@@ -270,7 +271,7 @@ export default function Local({
 
   const coste = ((lado * lado) * 0.002).toFixed(2);
 
-  if (cargando) return <p className="text-[13px] text-[color:var(--tinta-media)]">Mirando…</p>;
+  if (cargando) return <Esqueleto tipo="cifras" />;
 
   return (
     <>
