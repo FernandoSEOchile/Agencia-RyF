@@ -7,6 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
+    "probar": "node --experimental-strip-types --test \"src/**/*.prueba.mts\"",
     "panel:usuario": "node --env-file=.env --env-file=.env.local scripts/crear-usuario.mjs",
     "panel:importar": "node --env-file=.env --env-file=.env.local scripts/importar-clientes.mjs",
     "panel:postgres": "node scripts/a-postgres.mjs",

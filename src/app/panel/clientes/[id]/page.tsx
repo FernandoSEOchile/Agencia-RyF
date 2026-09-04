@@ -47,7 +47,7 @@ export default async function Ficha({
     if (!acceso) redirect("/panel");
   }
 
-  const puedeEscribir = rol !== "LECTOR" && cliente.soloLectura === false;
+  const puedeEscribir = (rol !== "LECTOR" && cliente.soloLectura === false) && !cliente.escrituraBloqueada;
 
   // Las consultas seguidas, cada una con sus dos últimas medidas: la actual y
   // la anterior, que es lo que permite mostrar si subió o bajó.
@@ -70,7 +70,7 @@ export default async function Ficha({
 
   // Se piden en paralelo y ningún fallo bloquea al resto: un endpoint que la
   // versión instalada del conector no tiene no debe vaciar la ficha entera.
-  const [log, productos, terminos, registroPanel, totalConversaciones, conversaciones] =
+  const [log, productos, terminos, registroPanel, totalConversaciones, memorias, rastreosHechos, fichasHechas, enlacesMedidos, bitacorasHechas, conversaciones] =
     await Promise.all([
     api<{ entradas: EntradaLog[]; total: number }>(id, "GET", "/log?por_pagina=50").catch(() => null),
     api<{ total: number }>(id, "GET", "/products?pagina=1").catch(() => null),
@@ -84,10 +84,19 @@ export default async function Ficha({
     // Todos los hilos del cliente, de quien sea. Ver lo que pidió un compañero
     // es la mitad del valor de tener el historial guardado.
     db.conversacion.count({ where: { clienteId: id } }),
+    db.memoria.findMany({
+      where: { clienteId: id },
+      orderBy: { tocado: "desc" },
+      select: { id: true, titulo: true, nota: true, tocado: true },
+    }),
+    db.rastreo.count({ where: { clienteId: id, estado: "terminado" } }),
+    db.auditoriaFicha.count({ where: { clienteId: id } }),
+    db.backlinks.findUnique({ where: { clienteId: id }, select: { medido: true } }),
+    db.bitacora.count({ where: { clienteId: id } }),
     db.conversacion.findMany({
       where: { clienteId: id },
       orderBy: { tocado: "desc" },
-      take: 30,
+      take: 100,
       select: {
         id: true,
         titulo: true,
@@ -98,16 +107,6 @@ export default async function Ficha({
     }),
   ]);
 
-  // Los nombres de quienes abrieron hilos, para poner cara a cada uno. Se
-  // piden en una sola consulta y no uno por uno.
-  const nombres = new Map(
-    (
-      await db.usuario.findMany({
-        where: { id: { in: [...new Set(conversaciones.map((x) => x.usuarioId))] } },
-        select: { id: true, nombre: true },
-      })
-    ).map((u) => [u.id, u.nombre])
-  );
 
   // La conversación abierta: la pedida por URL, o la última que se tocó. El
   // único filtro es el cliente, para que nadie llegue a un hilo de un sitio al
@@ -115,8 +114,30 @@ export default async function Ficha({
   const conversacion = await db.conversacion.findFirst({
     where: { clienteId: id, ...(c ? { id: c } : {}) },
     orderBy: { tocado: "desc" },
-    include: { mensajes: { orderBy: { creado: "asc" }, take: 60 } },
+    // Los últimos sesenta: con `asc` + `take` la pantalla enseñaba los sesenta
+    // primeros y escondía justo lo más nuevo.
+    include: { mensajes: { orderBy: { creado: "desc" }, take: 60 } },
   });
+
+  // Los nombres de quienes abrieron hilos, para poner cara a cada uno. Se
+  // piden en una sola consulta y no uno por uno.
+  const nombres = new Map(
+    (
+      await db.usuario.findMany({
+        where: {
+          id: {
+            in: [
+              ...new Set([
+                ...conversaciones.map((x) => x.usuarioId),
+                ...(conversacion?.mensajes ?? []).map((m) => m.usuarioId).filter((u): u is string => Boolean(u)),
+              ]),
+            ],
+          },
+        },
+        select: { id: true, nombre: true },
+      })
+    ).map((u) => [u.id, u.nombre])
+  );
 
   const sucesos: Suceso[] = [
     ...(log?.datos?.entradas ?? []).map((e) => ({
@@ -151,11 +172,16 @@ export default async function Ficha({
     { etiqueta: "Operaciones", valor: log?.datos?.total?.toLocaleString("es-CL") ?? "—" },
   ];
 
-  const historial = (conversacion?.mensajes ?? []).map((m) => ({
+  const historial = [...(conversacion?.mensajes ?? [])].reverse().map((m) => ({
     rol: m.rol as "user" | "assistant",
     contenido: m.contenido,
     usadas: m.usadas ? (JSON.parse(m.usadas) as string[]) : undefined,
     imagenes: m.imagenes ? (JSON.parse(m.imagenes) as string[]) : undefined,
+    // En un hilo compartido se dice quién pidió cada cosa; lo propio va sin nombre.
+    autor:
+      m.rol === "user" && m.usuarioId && m.usuarioId !== sesion.user!.id
+        ? (nombres.get(m.usuarioId) ?? "otra persona")
+        : undefined,
   }));
 
   async function comprobar() {
@@ -213,6 +239,56 @@ export default async function Ficha({
       where: { id: { in: vacias.filter((c) => c._count.mensajes < 2).map((c) => c.id) } },
     });
     redirect(`/panel/clientes/${id}`);
+  }
+
+  async function guardarAjustesCliente(datos: FormData) {
+    "use server";
+    const s = await auth();
+    const rolAccion = (s?.user as { rol?: string } | undefined)?.rol;
+    if (!s?.user?.id || rolAccion === "LECTOR") redirect("/entrar");
+
+    const instrucciones = String(datos.get("instrucciones") ?? "").trim().slice(0, 4000) || null;
+    const tarifaBruta = String(datos.get("tarifa") ?? "").replace(",", ".").trim();
+    const tarifa = tarifaBruta ? Math.max(0, Number(tarifaBruta)) : null;
+    const escrituraBloqueada = datos.get("escrituraBloqueada") === "1";
+
+    await db.cliente.update({
+      where: { id },
+      data: { instrucciones, tarifa: Number.isFinite(tarifa as number) ? tarifa : null, escrituraBloqueada },
+    });
+    await anotar({
+      usuarioId: s.user.id,
+      clienteId: id,
+      accion: "cliente_ajustes",
+      resumen: `Ajustes del cliente guardados${escrituraBloqueada ? " · escritura bloqueada desde el panel" : ""}`,
+    });
+    redirect(`/panel/clientes/${id}?ok=${encodeURIComponent("Ajustes guardados.")}&t=datos`);
+  }
+
+  /**
+   * Dar de baja no borra: el cliente deja de aparecer y el vigía deja de
+   * mirarlo, pero su histórico, su gasto y sus hilos siguen ahí. Borrarlo de
+   * verdad arrastraría todo eso por la cascada.
+   */
+  async function darDeBaja() {
+    "use server";
+    const s = await auth();
+    const rolAccion = (s?.user as { rol?: string } | undefined)?.rol;
+    if (!s?.user?.id || (rolAccion !== "ADMIN" && rolAccion !== "GESTOR")) redirect("/entrar");
+    await db.cliente.update({ where: { id }, data: { activo: false } });
+    await anotar({ usuarioId: s.user.id, clienteId: id, accion: "cliente_baja", resumen: "Cliente dado de baja" });
+    redirect("/panel");
+  }
+
+  async function olvidarMemoria(datos: FormData) {
+    "use server";
+    const s = await auth();
+    const rolAccion = (s?.user as { rol?: string } | undefined)?.rol;
+    if (!s?.user?.id || rolAccion === "LECTOR") redirect("/entrar");
+    const memoriaId = String(datos.get("memoriaId") ?? "");
+    // Con clienteId en el where: nadie borra un apunte de otro cliente por id.
+    await db.memoria.deleteMany({ where: { id: memoriaId, clienteId: id } });
+    redirect(`/panel/clientes/${id}?t=datos`);
   }
 
   /** Activa o desactiva la beta de arquitectura en este cliente. */
@@ -351,6 +427,27 @@ export default async function Ficha({
         }))}
         borrar={borrarConversacion}
         limpiar={limpiarConversaciones}
+        ajustes={{
+          instrucciones: cliente.instrucciones ?? "",
+          tarifa: cliente.tarifa,
+          escrituraBloqueada: cliente.escrituraBloqueada,
+        }}
+        guardarAjustes={guardarAjustesCliente}
+        darDeBaja={darDeBaja}
+        puedeDarDeBaja={rol === "ADMIN" || rol === "GESTOR"}
+        memorias={memorias.map((m) => ({ id: m.id, titulo: m.titulo, nota: m.nota, fecha: fecha(m.tocado) }))}
+        olvidar={olvidarMemoria}
+        pasos={[
+          { texto: "Sitio conectado", hecho: Boolean(cliente.version) || cliente.plataforma === "shopify", pestaña: "datos" },
+          { texto: "Escritura activada", hecho: cliente.soloLectura === false && !cliente.escrituraBloqueada, pestaña: "datos" },
+          { texto: "Search Console conectado", hecho: Boolean(cliente.gscPropiedad), pestaña: "posiciones" },
+          { texto: "Palabras en seguimiento", hecho: keywords.length > 0, pestaña: "posiciones" },
+          { texto: "Primer rastreo técnico", hecho: rastreosHechos > 0, pestaña: "tecnico" },
+          { texto: "Backlinks consultados", hecho: Boolean(enlacesMedidos), pestaña: "backlinks" },
+          { texto: "Ficha de Google analizada", hecho: fichasHechas > 0, pestaña: "local" },
+          { texto: "Instrucciones fijas escritas", hecho: Boolean(cliente.instrucciones), pestaña: "datos" },
+          { texto: "Primera bitácora", hecho: bitacorasHechas > 0, pestaña: "bitacora" },
+        ]}
         reconectar={conectarSitio}
         esWordPress={cliente.plataforma !== "shopify"}
         totalConversaciones={totalConversaciones}

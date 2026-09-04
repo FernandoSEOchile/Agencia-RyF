@@ -11,6 +11,8 @@ interface Turno {
   contenido: string;
   usadas?: string[];
   imagenes?: string[];
+  /** Quién lo escribió, cuando no fuiste tú. */
+  autor?: string;
   /** Lo que razonó antes de contestar. Se guarda plegado bajo la respuesta. */
   pensamiento?: string;
 }
@@ -368,6 +370,9 @@ export default function Chat({
               )}
               {t.rol === "user" ? (
                 <>
+                  {t.autor && (
+                    <p className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-white/60">{t.autor}</p>
+                  )}
                   {t.imagenes && t.imagenes.length > 0 && (
                     <div className="mb-2 flex flex-wrap gap-1.5">
                       {t.imagenes.map((src, k) => (

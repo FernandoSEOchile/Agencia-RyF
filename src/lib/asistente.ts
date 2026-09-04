@@ -58,6 +58,8 @@ export function instrucciones(datos: {
   conContenido?: boolean;
   /** Lo aprendido de ESTE sitio en conversaciones anteriores. */
   memorias?: { titulo: string; nota: string }[];
+  /** Lo que la agencia dejó escrito para este cliente: tono, límites, prioridades. */
+  brief?: string | null;
 }) {
   return `${
   datos.plataforma === "shopify"
@@ -103,7 +105,15 @@ SOBRE EL COSTE
 Cada mensaje cuesta dinero real. Trae solo los datos que necesitas: listar_productos devuelve metadatos, no descripciones completas, y leer_producto es para cuando de verdad vas a trabajar sobre ese producto.
 
 Cuando termines algo, resume en una o dos frases qué cambió y dónde verlo.
-
+${
+  datos.brief?.trim()
+    ? `
+LO QUE LA AGENCIA DEJÓ DICHO PARA ESTE CLIENTE
+Esto lo escribió el equipo y manda sobre cualquier criterio general. Cúmplelo siempre, sin que haya que repetirlo:
+${datos.brief.trim()}
+`
+    : ""
+}
 ${
   datos.memorias?.length
     ? `LO QUE YA SABES DE ESTE SITIO

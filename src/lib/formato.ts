@@ -78,7 +78,10 @@ export function dinero(n: number | null | undefined, cero = "sin coste"): string
   if (!n) return cero;
   if (n >= 1) return `US$${n.toFixed(2)}`;
   const cifras = Math.max(2, 2 - Math.floor(Math.log10(n)));
-  return `US$${n.toFixed(Math.min(cifras, 5))}`;
+  // Sin ceros de relleno al final (US$0.034, no US$0.0340), pero nunca menos
+  // de dos decimales, que es lo que se espera de un importe.
+  const texto = n.toFixed(Math.min(cifras, 5)).replace(/(\.\d\d\d*?)0+$/, "$1");
+  return `US$${texto}`;
 }
 
 /** Miles con punto, como se escribe en Chile. */

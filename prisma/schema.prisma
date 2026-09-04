@@ -68,6 +68,18 @@ model Cliente {
   /// activa cliente a cliente en vez de aparecerle a todo el mundo.
   betaArquitectura Boolean @default(false)
 
+  /// Lo que el asistente debe saber siempre de este cliente —tono, qué no
+  /// tocar, productos estrella— sin que haya que repetirlo cada día.
+  instrucciones String?
+
+  /// Lo que se le cobra al mes, en dólares. Sin esto el panel dice cuánto
+  /// cuesta un cliente pero no si sale rentable.
+  tarifa Float?
+
+  /// Candado del panel, aparte del interruptor del plugin: vale para Shopify,
+  /// donde no hay plugin, y para frenar sin tocar el sitio del cliente.
+  escrituraBloqueada Boolean @default(false)
+
   /// Propiedad de Search Console que corresponde a este sitio. Puede ser de
   /// tipo dominio («sc-domain:ejemplo.cl») o de prefijo de URL.
   gscPropiedad String?

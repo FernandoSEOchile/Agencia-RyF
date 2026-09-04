@@ -61,7 +61,7 @@ export async function POST(req: NextRequest) {
 
   // Un LECTOR nunca escribe, aunque el sitio lo permita. Y si el sitio está en
   // solo lectura, tampoco escribe nadie: manda el ajuste del cliente.
-  const puedeEscribir = rol !== "LECTOR" && cliente.soloLectura === false;
+  const puedeEscribir = rol !== "LECTOR" && cliente.soloLectura === false && !cliente.escrituraBloqueada;
 
   // Conversación: se reutiliza la que venga, o se abre una nueva.
   const conversacion = conversacionId
@@ -164,6 +164,7 @@ export async function POST(req: NextRequest) {
     conDiseno,
     conContenido,
     memorias,
+    brief: cliente.instrucciones,
   });
 
   const codificador = new TextEncoder();

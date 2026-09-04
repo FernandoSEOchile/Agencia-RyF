@@ -134,6 +134,23 @@ export async function modeloConfigurado(): Promise<string> {
   return process.env.ANTHROPIC_MODEL || MODELO_POR_DEFECTO;
 }
 
+/** URL del webhook al que van los avisos: Slack, Discord o Google Chat. */
+export async function webhookAvisos(): Promise<string | null> {
+  return (await leer("webhook_avisos")) || null;
+}
+
+export async function guardarWebhookAvisos(valor: string) {
+  const u = valor.trim();
+  if (!u) {
+    await db.config.deleteMany({ where: { clave: "webhook_avisos" } });
+    return;
+  }
+  if (!/^https:\/\//.test(u)) throw new Error("El webhook tiene que empezar por https://");
+  // Cifrado: la URL de un webhook entrante es una credencial, quien la tenga
+  // puede escribir en el canal.
+  await escribir("webhook_avisos", u, true);
+}
+
 /**
  * El modelo para una clase de trabajo. Siempre uno concreto.
  *
@@ -170,5 +187,6 @@ export async function estadoConfig() {
     modelo: await modeloConfigurado(),
     modeloEnPanel: Boolean(await leer("modelo")),
     espacio: (await espacioTrabajo()) ?? "",
+    avisos: Boolean(await leer("webhook_avisos")),
   };
 }

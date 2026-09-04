@@ -29,6 +29,7 @@ interface Turno {
   contenido: string;
   usadas?: string[];
   imagenes?: string[];
+  autor?: string;
 }
 
 export interface ResumenConversacion {
@@ -137,6 +138,13 @@ export default function FichaCliente({
   conversaciones,
   borrar,
   limpiar,
+  ajustes,
+  guardarAjustes,
+  darDeBaja,
+  puedeDarDeBaja,
+  memorias,
+  olvidar,
+  pasos,
   reconectar,
   esWordPress,
   totalConversaciones,
@@ -156,6 +164,13 @@ export default function FichaCliente({
   conversaciones: ResumenConversacion[];
   borrar: (datos: FormData) => Promise<void>;
   limpiar: () => Promise<void>;
+  ajustes: { instrucciones: string; tarifa: number | null; escrituraBloqueada: boolean };
+  guardarAjustes: (datos: FormData) => Promise<void>;
+  darDeBaja: () => Promise<void>;
+  puedeDarDeBaja: boolean;
+  memorias: { id: string; titulo: string; nota: string; fecha: string }[];
+  olvidar: (datos: FormData) => Promise<void>;
+  pasos: { texto: string; hecho: boolean; pestaña: string }[];
   reconectar: (datos: FormData) => Promise<void>;
   esWordPress: boolean;
   totalConversaciones: number;
@@ -471,6 +486,157 @@ export default function FichaCliente({
               <Contador key={d.etiqueta} etiqueta={d.etiqueta} valor={d.valor} />
             ))}
           </dl>
+
+          {/* La puesta en marcha de un cliente nuevo era conectar el sitio y
+              caer en el chat con todo lo demás repartido por pestañas. Esto
+              dice qué falta, y lleva a cada cosa. Desaparece cuando está todo. */}
+          {pasos.some((x) => !x.hecho) && (
+            <div className="tarjeta mt-4 p-5">
+              <div className="flex items-baseline justify-between gap-3">
+                <p className="text-[14px] font-medium">Puesta en marcha</p>
+                <p className="text-[12px] tabular-nums text-[color:var(--tinta-suave)]">
+                  {pasos.filter((x) => x.hecho).length} de {pasos.length}
+                </p>
+              </div>
+              <ul className="mt-3 grid gap-1.5 sm:grid-cols-2">
+                {pasos.map((x) => (
+                  <li key={x.texto} className="flex items-center gap-2 text-[13px]">
+                    <span className={x.hecho ? "text-emerald-600" : "text-[color:var(--tinta-suave)]"}>
+                      {x.hecho ? "✓" : "○"}
+                    </span>
+                    {x.hecho ? (
+                      <span className="text-[color:var(--tinta-media)]">{x.texto}</span>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => setActiva(x.pestaña as Pestaña)}
+                        className="text-left underline-offset-4 hover:text-[color:var(--acento)] hover:underline"
+                      >
+                        {x.texto}
+                      </button>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {/* Ajustes del cliente: el brief fijo, la tarifa y el candado. */}
+          <form action={guardarAjustes} className="tarjeta mt-4 p-5">
+            <p className="text-[14px] font-medium">Ajustes de {nombre}</p>
+
+            <label className="mt-4 block">
+              <span className="rotulo">Instrucciones fijas para el asistente</span>
+              <textarea
+                name="instrucciones"
+                defaultValue={ajustes.instrucciones}
+                rows={4}
+                maxLength={4000}
+                disabled={!puedeSubir}
+                placeholder="Tono de la marca, qué no tocar, productos estrella, cómo firman los textos… Se lo dice al asistente en cada turno, sin que haya que repetirlo."
+                className="mt-1.5 w-full rounded-xl border border-[color:var(--linea-fuerte)] bg-white px-3.5 py-2.5 text-[13px] leading-relaxed outline-none transition focus:border-[color:var(--acento)] disabled:bg-black/[0.03]"
+              />
+            </label>
+
+            <div className="mt-4 flex flex-wrap items-end gap-4">
+              <label className="block">
+                <span className="rotulo">Tarifa mensual (US$)</span>
+                <input
+                  name="tarifa"
+                  type="number"
+                  min={0}
+                  step="1"
+                  defaultValue={ajustes.tarifa ?? ""}
+                  disabled={!puedeSubir}
+                  placeholder="0"
+                  className="mt-1.5 block w-36 rounded-xl border border-[color:var(--linea-fuerte)] bg-white px-3.5 py-2 text-[13px] tabular-nums outline-none transition focus:border-[color:var(--acento)] disabled:bg-black/[0.03]"
+                />
+              </label>
+
+              <label className="flex items-center gap-2 pb-2 text-[13px]">
+                <input
+                  type="checkbox"
+                  name="escrituraBloqueada"
+                  value="1"
+                  defaultChecked={ajustes.escrituraBloqueada}
+                  disabled={!puedeSubir}
+                  className="accent-[color:var(--acento)]"
+                />
+                Bloquear la escritura desde el panel
+              </label>
+            </div>
+            <p className="mt-1.5 text-[12px] text-[color:var(--tinta-suave)]">
+              La tarifa sirve para leer si el cliente sale rentable en Gasto. El bloqueo frena al asistente
+              aunque el sitio permita escribir; vale también para Shopify, donde no hay plugin.
+            </p>
+
+            {puedeSubir && (
+              <div className="mt-4 flex flex-wrap items-center gap-2">
+                <button type="submit" className="boton-fuerte">
+                  Guardar ajustes
+                </button>
+                {puedeDarDeBaja && (
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      if (
+                        await confirmar({
+                          titulo: `¿Dar de baja a ${nombre}?`,
+                          detalle: "Desaparece de la cartera y el vigía deja de mirarlo. Su histórico, su gasto y sus hilos se conservan; un administrador puede reactivarlo desde la base.",
+                          boton: "Dar de baja",
+                        })
+                      )
+                        await darDeBaja();
+                    }}
+                    className="ml-auto text-[12px] text-[color:var(--tinta-suave)] transition hover:text-red-600"
+                  >
+                    Dar de baja este cliente
+                  </button>
+                )}
+              </div>
+            )}
+          </form>
+
+          {/* La memoria del asistente, que era invisible: lo que aprendió del
+              sitio en hilos anteriores y lo que se le cuela en cada turno. */}
+          <div className="tarjeta mt-4 p-5">
+            <div className="flex items-baseline justify-between gap-3">
+              <p className="text-[14px] font-medium">Lo que el asistente recuerda de este sitio</p>
+              <p className="text-[12px] tabular-nums text-[color:var(--tinta-suave)]">{memorias.length} apuntes</p>
+            </div>
+            {memorias.length === 0 ? (
+              <p className="mt-2 text-[13px] text-[color:var(--tinta-media)]">
+                Todavía nada. Guarda apuntes durante las conversaciones: cómo está montado el sitio, qué decidió
+                el cliente, qué no hay que tocar.
+              </p>
+            ) : (
+              <ul className="mt-3 divide-y divide-[color:var(--linea)]">
+                {memorias.map((m) => (
+                  <li key={m.id} className="flex items-start gap-3 py-2.5">
+                    <div className="min-w-0 flex-1">
+                      <p className="text-[13px] font-medium">{m.titulo}</p>
+                      <p className="mt-0.5 text-[13px] leading-relaxed text-[color:var(--tinta-media)]">{m.nota}</p>
+                      <p className="mt-0.5 text-[11px] text-[color:var(--tinta-suave)]">{m.fecha}</p>
+                    </div>
+                    {puedeSubir && (
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          if (!(await confirmar({ titulo: `¿Olvidar «${m.titulo}»?`, detalle: "El asistente dejará de tenerlo en cuenta en los próximos turnos.", boton: "Olvidar" }))) return;
+                          const d = new FormData();
+                          d.set("memoriaId", m.id);
+                          await olvidar(d);
+                        }}
+                        className="shrink-0 text-[12px] text-[color:var(--tinta-suave)] transition hover:text-red-600"
+                      >
+                        Olvidar
+                      </button>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
 
           {/* La reconexión vivía solo en «Conectar sitio», donde nadie la
               buscaba: quien acaba de regenerar la cadena está mirando la ficha
