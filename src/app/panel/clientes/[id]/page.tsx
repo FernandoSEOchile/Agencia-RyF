@@ -68,7 +68,8 @@ export default async function Ficha({
 
   // Se piden en paralelo y ningún fallo bloquea al resto: un endpoint que la
   // versión instalada del conector no tiene no debe vaciar la ficha entera.
-  const [log, productos, terminos, registroPanel, conversaciones] = await Promise.all([
+  const [log, productos, terminos, registroPanel, totalConversaciones, conversaciones] =
+    await Promise.all([
     api<{ entradas: EntradaLog[]; total: number }>(id, "GET", "/log?por_pagina=50").catch(() => null),
     api<{ total: number }>(id, "GET", "/products?pagina=1").catch(() => null),
     api<{ terminos: { seo_bytes: number }[] }>(id, "GET", "/terms?taxonomia=product_cat").catch(() => null),
@@ -80,6 +81,7 @@ export default async function Ficha({
     }),
     // Todos los hilos del cliente, de quien sea. Ver lo que pidió un compañero
     // es la mitad del valor de tener el historial guardado.
+    db.conversacion.count({ where: { clienteId: id } }),
     db.conversacion.findMany({
       where: { clienteId: id },
       orderBy: { tocado: "desc" },
@@ -182,6 +184,31 @@ export default async function Ficha({
 
     await db.conversacion.deleteMany({
       where: { id: convId, clienteId: id, ...(esAdmin ? {} : { usuarioId: s.user.id }) },
+    });
+    redirect(`/panel/clientes/${id}`);
+  }
+
+  /**
+   * Se lleva los hilos que no llegaron a nada.
+   *
+   * Cada vez que alguien pulsa «nueva conversación» y no escribe queda un
+   * hilo vacío en la lista. En unos meses son cientos y tapan los que
+   * importan. Uno o ningún mensaje es la frontera: con un solo mensaje no
+   * hubo respuesta, así que tampoco hay nada que conservar.
+   */
+  async function limpiarConversaciones() {
+    "use server";
+    const s = await auth();
+    if (!s?.user?.id) redirect("/entrar");
+    const esAdmin = (s.user as { rol?: string }).rol === "ADMIN";
+
+    const vacias = await db.conversacion.findMany({
+      where: { clienteId: id, ...(esAdmin ? {} : { usuarioId: s.user.id }) },
+      select: { id: true, _count: { select: { mensajes: true } } },
+    });
+
+    await db.conversacion.deleteMany({
+      where: { id: { in: vacias.filter((c) => c._count.mensajes < 2).map((c) => c.id) } },
     });
     redirect(`/panel/clientes/${id}`);
   }
@@ -321,6 +348,8 @@ export default async function Ficha({
           autor: x.usuarioId === sesion.user!.id ? null : (nombres.get(x.usuarioId) ?? "otra persona"),
         }))}
         borrar={borrarConversacion}
+        limpiar={limpiarConversaciones}
+        totalConversaciones={totalConversaciones}
         sucesos={sucesos}
         datos={datos}
       />

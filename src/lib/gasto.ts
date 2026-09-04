@@ -22,9 +22,29 @@ const TARIFAS: Record<string, { entrada: number; salida: number }> = {
 
 const POR_DEFECTO = TARIFAS["claude-opus-5"];
 
-export function costeClaude(modelo: string, entrada: number, salida: number): number {
+/**
+ * Lo que cuesta un turno de conversación.
+ *
+ * Los tokens de caché no valen lo mismo que los normales: escribir en la caché
+ * cuesta un 25% más y leerla, la décima parte. Contarlos todos igual da una
+ * cifra que no se parece a la factura, y justo en el sentido peor: con la caché
+ * puesta, el panel diría que se gasta diez veces lo que se gasta.
+ */
+export function costeClaude(
+  modelo: string,
+  entrada: number,
+  salida: number,
+  cacheEscritura = 0,
+  cacheLectura = 0
+): number {
   const t = TARIFAS[modelo] ?? POR_DEFECTO;
-  return (entrada * t.entrada + salida * t.salida) / 1e6;
+  return (
+    (entrada * t.entrada +
+      cacheEscritura * t.entrada * 1.25 +
+      cacheLectura * t.entrada * 0.1 +
+      salida * t.salida) /
+    1e6
+  );
 }
 
 export async function apuntar(datos: {
@@ -61,14 +81,22 @@ export async function apuntarClaude(datos: {
   modelo: string;
   entrada: number;
   salida: number;
+  cacheEscritura?: number;
+  cacheLectura?: number;
 }) {
+  const escritura = datos.cacheEscritura ?? 0;
+  const lectura = datos.cacheLectura ?? 0;
+  const n = (x: number) => x.toLocaleString("es-CL");
+
   await apuntar({
     clienteId: datos.clienteId,
     usuarioId: datos.usuarioId,
     servicio: "claude",
     concepto: datos.concepto,
-    monto: costeClaude(datos.modelo, datos.entrada, datos.salida),
-    detalle: `${datos.modelo} · ${datos.entrada.toLocaleString("es-CL")} entrada / ${datos.salida.toLocaleString("es-CL")} salida`,
+    monto: costeClaude(datos.modelo, datos.entrada, datos.salida, escritura, lectura),
+    detalle:
+      `${datos.modelo} · ${n(datos.entrada)} entrada / ${n(datos.salida)} salida` +
+      (escritura || lectura ? ` · caché ${n(lectura)} leída / ${n(escritura)} escrita` : ""),
   });
 }
 

@@ -8,7 +8,7 @@
 import { NextRequest } from "next/server";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { conversar, instrucciones, mensajeDeError, type Turno } from "@/lib/asistente";
+import { conversar, usoVacio, instrucciones, mensajeDeError, type Turno } from "@/lib/asistente";
 import { veTodo, memoriasDe } from "@/lib/clientes";
 import { apuntarClaude, costeClaude } from "@/lib/gasto";
 import { modelo as modeloActual } from "@/lib/config";
@@ -167,49 +167,66 @@ export async function POST(req: NextRequest) {
 
       enviar({ tipo: "inicio", conversacionId: conversacion.id });
 
+      // Se llena mientras el asistente trabaja, no al terminar: si esto se
+      // corta a mitad, los tokens ya generados se pagan igual y hay que
+      // apuntarlos. Antes se perdían justo en el caso en que peor sienta.
+      const uso = usoVacio();
+
       try {
-        const r = await conversar(
+        await conversar(
           { clienteId, usuarioId, puedeEscribir, plataforma: cliente.plataforma },
           sistema,
           historial,
           (e) => {
             if (e.tipo === "herramienta") usadas.push(String(e.nombre));
             enviar(e);
-          }
+          },
+          uso
         );
 
         await db.mensaje.create({
           data: {
             conversacionId: conversacion.id,
             rol: "assistant",
-            contenido: r.texto,
+            contenido: uso.texto,
             usadas: usadas.length ? JSON.stringify(usadas) : null,
-            entrada: r.entrada,
-            salida: r.salida,
+            entrada: uso.entrada,
+            salida: uso.salida,
           },
-        });
-
-        const m = await modeloActual();
-        await apuntarClaude({
-          clienteId,
-          usuarioId,
-          concepto: "chat",
-          modelo: m,
-          entrada: r.entrada,
-          salida: r.salida,
         });
 
         // El coste se muestra al terminar: es la única forma de que quien usa
         // el panel sepa lo que va gastando antes de que llegue la factura.
         enviar({
           tipo: "fin",
-          entrada: r.entrada,
-          salida: r.salida,
-          coste: costeClaude(m, r.entrada, r.salida),
+          entrada: uso.entrada,
+          salida: uso.salida,
+          coste: costeClaude(
+            await modeloActual(),
+            uso.entrada,
+            uso.salida,
+            uso.cacheEscritura,
+            uso.cacheLectura
+          ),
         });
       } catch (e) {
         enviar({ tipo: "error", mensaje: mensajeDeError(e) });
       } finally {
+        // Fuera del try a propósito: una respuesta cortada también se cobra.
+        if (uso.entrada || uso.salida || uso.cacheLectura || uso.cacheEscritura) {
+          await apuntarClaude({
+            clienteId,
+            usuarioId,
+            concepto: "chat",
+            modelo: await modeloActual(),
+            entrada: uso.entrada,
+            salida: uso.salida,
+            cacheEscritura: uso.cacheEscritura,
+            cacheLectura: uso.cacheLectura,
+          }).catch(() => {
+            // Apuntar el gasto nunca puede tumbar la respuesta.
+          });
+        }
         control.close();
       }
     },

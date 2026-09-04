@@ -75,6 +75,8 @@ export default function FichaCliente({
   datos,
   conversaciones,
   borrar,
+  limpiar,
+  totalConversaciones,
   arquitectura,
   keywords,
   hayProveedor,
@@ -90,6 +92,8 @@ export default function FichaCliente({
   datos: { etiqueta: string; valor: string }[];
   conversaciones: ResumenConversacion[];
   borrar: (datos: FormData) => Promise<void>;
+  limpiar: () => Promise<void>;
+  totalConversaciones: number;
   arquitectura: ArquitecturaVista | null;
   keywords: KeywordVista[];
   hayProveedor: boolean;
@@ -142,6 +146,11 @@ export default function FichaCliente({
               <p className="text-[11px] font-semibold uppercase tracking-wide text-neutral-400">
                 Conversaciones del equipo
               </p>
+              {totalConversaciones > conversaciones.length && (
+                <p className="mt-1 text-[10px] text-neutral-400">
+                  Se ven las {conversaciones.length} últimas de {totalConversaciones}.
+                </p>
+              )}
               <ul className="mt-2 space-y-1">
                 {conversaciones.map((cv) => {
                   const abierta = cv.id === conversacionInicial;
@@ -169,7 +178,11 @@ export default function FichaCliente({
                           propios. Los de otros se leen, no se borran. */}
                       <form
                         action={borrar}
-                        className={`absolute right-1.5 top-1.5 opacity-0 transition group-hover:opacity-100 ${
+                        onSubmit={(e) => {
+                          if (!confirm(`¿Borrar «${cv.titulo}»? No se puede deshacer.`))
+                            e.preventDefault();
+                        }}
+                        className={`absolute right-1.5 top-1.5 transition ${
                           cv.autor ? "hidden" : ""
                         }`}
                       >
@@ -177,7 +190,7 @@ export default function FichaCliente({
                         <button
                           type="submit"
                           title="Borrar conversación"
-                          className="grid h-5 w-5 place-items-center rounded text-neutral-400 hover:bg-red-50 hover:text-red-600"
+                          className="grid h-5 w-5 place-items-center rounded text-neutral-300 transition hover:bg-red-50 hover:text-red-600 group-hover:text-neutral-500"
                         >
                           ×
                         </button>
@@ -186,6 +199,27 @@ export default function FichaCliente({
                   );
                 })}
               </ul>
+
+              {/* Los hilos vacíos se acumulan solos: cada «nueva conversación»
+                  que no se llegó a usar deja uno. Borrarlos de uno en uno no es
+                  trabajo de nadie. */}
+              {conversaciones.some((cv) => !cv.autor && cv.mensajes < 2) && (
+                <form
+                  action={limpiar}
+                  onSubmit={(e) => {
+                    if (!confirm("¿Borrar todos los hilos vacíos o sin respuesta? No se puede deshacer."))
+                      e.preventDefault();
+                  }}
+                  className="mt-3"
+                >
+                  <button
+                    type="submit"
+                    className="w-full rounded-lg border border-neutral-200 px-3 py-1.5 text-[11px] text-neutral-500 transition hover:border-red-200 hover:bg-red-50 hover:text-red-600"
+                  >
+                    Limpiar hilos vacíos
+                  </button>
+                </form>
+              )}
             </aside>
           )}
 

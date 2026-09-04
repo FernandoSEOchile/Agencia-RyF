@@ -207,47 +207,111 @@ function contenidoDe(t: Turno): string | Anthropic.Beta.BetaContentBlockParam[] 
   return bloques;
 }
 
+/** Lo consumido en un turno. Se va llenando sobre la marcha, no al final. */
+export interface Uso {
+  texto: string;
+  entrada: number;
+  salida: number;
+  cacheEscritura: number;
+  cacheLectura: number;
+}
+
+export function usoVacio(): Uso {
+  return { texto: "", entrada: 0, salida: 0, cacheEscritura: 0, cacheLectura: 0 };
+}
+
+/**
+ * Órdenes cortas y directas: «cambia el título», «pon esta meta description».
+ *
+ * En estas no hay nada que deliberar —la persona ya decidió— y razonar antes de
+ * obedecer solo añade espera y tokens de salida, que son los caros. En todo lo
+ * demás se deja pensar: es preferible pagar de más en un análisis que dar un
+ * análisis malo barato.
+ */
+const ORDEN_DIRECTA =
+  /^(?:por favor,?\s*)?(?:cambia|pon|ponle|escribe|actualiza|corrige|arregla|sube|agrega|añade|borra|elimina|quita|reemplaza|renombra|traduce|duplica|activa|desactiva|guarda)\b/i;
+
+function razonamiento(historial: Turno[]): "adaptive" | null {
+  const ultimo = [...historial].reverse().find((t) => t.rol === "user");
+  if (!ultimo) return "adaptive";
+
+  const texto = ultimo.contenido.trim();
+  const directa = texto.length < 200 && !texto.includes("?") && ORDEN_DIRECTA.test(texto);
+  return directa ? null : "adaptive";
+}
+
+/**
+ * Marca hasta dónde cachear la conversación.
+ *
+ * Hacen falta DOS marcas, y esto es lo que se hace mal casi siempre: la API
+ * solo busca en la caché en los puntos marcados de ESTA petición. Con una sola
+ * marca al final se escribe caché cada turno y no se lee ninguna —se paga el
+ * recargo sin cobrar nunca el descuento—. La marca del penúltimo turno del
+ * usuario es la que escribimos la vez anterior, así que esa acierta; la del
+ * último deja preparada la de la próxima.
+ */
+function conCache(
+  mensajes: Anthropic.Beta.BetaMessageParam[]
+): Anthropic.Beta.BetaMessageParam[] {
+  const marcar = (i: number) => {
+    const bloques = mensajes[i]?.content;
+    if (!Array.isArray(bloques) || bloques.length === 0) return;
+    const ultimo = bloques[bloques.length - 1] as { cache_control?: unknown };
+    ultimo.cache_control = { type: "ephemeral" };
+  };
+
+  const usuarios = mensajes.map((m, i) => (m.role === "user" ? i : -1)).filter((i) => i >= 0);
+  marcar(usuarios[usuarios.length - 1]);
+  if (usuarios.length > 1) marcar(usuarios[usuarios.length - 2]);
+  return mensajes;
+}
+
 /**
  * Ejecuta un turno de conversación y va emitiendo lo que ocurre.
  *
  * `emitir` recibe eventos ya listos para mandar al navegador. Se separa así
  * para que la ruta HTTP no tenga que saber nada del SDK.
+ *
+ * Lo consumido se escribe en `uso` según va llegando, en vez de devolverse al
+ * terminar. La diferencia importa cuando esto falla a mitad: los tokens ya
+ * generados se pagan igual, y con un `return` se perdían justo en el caso en
+ * que más falta hace saberlo.
  */
 export async function conversar(
   ctx: Contexto,
   sistema: string,
   historial: Turno[],
-  emitir: (evento: { tipo: string; [k: string]: unknown }) => void
+  emitir: (evento: { tipo: string; [k: string]: unknown }) => void,
+  uso: Uso = usoVacio()
 ) {
   const anthropic = await cliente();
+  const pensar = razonamiento(historial);
 
   const runner = anthropic.beta.messages.toolRunner({
     model: await modelo(),
     max_tokens: 32000,
     system: [{ type: "text", text: sistema, cache_control: { type: "ephemeral" } }],
-    thinking: { type: "adaptive" },
+    ...(pensar ? { thinking: { type: pensar as "adaptive" } } : {}),
     tools: herramientasDe(ctx),
-    messages: historial.map((t) => ({ role: t.rol, content: contenidoDe(t) })),
+    messages: conCache(historial.map((t) => ({ role: t.rol, content: contenidoDe(t) }))),
     stream: true,
   });
-
-  let texto = "";
-  let entrada = 0;
-  let salida = 0;
 
   for await (const flujo of runner) {
     for await (const evento of flujo) {
       if (evento.type === "content_block_start" && evento.content_block.type === "tool_use") {
         emitir({ tipo: "herramienta", nombre: evento.content_block.name });
       } else if (evento.type === "content_block_delta" && evento.delta.type === "text_delta") {
-        texto += evento.delta.text;
+        uso.texto += evento.delta.text;
         emitir({ tipo: "texto", texto: evento.delta.text });
       }
     }
 
     const mensaje = await flujo.finalMessage();
-    entrada += mensaje.usage.input_tokens ?? 0;
-    salida += mensaje.usage.output_tokens ?? 0;
+    uso.entrada += mensaje.usage.input_tokens ?? 0;
+    uso.salida += mensaje.usage.output_tokens ?? 0;
+    uso.cacheEscritura += mensaje.usage.cache_creation_input_tokens ?? 0;
+    uso.cacheLectura += mensaje.usage.cache_read_input_tokens ?? 0;
 
     // Una pausa del servidor no es un final: si no se reanuda, la respuesta
     // queda cortada sin que nadie avise.
@@ -256,5 +320,5 @@ export async function conversar(
     }
   }
 
-  return { texto, entrada, salida };
+  return uso;
 }
