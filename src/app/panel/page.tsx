@@ -9,6 +9,7 @@ import { db } from "@/lib/db";
 import Barra from "@/components/Barra";
 import Plataforma, { IconoWordPress } from "@/components/Plataforma";
 import { fecha } from "@/lib/formato";
+import FiltroClientes from "@/components/FiltroClientes";
 
 export const metadata = { title: "Clientes · Panel AppSEO" };
 export const dynamic = "force-dynamic";
@@ -178,12 +179,14 @@ export default async function Panel() {
             </p>
           </div>
         ) : (
-          <ul className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <>
+          <FiltroClientes total={clientes.length} />
+          <ul className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {clientes.map((c) => {
               const atrasado = c.version && c.version !== ultima;
               const caido = c.estadoSonda && c.estadoSonda !== "ok";
               return (
-                <li key={c.id}>
+                <li key={c.id} data-cliente={`${c.nombre} ${c.dominio}`.toLowerCase()}>
                   <Link
                     href={`/panel/clientes/${c.id}`}
                     className={`tarjeta-pulsable group flex h-full flex-col p-5 ${
@@ -246,6 +249,7 @@ export default async function Panel() {
               );
             })}
           </ul>
+          </>
         )}
 
         {registro.length > 0 && (

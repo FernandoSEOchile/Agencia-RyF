@@ -5,6 +5,7 @@ import { Cabecera, useOrden, type Columna } from "@/components/Tabla";
 import SearchConsole from "@/components/SearchConsole";
 import Velocidad from "@/components/Velocidad";
 import Esqueleto from "@/components/Esqueleto";
+import { fecha } from "@/lib/formato";
 
 /**
  * Rastreo técnico del sitio.
@@ -292,7 +293,7 @@ export default function Rastreo({
       {tanda && tanda.estado !== "corriendo" && (
         <p className="mt-4 text-[13px] text-[color:var(--tinta-media)]">
           {tanda.estado === "terminado"
-            ? `${miles(tanda.hechas)} páginas revisadas el ${tanda.creado.slice(0, 10)}`
+            ? `${miles(tanda.hechas)} páginas revisadas ${fecha(tanda.creado)}`
             : tanda.estado === "interrumpido"
               ? "El último rastreo se cortó a mitad."
               : "El último rastreo falló."}
