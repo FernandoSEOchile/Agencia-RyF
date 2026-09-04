@@ -12,12 +12,24 @@ import { cifrar, descifrar } from "@/lib/cifrado";
  */
 
 export const MODELOS = [
+  [
+    "automatico",
+    "Automático",
+    "Elige según lo que pidas: el rápido para consultar, el equilibrado para escribir, el potente para analizar.",
+  ],
   ["claude-opus-5", "Opus 5", "El más capaz. Para diseño, redacción larga y trabajo delicado."],
   ["claude-sonnet-5", "Sonnet 5", "Equilibrado. Buena opción por defecto para el día a día."],
   ["claude-haiku-4-5", "Haiku 4.5", "El más barato y rápido. Para tareas mecánicas y repetitivas."],
 ] as const;
 
 export const MODELO_POR_DEFECTO = "claude-opus-5";
+
+/**
+ * El que se usa cuando «automático» no tiene nada mejor que decidir, y para
+ * todo lo que no es el chat: la bitácora, la lectura de plantillas y el chat
+ * de arquitectura piden un modelo concreto y no pasan por el enrutador.
+ */
+export const MODELO_EQUILIBRADO = "claude-sonnet-5";
 
 async function leer(clave: string): Promise<string | null> {
   const fila = await db.config.findUnique({ where: { clave } });
@@ -94,11 +106,22 @@ export async function guardarEspacioTrabajo(valor: string) {
   await escribir("workspace_id", v, false);
 }
 
-/** Modelo con el que responde el asistente. */
-export async function modelo(): Promise<string> {
+/**
+ * Lo que hay guardado en ajustes, tal cual. Puede ser «automatico».
+ *
+ * Solo el chat sabe qué hacer con «automatico», porque es el único que ve lo
+ * que se ha pedido. El resto usa `modelo()`, que ya devuelve uno concreto.
+ */
+export async function modeloConfigurado(): Promise<string> {
   const guardado = await leer("modelo");
   if (guardado && MODELOS.some(([id]) => id === guardado)) return guardado;
   return process.env.ANTHROPIC_MODEL || MODELO_POR_DEFECTO;
+}
+
+/** Modelo con el que responde el asistente. Siempre uno concreto. */
+export async function modelo(): Promise<string> {
+  const m = await modeloConfigurado();
+  return m === "automatico" ? MODELO_EQUILIBRADO : m;
 }
 
 export async function guardarModelo(valor: string) {
@@ -122,7 +145,7 @@ export async function estadoConfig() {
     origen: guardadaEnPanel ? ("panel" as const) : clave ? ("entorno" as const) : ("ninguno" as const),
     // Lo justo para reconocer cuál es sin revelarla.
     rastro: clave ? `${clave.slice(0, 10)}…${clave.slice(-4)}` : "",
-    modelo: await modelo(),
+    modelo: await modeloConfigurado(),
     modeloEnPanel: Boolean(await leer("modelo")),
     espacio: (await espacioTrabajo()) ?? "",
   };

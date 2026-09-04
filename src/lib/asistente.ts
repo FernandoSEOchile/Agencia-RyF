@@ -10,7 +10,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import { herramientasDe, type Contexto } from "@/lib/herramientas";
 import { CRITERIO_DISENO } from "@/lib/diseno";
 import { CRITERIO_CONTENIDO } from "@/lib/contenido";
-import { claveApi, modelo, espacioTrabajo } from "@/lib/config";
+import { claveApi, modelo, modeloConfigurado, espacioTrabajo } from "@/lib/config";
 
 /**
  * Cliente de la API, con la clave que mande el panel.
@@ -214,31 +214,82 @@ export interface Uso {
   salida: number;
   cacheEscritura: number;
   cacheLectura: number;
+  /** El modelo que respondió de verdad, que en automático no se sabe antes. */
+  modelo: string;
 }
 
 export function usoVacio(): Uso {
-  return { texto: "", entrada: 0, salida: 0, cacheEscritura: 0, cacheLectura: 0 };
+  return {
+    texto: "",
+    entrada: 0,
+    salida: 0,
+    cacheEscritura: 0,
+    cacheLectura: 0,
+    modelo: "",
+  };
+}
+
+/**
+ * Elige el modelo y cuánto razonar, según lo que se haya pedido.
+ *
+ * Tres carriles. Consultar es leer un dato que ya existe y no se redacta nada:
+ * el modelo barato sobra. Escribir y editar es el día a día y ahí manda el
+ * equilibrado. Analizar —decidir, comparar, explicar por qué— es donde
+ * equivocarse cuesta caro y merece la pena pagar el mejor.
+ *
+ * La decisión se toma con reglas y no preguntándole a otro modelo: consultar a
+ * un clasificador antes de cada mensaje añadiría medio segundo a TODOS los
+ * mensajes para acertar en unos pocos, y lo que se persigue aquí es ir rápido.
+ *
+ * Las reglas se equivocarán a veces. Por eso el chat dice con cuál respondió, y
+ * por eso basta con escribir «analiza» o «a fondo» para subir de carril a mano.
+ */
+const ANALIZAR =
+  /\b(analiz|audit|estrategi|arquitectur|canibaliz|diagnostic|compar|planific|investig|plan de|plan para|propon|propón|por qu[eé]|deber[ií]a|conviene|recomienda|opina|eval[uú]a|a fondo|piensa|razona|revisa a|profundiza)/i;
+
+const CONSULTAR =
+  /^(?:por favor,?\s*)?(?:cu[aá]nt|cu[aá]l|qu[eé] (?:hay|tiene|dice)|list|muestra|mu[eé]stra|dime|dame|ens[eé]ña|ver |busca|comprueba|verifica|est[aá] |hay )/i;
+
+export type Carril = { modelo: string; pensar: boolean };
+
+export function enrutar(historial: Turno[], configurado: string): Carril {
+  // Si alguien fijó un modelo en ajustes, manda ese. El automático es una
+  // ayuda, no una autoridad por encima de lo que se pidió expresamente.
+  if (configurado !== "automatico") {
+    return { modelo: configurado, pensar: configurado !== "claude-haiku-4-5" };
+  }
+
+  const ultimo = [...historial].reverse().find((t) => t.rol === "user");
+  const texto = (ultimo?.contenido ?? "").trim();
+
+  // Una imagen casi nunca se manda para que la miren por encima.
+  const conImagen = (ultimo?.imagenes?.length ?? 0) > 0;
+
+  if (conImagen || texto.length > 400 || ANALIZAR.test(texto)) {
+    return { modelo: "claude-opus-5", pensar: true };
+  }
+
+  // Consultar es preguntar por algo que ya está: no hay nada que redactar y el
+  // largo delata cuándo la pregunta trae condiciones que sí hay que entender.
+  if (texto.length < 160 && CONSULTAR.test(texto) && !texto.includes("?")) {
+    return { modelo: "claude-haiku-4-5", pensar: false };
+  }
+
+  // El resto —escribir, corregir, reemplazar— con el equilibrado. Razona salvo
+  // en las órdenes directas, donde la persona ya decidió y deliberar solo
+  // añade espera.
+  const directa = texto.length < 200 && ORDEN_DIRECTA.test(texto);
+  return { modelo: "claude-sonnet-5", pensar: !directa };
 }
 
 /**
  * Órdenes cortas y directas: «cambia el título», «pon esta meta description».
  *
  * En estas no hay nada que deliberar —la persona ya decidió— y razonar antes de
- * obedecer solo añade espera y tokens de salida, que son los caros. En todo lo
- * demás se deja pensar: es preferible pagar de más en un análisis que dar un
- * análisis malo barato.
+ * obedecer solo añade espera y tokens de salida, que son los caros.
  */
 const ORDEN_DIRECTA =
-  /^(?:por favor,?\s*)?(?:cambia|pon|ponle|escribe|actualiza|corrige|arregla|sube|agrega|añade|borra|elimina|quita|reemplaza|renombra|traduce|duplica|activa|desactiva|guarda)\b/i;
-
-function razonamiento(historial: Turno[]): "adaptive" | null {
-  const ultimo = [...historial].reverse().find((t) => t.rol === "user");
-  if (!ultimo) return "adaptive";
-
-  const texto = ultimo.contenido.trim();
-  const directa = texto.length < 200 && !texto.includes("?") && ORDEN_DIRECTA.test(texto);
-  return directa ? null : "adaptive";
-}
+  /^(?:por favor,?\s*)?(?:cambia|pon|ponle|actualiza|corrige|arregla|sube|agrega|añade|borra|elimina|quita|reemplaza|renombra|duplica|activa|desactiva|guarda)\b/i;
 
 /**
  * Marca hasta dónde cachear la conversación.
@@ -285,13 +336,15 @@ export async function conversar(
   uso: Uso = usoVacio()
 ) {
   const anthropic = await cliente();
-  const pensar = razonamiento(historial);
+  const carril = enrutar(historial, await modeloConfigurado());
+  uso.modelo = carril.modelo;
+  emitir({ tipo: "modelo", modelo: carril.modelo });
 
   const runner = anthropic.beta.messages.toolRunner({
-    model: await modelo(),
+    model: carril.modelo,
     max_tokens: 32000,
     system: [{ type: "text", text: sistema, cache_control: { type: "ephemeral" } }],
-    ...(pensar ? { thinking: { type: pensar as "adaptive" } } : {}),
+    ...(carril.pensar ? { thinking: { type: "adaptive" as const } } : {}),
     tools: herramientasDe(ctx),
     messages: conCache(historial.map((t) => ({ role: t.rol, content: contenidoDe(t) }))),
     stream: true,

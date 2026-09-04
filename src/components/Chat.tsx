@@ -27,6 +27,13 @@ const NOMBRES: Record<string, string> = {
   ver_registro: "Revisando el registro",
 };
 
+/** Nombres cortos, que en el pie no cabe «claude-haiku-4-5». */
+const NOMBRE_MODELO: Record<string, string> = {
+  "claude-opus-5": "Opus",
+  "claude-sonnet-5": "Sonnet",
+  "claude-haiku-4-5": "Haiku",
+};
+
 export default function Chat({
   clienteId,
   nombre,
@@ -50,6 +57,9 @@ export default function Chat({
   const [ocupado, setOcupado] = useState(false);
   const [actividad, setActividad] = useState<string | null>(null);
   const [coste, setCoste] = useState<number | null>(null);
+  // Con el modelo en automático conviene ver cuál contestó: es la única forma
+  // de darse cuenta de que el enrutador se equivocó de carril.
+  const [modelo, setModelo] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [adjuntas, setAdjuntas] = useState<Adjunta[]>([]);
   const [arrastrando, setArrastrando] = useState(false);
@@ -200,6 +210,8 @@ export default function Chat({
               c[c.length - 1] = { ...c[c.length - 1], contenido: c[c.length - 1].contenido + ev.texto };
               return c;
             });
+          } else if (ev.tipo === "modelo") {
+            setModelo(ev.modelo);
           } else if (ev.tipo === "fin") {
             setCoste(ev.coste);
           } else if (ev.tipo === "error") {
@@ -388,7 +400,12 @@ export default function Chat({
             {puedeEscribir ? "Puede escribir en el sitio." : "Solo lectura: no modificará nada."}
             <span className="ml-1.5 text-neutral-300">· pega o arrastra imágenes</span>
           </span>
-          {coste !== null && <span className="tabular-nums">Último mensaje: {coste.toFixed(4)} USD</span>}
+          <span className="flex items-center gap-2">
+            {modelo && <span title="Modelo que respondió">{NOMBRE_MODELO[modelo] ?? modelo}</span>}
+            {coste !== null && (
+              <span className="tabular-nums">Último mensaje: {coste.toFixed(4)} USD</span>
+            )}
+          </span>
         </p>
       </form>
     </div>
