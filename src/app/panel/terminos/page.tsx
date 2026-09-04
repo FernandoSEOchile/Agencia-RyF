@@ -19,7 +19,7 @@ export const dynamic = "force-dynamic";
  */
 export default async function PaginaPalabras() {
   const sesion = await auth();
-  if (!sesion?.user?.id) redirect("/entrar");
+  if (!sesion?.user?.id) redirect("/entrar?volver=" + encodeURIComponent("/panel/terminos"));
 
   const rol = (sesion.user as { rol?: string }).rol ?? "LECTOR";
 

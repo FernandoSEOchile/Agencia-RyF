@@ -55,6 +55,31 @@ export default function Chat({
   const abortar = useRef<AbortController | null>(null);
   const ultimo = useRef<{ texto: string; envio: string[] } | null>(null);
   const [copiado, setCopiado] = useState<number | null>(null);
+  // Lo gastado en esta sesión del hilo, para no ver solo el último mensaje.
+  const [totalSesion, setTotalSesion] = useState(0);
+
+  /**
+   * Un turno largo puede tardar minutos y la persona se va a otra pestaña.
+   * Sin esto nada le dice que terminó: se cambia el título y, si dio permiso,
+   * se manda una notificación del navegador.
+   */
+  function avisarFin() {
+    if (typeof document === "undefined" || !document.hidden) return;
+    const titulo = document.title;
+    document.title = `✓ Listo · ${titulo}`;
+    const volver = () => {
+      document.title = titulo;
+      document.removeEventListener("visibilitychange", volver);
+    };
+    document.addEventListener("visibilitychange", volver);
+    try {
+      if ("Notification" in window && Notification.permission === "granted") {
+        new Notification("AppSEO", { body: `El asistente terminó en ${nombre}.` });
+      }
+    } catch {
+      // Sin notificaciones no pasa nada: el título ya avisa.
+    }
+  }
   const [error, setError] = useState<string | null>(null);
   const [adjuntas, setAdjuntas] = useState<Adjunta[]>([]);
   const [arrastrando, setArrastrando] = useState(false);
@@ -151,6 +176,12 @@ export default function Chat({
     setPensando("");
     abortar.current = new AbortController();
     setError(null);
+    // Se pide permiso la primera vez que se manda algo, no al cargar la página.
+    try {
+      if ("Notification" in window && Notification.permission === "default") Notification.requestPermission();
+    } catch {
+      // Navegadores sin la API: se sigue igual.
+    }
     setCoste(null);
     setOcupado(true);
     setTurnos((t) => [
@@ -174,6 +205,9 @@ export default function Chat({
         }),
       });
 
+      if (r.status === 401) {
+        throw new Error("Tu sesión caducó. Entra de nuevo y vuelve a mandar el mensaje; el hilo está guardado.");
+      }
       if (!r.ok || !r.body) {
         const j = await r.json().catch(() => ({ error: "No se pudo conectar." }));
         throw new Error(j.error ?? "No se pudo conectar.");
@@ -227,6 +261,8 @@ export default function Chat({
             setModelo(ev.modelo);
           } else if (ev.tipo === "fin") {
             setCoste(ev.coste);
+            setTotalSesion((t) => t + (Number(ev.coste) || 0));
+            avisarFin();
           } else if (ev.tipo === "error") {
             setError(ev.mensaje);
           }
@@ -399,8 +435,21 @@ export default function Chat({
 
         {error && (
           <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">
-            <span>{error}</span>
-            {ultimo.current && (
+            <span>
+              {error}
+              {/sesión caducó/i.test(error) && (
+                <>
+                  {" "}
+                  <a
+                    href={`/entrar?volver=${encodeURIComponent(window.location.pathname + window.location.search)}`}
+                    className="font-semibold underline-offset-2 hover:underline"
+                  >
+                    Entrar
+                  </a>
+                </>
+              )}
+            </span>
+            {ultimo.current && !/sesión caducó/i.test(error) && (
               <button type="button" onClick={reintentar} className="font-semibold underline-offset-2 hover:underline">
                 Reintentar
               </button>
@@ -523,7 +572,10 @@ export default function Chat({
           <span className="flex items-center gap-2">
             {modelo && <span title="Modelo que respondió">{NOMBRE_MODELO[modelo] ?? modelo}</span>}
             {coste !== null && (
-              <span className="tabular-nums">Último mensaje: {dinero(coste)}</span>
+              <span className="tabular-nums" title={`En esta sesión del hilo: ${dinero(totalSesion)}`}>
+                Último mensaje: {dinero(coste)}
+                {totalSesion > (coste ?? 0) + 0.00001 && ` · sesión ${dinero(totalSesion)}`}
+              </span>
             )}
           </span>
         </p>

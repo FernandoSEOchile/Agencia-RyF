@@ -17,7 +17,7 @@ export default async function NuevoCliente({
   searchParams: Promise<{ error?: string }>;
 }) {
   const sesion = await auth();
-  if (!sesion?.user?.id) redirect("/entrar");
+  if (!sesion?.user?.id) redirect("/entrar?volver=" + encodeURIComponent("/panel/clientes/nuevo"));
   const rolSesion = (sesion.user as { rol?: string }).rol;
   if (rolSesion !== "ADMIN" && rolSesion !== "GESTOR") redirect("/panel");
 

@@ -11,7 +11,7 @@ export const dynamic = "force-dynamic";
 /** El gasto de toda la agencia. Solo lo ve quien responde de la factura. */
 export default async function PaginaGasto() {
   const sesion = await auth();
-  if (!sesion?.user?.id) redirect("/entrar");
+  if (!sesion?.user?.id) redirect("/entrar?volver=" + encodeURIComponent("/panel/gasto"));
 
   const rol = (sesion.user as { rol?: string }).rol ?? "LECTOR";
   if (!veTodo(rol)) redirect("/panel");

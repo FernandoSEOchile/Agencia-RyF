@@ -16,7 +16,7 @@ export const dynamic = "force-dynamic";
  */
 export default async function PaginaExplorar() {
   const sesion = await auth();
-  if (!sesion?.user?.id) redirect("/entrar");
+  if (!sesion?.user?.id) redirect("/entrar?volver=" + encodeURIComponent("/panel/explorar"));
 
   const rol = (sesion.user as { rol?: string }).rol ?? "LECTOR";
 

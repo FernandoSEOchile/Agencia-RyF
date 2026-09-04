@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { veTodo, anotar } from "@/lib/clientes";
 import { credenciales, medir } from "@/lib/dataforseo";
 import { apuntar } from "@/lib/gasto";
+import { tomar, soltar } from "@/lib/candado";
 
 /**
  * Seguimiento de posiciones.
@@ -102,6 +103,17 @@ export async function PATCH(req: NextRequest) {
     );
   }
 
+  // Dos personas —o dos pestañas— pulsando «Medir» a la vez pagaban la
+  // medición dos veces. Una a la vez por cliente.
+  const candado = `posiciones:${String(clienteId)}`;
+  if (!tomar(candado)) {
+    return Response.json(
+      { error: "Ya hay una medición en curso para este cliente. Espera a que termine." },
+      { status: 409 }
+    );
+  }
+
+  try {
   let keywords = await db.keyword.findMany({
     where: { clienteId: String(clienteId), activa: true },
     include: { posiciones: { orderBy: { medido: "desc" }, take: 1 } },
@@ -184,6 +196,9 @@ export async function PATCH(req: NextRequest) {
     coste,
     pendientes: Math.max(0, keywords.length - recortada.length),
   });
+  } finally {
+    soltar(candado);
+  }
 }
 
 /** Quita una consulta del seguimiento, con todo su histórico. */

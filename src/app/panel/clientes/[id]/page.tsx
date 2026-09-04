@@ -31,7 +31,7 @@ export default async function Ficha({
   searchParams: Promise<{ c?: string; error?: string; ok?: string }>;
 }) {
   const sesion = await auth();
-  if (!sesion?.user?.id) redirect("/entrar");
+  if (!sesion?.user?.id) redirect("/entrar?volver=" + encodeURIComponent("/panel"));
 
   const { id } = await params;
   const { c, error: aviso, ok: exito } = await searchParams;

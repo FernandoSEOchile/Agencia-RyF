@@ -21,7 +21,7 @@ const ROLES = [
 /** Solo un ADMIN pasa de aquí; cualquier otro vuelve al panel. */
 async function exigirAdmin() {
   const sesion = await auth();
-  if (!sesion?.user?.id) redirect("/entrar");
+  if (!sesion?.user?.id) redirect("/entrar?volver=" + encodeURIComponent("/panel/usuarios"));
   if ((sesion.user as { rol?: string }).rol !== "ADMIN") redirect("/panel");
   return sesion;
 }

@@ -37,7 +37,8 @@ async function permiso(clienteId: string) {
 
 export async function GET(req: NextRequest) {
   const clienteId = req.nextUrl.searchParams.get("cliente") || "";
-  const dias = Math.min(180, Math.max(7, Number(req.nextUrl.searchParams.get("dias")) || 28));
+  // Search Console guarda dieciséis meses. Antes se capaba a 180 y «1 año» devolvía medio año sin decirlo.
+  const dias = Math.min(480, Math.max(7, Number(req.nextUrl.searchParams.get("dias")) || 28));
 
   const p = await permiso(clienteId);
   if ("error" in p) return Response.json({ error: p.error }, { status: p.codigo });

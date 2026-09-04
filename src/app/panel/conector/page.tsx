@@ -62,7 +62,7 @@ const PASOS = [
 
 export default async function PaginaConector() {
   const sesion = await auth();
-  if (!sesion?.user?.id) redirect("/entrar");
+  if (!sesion?.user?.id) redirect("/entrar?volver=" + encodeURIComponent("/panel/conector"));
 
   const rol = (sesion.user as { rol?: string }).rol ?? "LECTOR";
   const p = await paquete();

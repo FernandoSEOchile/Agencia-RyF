@@ -22,7 +22,7 @@ export const dynamic = "force-dynamic";
 /** Solo un ADMIN pasa: aquí se cambia la llave que paga todo. */
 async function exigirAdmin() {
   const sesion = await auth();
-  if (!sesion?.user?.id) redirect("/entrar");
+  if (!sesion?.user?.id) redirect("/entrar?volver=" + encodeURIComponent("/panel/ajustes"));
   if ((sesion.user as { rol?: string }).rol !== "ADMIN") redirect("/panel");
   return sesion;
 }

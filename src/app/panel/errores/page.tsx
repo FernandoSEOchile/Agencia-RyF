@@ -15,7 +15,7 @@ const DIAS = 7;
 
 export default async function PaginaErrores() {
   const sesion = await auth();
-  if (!sesion?.user?.id) redirect("/entrar");
+  if (!sesion?.user?.id) redirect("/entrar?volver=" + encodeURIComponent("/panel/errores"));
 
   const rol = (sesion.user as { rol?: string }).rol ?? "LECTOR";
 
@@ -111,7 +111,7 @@ export default async function PaginaErrores() {
             </p>
           </div>
 
-          {rol !== "LECTOR" && <Revisar />}
+          {(rol === "ADMIN" || rol === "GESTOR") && <Revisar />}
         </div>
 
         <Errores fallos={fallos} />

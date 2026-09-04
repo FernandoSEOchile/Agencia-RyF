@@ -14,7 +14,10 @@ import bcrypt from "bcryptjs";
 import { db } from "@/lib/db";
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
-  session: { strategy: "jwt", maxAge: 60 * 60 * 12 },
+  // Sesión deslizante: dura siete días y se renueva con el uso. Antes caducaba
+  // exactamente doce horas después de entrar, aunque se estuviera trabajando,
+  // y cortaba un chat a mitad de tarea justo a la hora de más uso.
+  session: { strategy: "jwt", maxAge: 60 * 60 * 24 * 7, updateAge: 60 * 60 },
   pages: { signIn: "/entrar" },
   providers: [
     Credentials({
@@ -52,10 +55,31 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     }),
   ],
   callbacks: {
-    jwt({ token, user }) {
+    async jwt({ token, user }) {
       if (user) {
         token.rol = (user as { rol?: string }).rol;
         token.uid = user.id;
+        token.visto = Date.now();
+        return token;
+      }
+
+      // Cada diez minutos se vuelve a mirar la base. El JWT no lo hace solo, y
+      // sin esto desactivar a alguien o bajarle el rol tardaba horas en surtir
+      // efecto: la sesión seguía creyendo lo que decía al entrar.
+      if (token.uid && Date.now() - Number(token.visto ?? 0) > 10 * 60 * 1000) {
+        const u = await db.usuario.findUnique({
+          where: { id: String(token.uid) },
+          select: { rol: true, activo: true },
+        });
+        if (!u || !u.activo) {
+          // Sin id, cada pantalla manda a entrar: es la forma de cerrar la
+          // sesión desde aquí sin tocar la cookie.
+          token.uid = "";
+          token.rol = "LECTOR";
+        } else {
+          token.rol = u.rol;
+        }
+        token.visto = Date.now();
       }
       return token;
     },

@@ -49,7 +49,7 @@ async function versionPublicada() {
 
 export default async function Panel() {
   const sesion = await auth();
-  if (!sesion?.user?.id) redirect("/entrar");
+  if (!sesion?.user?.id) redirect("/entrar?volver=" + encodeURIComponent("/panel"));
 
   const rol = (sesion.user as { rol?: string }).rol ?? "LECTOR";
   const clientes = await clientesDe(sesion.user.id, rol);
@@ -97,44 +97,16 @@ export default async function Panel() {
           </div>
 
           <div className="flex items-center gap-2">
-          <Link href="/panel/terminos" className="boton">
-            Palabras clave
-          </Link>
-          <Link href="/panel/explorar" className="boton">
-            Explorar dominio
-          </Link>
-          <Link href="/panel/errores" className={caidos > 0 ? "boton-alerta" : "boton"}>
-            Fallos{caidos > 0 && ` · ${caidos}`}
-          </Link>
-          {(rol === "ADMIN" || rol === "GESTOR") && (
-            <Link href="/panel/gasto" className="boton">
-              Gasto
-            </Link>
-          )}
-          {rol === "ADMIN" && (
-            <Link
-              href="/panel/ajustes"
-              className="boton"
-            >
-              Ajustes
-            </Link>
-          )}
-          {rol === "ADMIN" && (
-            <Link
-              href="/panel/usuarios"
-              className="boton"
-            >
-              Usuarios
-            </Link>
-          )}
-          {(rol === "ADMIN" || rol === "GESTOR") && (
-            <Link
-              href="/panel/clientes/nuevo"
-              className="boton-fuerte"
-            >
-              Conectar sitio
-            </Link>
-          )}
+            {caidos > 0 && (
+              <Link href="/panel/errores" className="boton-alerta">
+                Fallos · {caidos}
+              </Link>
+            )}
+            {(rol === "ADMIN" || rol === "GESTOR") && (
+              <Link href="/panel/clientes/nuevo" className="boton-fuerte">
+                Conectar sitio
+              </Link>
+            )}
           </div>
         </div>
 

@@ -78,13 +78,21 @@ export async function POST(req: NextRequest) {
     return Response.json({ error: "Conversación no válida." }, { status: 400 });
   }
 
-  const previos = await db.mensaje.findMany({
-    where: { conversacionId: conversacion.id },
-    orderBy: { creado: "asc" },
-    // Se recortan los turnos más antiguos: el historial completo de una
-    // conversación larga se paga entero en cada mensaje nuevo.
-    take: 40,
-  });
+  // Los ÚLTIMOS cuarenta, no los primeros. Con `asc` + `take` se mandaban los
+  // cuarenta más antiguos y, a partir del mensaje 41, el modelo nunca veía lo
+  // recién dicho: contestaba con contexto viejo y parecía que perdía el hilo.
+  // Se recorta además por tamaño: el historial se paga entero en cada turno.
+  const previos = (
+    await db.mensaje.findMany({
+      where: { conversacionId: conversacion.id },
+      orderBy: { creado: "desc" },
+      take: 40,
+    })
+  ).reverse();
+  const TOPE_HISTORIAL = 150_000;
+  while (previos.length > 2 && previos.reduce((t, m) => t + m.contenido.length, 0) > TOPE_HISTORIAL) {
+    previos.shift();
+  }
 
   // El primer mensaje da nombre al hilo, como en cualquier chat: un hilo
   // pre-creado con el botón «Nueva conversación» dejaría ese título genérico

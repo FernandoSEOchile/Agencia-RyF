@@ -33,7 +33,9 @@ export async function POST(req: NextRequest) {
     const sesion = await auth();
     const rol = (sesion?.user as { rol?: string } | undefined)?.rol;
 
-    if (!sesion?.user?.id || rol === "LECTOR") {
+    // Lanza una ronda sobre TODOS los sitios de la agencia y recibe la lista de
+    // los caídos: eso no es de un editor de un cliente.
+    if (!sesion?.user?.id || (rol !== "ADMIN" && rol !== "GESTOR")) {
       return Response.json({ error: "No autorizado." }, { status: 401 });
     }
   }

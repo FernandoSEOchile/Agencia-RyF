@@ -11,32 +11,70 @@ export const metadata = { title: "Entrar · AppSEO" };
  * El formulario se envía a una acción del servidor: la contraseña no pasa por
  * JavaScript del navegador ni queda en el estado de ningún componente.
  */
+/**
+ * Freno a los intentos de entrada.
+ *
+ * Cinco fallos seguidos con el mismo correo y hay que esperar quince minutos.
+ * En memoria y por correo, no por IP: el panel corre en un solo proceso y las
+ * IP de una oficina son la misma para todo el equipo.
+ */
+const intentos = new Map<string, { n: number; hasta: number }>();
+const MAX_INTENTOS = 5;
+const ESPERA = 15 * 60 * 1000;
+
+function bloqueado(correo: string) {
+  const i = intentos.get(correo);
+  if (!i) return false;
+  if (Date.now() > i.hasta) {
+    intentos.delete(correo);
+    return false;
+  }
+  return i.n >= MAX_INTENTOS;
+}
+
+function fallo(correo: string) {
+  const i = intentos.get(correo);
+  if (i && Date.now() <= i.hasta) intentos.set(correo, { n: i.n + 1, hasta: i.hasta });
+  else intentos.set(correo, { n: 1, hasta: Date.now() + ESPERA });
+}
+
 export default async function Entrar({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string; email?: string }>;
+  searchParams: Promise<{ error?: string; email?: string; volver?: string }>;
 }) {
   const sesion = await auth();
   if (sesion?.user) redirect("/panel");
 
-  const { error, email } = await searchParams;
+  const { error, email, volver } = await searchParams;
   const sinUsuarios = (await db.usuario.count()) === 0;
 
   async function entrar(datos: FormData) {
     "use server";
+    const correo = String(datos.get("email") ?? "").trim().toLowerCase();
+    // Solo se vuelve a rutas del panel: un «volver» que apunte fuera es un
+    // enlace de phishing con la pantalla de entrada de por medio.
+    const destino = String(datos.get("volver") ?? "");
+    const redirectTo = /^\/panel(\/|\?|$)/.test(destino) ? destino : "/panel";
+
+    if (bloqueado(correo)) {
+      redirect(`/entrar?error=bloqueado&email=${encodeURIComponent(correo)}`);
+    }
+
     try {
       await signIn("credentials", {
         email: datos.get("email"),
         clave: datos.get("clave"),
-        redirectTo: "/panel",
+        redirectTo,
       });
     } catch (e) {
       // signIn lanza una redirección interna cuando va bien; hay que dejarla pasar.
       if (e instanceof Error && e.message === "NEXT_REDIRECT") throw e;
       if ((e as { digest?: string })?.digest?.startsWith("NEXT_REDIRECT")) throw e;
+      fallo(correo);
       // El correo vuelve en la URL para no obligar a escribirlo dos veces. La
       // contraseña, nunca.
-      redirect(`/entrar?error=1&email=${encodeURIComponent(String(datos.get("email") ?? ""))}`);
+      redirect(`/entrar?error=1&email=${encodeURIComponent(correo)}${destino ? `&volver=${encodeURIComponent(destino)}` : ""}`);
     }
   }
 
@@ -55,13 +93,18 @@ export default async function Entrar({
         </p>
       )}
 
-      {error && (
+      {error === "bloqueado" ? (
         <p className="mb-6 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">
-          Correo o contraseña incorrectos.
+          Demasiados intentos seguidos con ese correo. Espera quince minutos y vuelve a probar.
         </p>
-      )}
+      ) : error ? (
+        <p className="mb-6 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">
+          Correo o contraseña incorrectos. Si no la recuerdas, pídele a un administrador que te ponga una nueva desde Usuarios.
+        </p>
+      ) : null}
 
       <form action={entrar} className="flex flex-col gap-4">
+        <input type="hidden" name="volver" value={volver ?? ""} />
         <label className="flex flex-col gap-1.5">
           <span className="text-xs font-medium uppercase tracking-wide text-neutral-500">Correo</span>
           <input
