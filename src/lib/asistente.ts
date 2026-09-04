@@ -153,6 +153,14 @@ export function mensajeDeError(e: unknown): string {
     return "El servidor no pudo alcanzar la API de Anthropic. Puede ser un corte de red pasajero.";
   }
 
+  // «network error» a secas es lo que devuelve Node cuando la conexión con la
+  // API se corta a mitad de la respuesta. Salía tal cual y no decía nada: ni
+  // qué pasó, ni si se perdió el trabajo, ni qué hacer. Pasa sobre todo en
+  // respuestas largas con muchas herramientas encadenadas.
+  if (/^network error$|terminated|premature close|socket hang up|ECONNRESET/i.test(bruto)) {
+    return "Se cortó la conexión con la API mientras respondía. Suele pasar en respuestas largas con muchos pasos. Vuelve a enviar el mensaje: lo anterior de la conversación no se perdió, y si el asistente ya había escrito en el sitio, eso también quedó hecho.";
+  }
+
   if (e instanceof Anthropic.APIError) {
     // Se recorta el JSON: lo útil está al principio y el resto es ruido.
     return `Error de la API (${e.status ?? "?"}). ${bruto.slice(0, 180)}`;

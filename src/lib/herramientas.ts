@@ -37,6 +37,20 @@ function problema(mensaje: string) {
 }
 
 /**
+ * Cuánto puede devolver una herramienta, en caracteres.
+ *
+ * Lo que devuelve una herramienta no se lee una vez: se queda en la
+ * conversación y viaja OTRA VEZ en cada mensaje siguiente. Una página larga
+ * leída al principio se paga en los veinte turnos que vengan después, y acaba
+ * cortando la conexión a mitad de respuesta.
+ *
+ * Cuarenta mil caracteres son unas diez mil palabras: de sobra para trabajar
+ * sobre cualquier página real, y poco para que un catálogo mal pedido ahogue el
+ * hilo.
+ */
+const TOPE_SALIDA = 40_000;
+
+/**
  * Deja anotado en el registro todo fallo de una herramienta.
  *
  * Se envuelve la lista entera en vez de anotar dentro de cada `run` por una
@@ -75,6 +89,18 @@ function conRegistro<T extends { name: string; run: (...a: any[]) => unknown }>(
 
         if (typeof salida === "string" && salida.startsWith("ERROR: ")) {
           await guardar(salida.slice(7));
+        }
+
+        // Se recorta al final y se avisa de que está recortado. Devolverlo
+        // entero sin avisar haría que el modelo trabajara sobre medio texto
+        // creyendo que lo tiene completo, que es peor que no dárselo.
+        if (typeof salida === "string" && salida.length > TOPE_SALIDA) {
+          return (
+            salida.slice(0, TOPE_SALIDA) +
+            `
+
+[…recortado: la respuesta ocupaba ${salida.length.toLocaleString("es-CL")} caracteres y se cortó en ${TOPE_SALIDA.toLocaleString("es-CL")}. Si necesitas el resto, pídelo por partes.]`
+          );
         }
 
         return salida;
