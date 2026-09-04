@@ -337,6 +337,31 @@ export default function FichaCliente({
               <Contador key={d.etiqueta} etiqueta={d.etiqueta} valor={d.valor} />
             ))}
           </dl>
+
+          {/* La reconexión vivía solo en «Conectar sitio», donde nadie la
+              buscaba: quien acaba de regenerar la cadena está mirando la ficha
+              del cliente, no la pantalla de dar de alta. El alta ya actualiza
+              por dominio en vez de duplicar, así que basta con traer el enlace
+              hasta aquí y decir qué hace. */}
+          {puedeSubir && (
+            <div className="tarjeta mt-4 flex flex-wrap items-center justify-between gap-4 p-5">
+              <div className="max-w-xl">
+                <p className="text-[14px] font-medium">Volver a conectar el sitio</p>
+                <p className="mt-1 text-[13px] leading-relaxed text-[color:var(--tinta-media)]">
+                  Si regeneraste la cadena de conexión en el WordPress, o el panel dejó de tener
+                  acceso, pega la nueva aquí. Se actualiza este mismo cliente:{" "}
+                  <span className="font-medium text-[color:var(--tinta)]">
+                    no se pierde nada
+                  </span>{" "}
+                  —conversaciones, bitácora, posiciones y gasto siguen donde están.
+                </p>
+              </div>
+
+              <a href="/panel/clientes/nuevo" className="boton shrink-0">
+                Pegar cadena nueva
+              </a>
+            </div>
+          )}
         </div>
       )}
     </div>

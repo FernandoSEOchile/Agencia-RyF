@@ -120,6 +120,11 @@ export default async function NuevoCliente({
       <p className="mt-2 text-[13px] leading-relaxed text-[color:var(--tinta-media)]">
         En el escritorio del cliente: <strong>AppSEO → Conexión</strong>, y copia la cadena completa.
       </p>
+      <p className="mt-2 text-[13px] leading-relaxed text-[color:var(--tinta-media)]">
+        Sirve también para <strong>reconectar un sitio que ya está aquí</strong>: si el dominio
+        coincide, se actualiza la credencial de ese cliente en vez de crear uno nuevo, y no se
+        pierde nada de lo que ya tenía.
+      </p>
 
       {!listo && (
         <p className="mt-6 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">
