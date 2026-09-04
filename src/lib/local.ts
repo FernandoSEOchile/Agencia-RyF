@@ -287,10 +287,28 @@ async function correr(
     await dormir(PAUSA);
   }
 
-  await db.rejilla.update({
-    where: { id: rejillaId },
-    data: { estado: "terminado", hechos, coste, acabado: new Date() },
-  });
+  // Si ningún punto trajo resultados, no hubo medición: hubo un fallo
+  // (saldo, ficha que no existe, zoom malo). Guardarlo como «terminado»
+  // pintaba una rejilla de interrogaciones con «costó $0.000» y se quedaba
+  // en el histórico como si fuera un dato.
+  const conDatos = await db.puntoRejilla.count({ where: { rejillaId, resultados: { gt: 0 } } });
+  if (conDatos === 0) {
+    await db.rejilla.update({
+      where: { id: rejillaId },
+      data: {
+        estado: "error",
+        nota: "Ningún punto devolvió resultados. Suele ser saldo agotado en DataForSEO o una ficha que Google no encuentra con ese nombre. Revisa Ajustes y vuelve a medir.",
+        hechos,
+        coste,
+        acabado: new Date(),
+      },
+    });
+  } else {
+    await db.rejilla.update({
+      where: { id: rejillaId },
+      data: { estado: "terminado", hechos, coste, acabado: new Date() },
+    });
+  }
 
   // El gasto se apunta al final y con el importe real acumulado, no con una
   // estimación al empezar: si el barrido se corta a la mitad, lo que hay que

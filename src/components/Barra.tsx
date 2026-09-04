@@ -1,5 +1,8 @@
 import Image from "next/image";
 import Link from "next/link";
+import Navegacion, { type Enlace } from "@/components/Navegacion";
+import { clientesDe } from "@/lib/clientes";
+import { salir } from "@/lib/salir";
 
 /**
  * Barra superior del panel.
@@ -7,20 +10,49 @@ import Link from "next/link";
  * Va en negro porque el logo de la agencia es blanco con transparencia: sobre
  * fondo claro no se vería. Y se queda fija arriba: es el único marco constante
  * de la herramienta, y perderla al bajar deja al usuario sin salida.
+ *
+ * Lleva la navegación entera —pantallas, cliente actual, salir— para que
+ * ninguna pantalla dependa de volver a la portada. Los clientes los busca ella
+ * misma con el id de quien mira: así ninguna página tiene que acordarse de
+ * pasárselos.
  */
-export default function Barra({
+export default async function Barra({
   usuario,
+  usuarioId,
   rol,
+  clienteId,
   acciones,
 }: {
   usuario?: string | null;
+  usuarioId?: string | null;
   rol?: string;
+  clienteId?: string | null;
   acciones?: React.ReactNode;
 }) {
+  const r = rol ?? "LECTOR";
+
+  const enlaces: Enlace[] = [
+    { href: "/panel", texto: "Clientes" },
+    { href: "/panel/terminos", texto: "Palabras clave" },
+    { href: "/panel/explorar", texto: "Explorar" },
+    { href: "/panel/errores", texto: "Fallos" },
+    ...(r === "ADMIN" || r === "GESTOR" ? [{ href: "/panel/gasto", texto: "Gasto" }] : []),
+    ...(r === "ADMIN"
+      ? [
+          { href: "/panel/usuarios", texto: "Usuarios" },
+          { href: "/panel/ajustes", texto: "Ajustes" },
+        ]
+      : []),
+  ];
+
+  const clientes = usuarioId
+    ? (await clientesDe(usuarioId, r)).map((c) => ({ id: c.id, nombre: c.nombre, dominio: c.dominio }))
+    : [];
+
   return (
     <header className="sticky top-0 z-40 bg-[#111111]">
-      <div className="contenedor flex h-12 flex-wrap items-center gap-4">
-        <Link href="/panel" className="flex items-center gap-3">
+      <div className="contenedor flex h-12 items-center gap-3 sm:gap-5">
+        <Link href="/panel" className="flex shrink-0 items-center gap-3" aria-label="Portada del panel">
           <Image
             src="/ryf.webp"
             alt="Agencia RYF"
@@ -29,17 +61,24 @@ export default function Barra({
             priority
             className="h-[18px] w-auto"
           />
-          <span className="text-[13px] font-medium tracking-tight text-white/90">Panel</span>
         </Link>
 
-        <div className="ml-auto flex items-center gap-4">
+        <Navegacion enlaces={enlaces} clientes={clientes} clienteId={clienteId} />
+
+        <div className="ml-auto flex shrink-0 items-center gap-3">
           {usuario && (
-            <span className="hidden text-[12px] text-white/55 sm:block">
+            <span className="hidden text-[12px] text-white/55 lg:block" title={rol?.toLowerCase()}>
               {usuario}
-              {rol && <span className="ml-1.5 text-white/30">{rol.toLowerCase()}</span>}
             </span>
           )}
           {acciones}
+          {usuarioId && (
+            <form action={salir}>
+              <button className="text-[12px] font-medium text-white/55 transition hover:text-white">
+                Salir
+              </button>
+            </form>
+          )}
         </div>
       </div>
     </header>

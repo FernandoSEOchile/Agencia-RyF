@@ -6,6 +6,7 @@ import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { anotar } from "@/lib/clientes";
 import Barra from "@/components/Barra";
+import { fecha } from "@/lib/formato";
 
 export const metadata = { title: "Usuarios · Panel AppSEO" };
 export const dynamic = "force-dynamic";
@@ -111,7 +112,7 @@ export default async function Usuarios({
 
   return (
     <>
-      <Barra usuario={sesion.user!.name} rol="ADMIN" />
+      <Barra usuarioId={sesion.user?.id} usuario={sesion.user!.name} rol="ADMIN" />
       <main className="mx-auto max-w-4xl px-6 py-8">
         <Link href="/panel" className="text-sm text-neutral-500 underline-offset-4 hover:underline">
           ← Clientes
@@ -168,7 +169,7 @@ export default async function Usuarios({
                     </p>
                     <p className="text-xs text-neutral-500">
                       {u.email}
-                      {u.ultimoAcceso && ` · último acceso ${u.ultimoAcceso.toISOString().slice(0, 16).replace("T", " ")}`}
+                      {u.ultimoAcceso && ` · último acceso ${fecha(u.ultimoAcceso, { hora: true })}`}
                     </p>
                   </div>
 

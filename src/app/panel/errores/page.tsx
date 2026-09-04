@@ -79,7 +79,7 @@ export default async function PaginaErrores() {
 
   return (
     <>
-      <Barra
+      <Barra usuarioId={sesion.user?.id}
         usuario={sesion.user.name}
         rol={rol}
         acciones={

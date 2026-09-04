@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import "leaflet/dist/leaflet.css";
+import { dinero, fecha } from "@/lib/formato";
 
 /**
  * Posiciones locales sobre un mapa.
@@ -402,6 +403,12 @@ export default function Local({
       )}
 
       {/* ---------------- El barrido ---------------- */}
+      {barrido?.estado === "error" && (
+        <div className="mt-4 rounded-2xl border border-red-200 bg-red-50 px-5 py-4">
+          <p className="text-[14px] font-medium text-red-700">No se pudo medir.</p>
+          <p className="mt-1 text-[13px] leading-relaxed text-red-700/80">{barrido.nota}</p>
+        </div>
+      )}
       {barrido?.estado === "corriendo" && (
         <div className="tarjeta mt-4 p-5">
           <p className="text-[14px] font-medium">
@@ -419,7 +426,7 @@ export default function Local({
         </div>
       )}
 
-      {barrido && barrido.puntos.length > 0 && (
+      {barrido && barrido.estado !== "error" && barrido.puntos.length > 0 && (
         <>
           <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             <div className="tarjeta px-5 py-4">
@@ -452,10 +459,10 @@ export default function Local({
             <div className="tarjeta px-5 py-4">
               <p className="rotulo">Costó</p>
               <p className="mt-1 text-[26px] font-semibold leading-none tabular-nums">
-                ${barrido.coste.toFixed(3)}
+                {dinero(barrido.coste)}
               </p>
               <p className="mt-1.5 text-[12px] text-[color:var(--tinta-suave)]">
-                {barrido.creado.slice(0, 10)}
+                {fecha(barrido.creado)}
               </p>
             </div>
           </div>

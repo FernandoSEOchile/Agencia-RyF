@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useConfirmar } from "@/components/Confirmar";
+import { useEffect, useState } from "react";
 import Chat from "@/components/Chat";
 import Sitemap from "@/components/Sitemap";
 import Arquitectura, { type ArquitecturaVista } from "@/components/Arquitectura";
@@ -39,28 +40,88 @@ export interface ResumenConversacion {
   autor: string | null;
 }
 
-const PESTAÑAS = [
-  { id: "chat", etiqueta: "Trabajar" },
-  { id: "panorama", etiqueta: "Panorama" },
-  { id: "sitemap", etiqueta: "Sitemap" },
-  { id: "arquitectura", etiqueta: "Arquitectura" },
-  { id: "tecnico", etiqueta: "Técnico" },
-  { id: "local", etiqueta: "Local" },
-  { id: "posiciones", etiqueta: "Posiciones" },
-  { id: "backlinks", etiqueta: "Backlinks" },
-  { id: "bitacora", etiqueta: "Bitácora" },
-  { id: "gasto", etiqueta: "Gasto" },
-  { id: "registro", etiqueta: "Registro" },
-  { id: "datos", etiqueta: "Datos" },
-] as const;
+/**
+ * Doce vistas en cuatro zonas. En una sola fila no cabían: en móvil las
+ * últimas cuatro se salían de la pantalla y no había forma de llegar a ellas.
+ * Las zonas responden a qué hace la persona: trabajar, medir, revisar y
+ * mirar la cuenta.
+ */
+type Pestaña =
+  | "chat"
+  | "panorama"
+  | "posiciones"
+  | "local"
+  | "backlinks"
+  | "tecnico"
+  | "sitemap"
+  | "arquitectura"
+  | "bitacora"
+  | "gasto"
+  | "registro"
+  | "datos";
 
-type Pestaña = (typeof PESTAÑAS)[number]["id"];
+interface Zona {
+  id: string;
+  etiqueta: string;
+  pestañas: readonly { id: Pestaña; etiqueta: string }[];
+}
+
+const ZONAS: readonly Zona[] = [
+  { id: "trabajar", etiqueta: "Trabajar", pestañas: [{ id: "chat", etiqueta: "Asistente" }] },
+  {
+    id: "medir",
+    etiqueta: "Medir",
+    pestañas: [
+      { id: "panorama", etiqueta: "Panorama" },
+      { id: "posiciones", etiqueta: "Posiciones" },
+      { id: "local", etiqueta: "Local" },
+      { id: "backlinks", etiqueta: "Backlinks" },
+    ],
+  },
+  {
+    id: "revisar",
+    etiqueta: "Revisar",
+    pestañas: [
+      { id: "tecnico", etiqueta: "Técnico" },
+      { id: "sitemap", etiqueta: "Sitemap" },
+      { id: "arquitectura", etiqueta: "Arquitectura" },
+    ],
+  },
+  {
+    id: "cuenta",
+    etiqueta: "Cuenta",
+    pestañas: [
+      { id: "bitacora", etiqueta: "Bitácora" },
+      { id: "gasto", etiqueta: "Gasto" },
+      { id: "registro", etiqueta: "Registro" },
+      { id: "datos", etiqueta: "Datos" },
+    ],
+  },
+];
+
+const PESTAÑAS = ZONAS.flatMap((z) => z.pestañas);
+
+function zonaDe(p: Pestaña) {
+  return ZONAS.find((z) => z.pestañas.some((x) => x.id === p))!;
+}
+
+/**
+ * La pestaña vive en la URL (`?t=tecnico`).
+ *
+ * Con un estado de React, recargar devolvía a la primera y no había forma de
+ * mandarle a un compañero «mira el Técnico de Fontus» con un enlace.
+ */
+function pestañaDeUrl(): Pestaña | null {
+  if (typeof window === "undefined") return null;
+  const t = new URLSearchParams(window.location.search).get("t");
+  return PESTAÑAS.some((p) => p.id === t) ? (t as Pestaña) : null;
+}
 
 function Contador({ etiqueta, valor }: { etiqueta: string; valor: string }) {
   return (
     <div className="bg-white px-4 py-3">
-      <dt className="text-[11px] font-medium uppercase tracking-wide text-neutral-500">{etiqueta}</dt>
-      <dd className="mt-0.5 text-lg font-semibold tabular-nums text-neutral-900">{valor}</dd>
+      <dt className="text-[11px] font-medium uppercase tracking-wide text-[color:var(--tinta-media)]">{etiqueta}</dt>
+      <dd className="mt-0.5 text-lg font-semibold tabular-nums text-[color:var(--tinta)]">{valor}</dd>
     </div>
   );
 }
@@ -100,7 +161,21 @@ export default function FichaCliente({
   hayGsc: boolean;
   puedeSubir: boolean;
 }) {
-  const [activa, setActiva] = useState<Pestaña>("chat");
+  const [activa, setActivaEstado] = useState<Pestaña>("chat");
+
+  useEffect(() => {
+    const t = pestañaDeUrl();
+    if (t) setActivaEstado(t);
+  }, []);
+
+  function setActiva(p: Pestaña) {
+    setActivaEstado(p);
+    const url = new URL(window.location.href);
+    if (p === "chat") url.searchParams.delete("t");
+    else url.searchParams.set("t", p);
+    window.history.replaceState(window.history.state, "", url);
+  }
+  const { confirmar, dialogo } = useConfirmar();
 
   // Lo que llega desde otra pestaña al campo del chat. El sello permite repetir
   // la misma instrucción dos veces y que la segunda también se note.
@@ -118,23 +193,47 @@ export default function FichaCliente({
 
   return (
     <div className="mt-7">
+      {dialogo}
       {/* Control segmentado en vez de pestañas subrayadas: agrupa las vistas en
           un solo objeto en lugar de dejar cinco palabras sueltas sobre una raya. */}
-      <div className="segmentos">
-        {PESTAÑAS.map((p) => (
-          <button
-            key={p.id}
-            onClick={() => setActiva(p.id)}
-            className={`segmento ${activa === p.id ? "segmento-activo" : ""}`}
-          >
-            {p.etiqueta}
-            {p.id === "registro" && sucesos.length > 0 && (
-              <span className="ml-1.5 tabular-nums text-[color:var(--tinta-suave)]">
-                {sucesos.length}
-              </span>
-            )}
-          </button>
-        ))}
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+        <div className="segmentos" role="tablist" aria-label="Zona">
+          {ZONAS.map((z) => {
+            const activaAqui = zonaDe(activa).id === z.id;
+            return (
+              <button
+                key={z.id}
+                role="tab"
+                aria-selected={activaAqui}
+                onClick={() => setActiva(z.pestañas[0].id)}
+                className={`segmento ${activaAqui ? "segmento-activo" : ""}`}
+              >
+                {z.etiqueta}
+              </button>
+            );
+          })}
+        </div>
+
+        {zonaDe(activa).pestañas.length > 1 && (
+          <div className="segmentos" role="tablist" aria-label="Vista">
+            {zonaDe(activa).pestañas.map((p) => (
+              <button
+                key={p.id}
+                role="tab"
+                aria-selected={activa === p.id}
+                onClick={() => setActiva(p.id)}
+                className={`segmento ${activa === p.id ? "segmento-activo" : ""}`}
+              >
+                {p.etiqueta}
+                {p.id === "registro" && sucesos.length > 0 && (
+                  <span className="ml-1.5 tabular-nums text-[color:var(--tinta-suave)]">
+                    {sucesos.length}
+                  </span>
+                )}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* El chat se oculta en lugar de desmontarse: cambiar de pestaña no debe
@@ -143,11 +242,11 @@ export default function FichaCliente({
         <div className="mt-5 flex gap-6">
           {conversaciones.length > 1 && (
             <aside className="hidden w-52 shrink-0 sm:block">
-              <p className="text-[11px] font-semibold uppercase tracking-wide text-neutral-400">
+              <p className="text-[11px] font-semibold uppercase tracking-wide text-[color:var(--tinta-suave)]">
                 Conversaciones del equipo
               </p>
               {totalConversaciones > conversaciones.length && (
-                <p className="mt-1 text-[10px] text-neutral-400">
+                <p className="mt-1 text-[10px] text-[color:var(--tinta-suave)]">
                   Se ven las {conversaciones.length} últimas de {totalConversaciones}.
                 </p>
               )}
@@ -160,12 +259,12 @@ export default function FichaCliente({
                         href={`?c=${cv.id}`}
                         className={`block rounded-lg px-3 py-2 pr-7 text-xs transition ${
                           abierta
-                            ? "bg-[#ff6b00]/10 font-semibold text-neutral-900"
-                            : "text-neutral-600 hover:bg-neutral-100"
+                            ? "bg-[color:var(--acento)]/10 font-semibold text-[color:var(--tinta)]"
+                            : "text-[color:var(--tinta-media)] hover:bg-black/[0.04]"
                         }`}
                       >
                         <span className="line-clamp-2">{cv.titulo}</span>
-                        <span className="mt-0.5 block text-[10px] tabular-nums text-neutral-400">
+                        <span className="mt-0.5 block text-[10px] tabular-nums text-[color:var(--tinta-suave)]">
                           {cv.fecha} · {cv.mensajes} msj
                         </span>
                         {cv.autor && (
@@ -176,25 +275,26 @@ export default function FichaCliente({
                       </a>
                       {/* Borrar: visible al pasar el ratón, y solo en los hilos
                           propios. Los de otros se leen, no se borran. */}
-                      <form
-                        action={borrar}
-                        onSubmit={(e) => {
-                          if (!confirm(`¿Borrar «${cv.titulo}»? No se puede deshacer.`))
-                            e.preventDefault();
-                        }}
+                      <div
                         className={`absolute right-1.5 top-1.5 transition ${
                           cv.autor ? "hidden" : ""
                         }`}
                       >
-                        <input type="hidden" name="conversacionId" value={cv.id} />
                         <button
-                          type="submit"
+                          type="button"
+                          onClick={async () => {
+                            if (!(await confirmar({ titulo: `¿Borrar «${cv.titulo}»?`, detalle: "Se pierde la conversación entera. No se puede deshacer." }))) return;
+                            const datos = new FormData();
+                            datos.set("conversacionId", cv.id);
+                            await borrar(datos);
+                          }}
                           title="Borrar conversación"
-                          className="grid h-5 w-5 place-items-center rounded text-neutral-300 transition hover:bg-red-50 hover:text-red-600 group-hover:text-neutral-500"
+                          aria-label={`Borrar la conversación «${cv.titulo}»`}
+                          className="grid h-5 w-5 place-items-center rounded text-[color:var(--tinta-suave)] transition hover:bg-red-50 hover:text-red-600 group-hover:text-[color:var(--tinta-media)]"
                         >
                           ×
                         </button>
-                      </form>
+                      </div>
                     </li>
                   );
                 })}
@@ -204,21 +304,17 @@ export default function FichaCliente({
                   que no se llegó a usar deja uno. Borrarlos de uno en uno no es
                   trabajo de nadie. */}
               {conversaciones.some((cv) => !cv.autor && cv.mensajes < 2) && (
-                <form
-                  action={limpiar}
-                  onSubmit={(e) => {
-                    if (!confirm("¿Borrar todos los hilos vacíos o sin respuesta? No se puede deshacer."))
-                      e.preventDefault();
-                  }}
-                  className="mt-3"
-                >
+                <div className="mt-3">
                   <button
-                    type="submit"
-                    className="w-full rounded-lg border border-neutral-200 px-3 py-1.5 text-[11px] text-neutral-500 transition hover:border-red-200 hover:bg-red-50 hover:text-red-600"
+                    type="button"
+                    onClick={async () => {
+                      if (await confirmar({ titulo: "¿Borrar los hilos vacíos?", detalle: "Se van los que quedaron con cero o un mensaje. No se puede deshacer.", boton: "Limpiar" })) await limpiar();
+                    }}
+                    className="w-full rounded-lg border border-[color:var(--linea-fuerte)] px-3 py-1.5 text-[11px] text-[color:var(--tinta-media)] transition hover:border-red-200 hover:bg-red-50 hover:text-red-600"
                   >
                     Limpiar hilos vacíos
                   </button>
-                </form>
+                </div>
               )}
             </aside>
           )}
@@ -229,7 +325,7 @@ export default function FichaCliente({
               <select
                 defaultValue={conversacionInicial ?? ""}
                 onChange={(e) => { if (e.target.value) window.location.search = "?c=" + e.target.value; }}
-                className="mb-3 w-full rounded-lg border border-neutral-200 bg-white px-3 py-2 text-xs sm:hidden"
+                className="mb-3 w-full rounded-lg border border-[color:var(--linea-fuerte)] bg-white px-3 py-2 text-xs sm:hidden"
               >
                 {conversaciones.map((cv) => (
                   <option key={cv.id} value={cv.id}>
@@ -268,7 +364,7 @@ export default function FichaCliente({
         />
       )}
 
-      {activa === "panorama" && <Panorama clienteId={clienteId} />}
+      {activa === "panorama" && <Panorama clienteId={clienteId} irA={(t) => setActiva(t as Pestaña)} />}
 
       {activa === "local" && (
         <>
@@ -314,50 +410,50 @@ export default function FichaCliente({
                 onClick={() => setFiltro(id)}
                 className={`rounded-full px-3 py-1 text-xs font-medium transition ${
                   filtro === id
-                    ? "bg-neutral-900 text-white"
-                    : "bg-neutral-100 text-neutral-600 hover:bg-neutral-200"
+                    ? "bg-[color:var(--tinta)] text-white"
+                    : "bg-black/[0.04] text-[color:var(--tinta-media)] hover:bg-black/[0.08]"
                 }`}
               >
                 {texto}
               </button>
             ))}
-            <p className="ml-auto text-xs text-neutral-400">
+            <p className="ml-auto text-xs text-[color:var(--tinta-suave)]">
               {visibles.length} {visibles.length === 1 ? "operación" : "operaciones"}
             </p>
           </div>
 
           {visibles.length === 0 ? (
-            <p className="rounded-xl border border-dashed border-neutral-300 px-6 py-10 text-center text-sm text-neutral-500">
+            <p className="rounded-xl border border-dashed border-[color:var(--linea-fuerte)] px-6 py-10 text-center text-sm text-[color:var(--tinta-media)]">
               Sin operaciones registradas.
             </p>
           ) : (
-            <ul className="divide-y divide-neutral-200 overflow-hidden rounded-xl border border-neutral-200 bg-white">
+            <ul className="divide-y divide-[color:var(--linea-fuerte)] overflow-hidden rounded-xl border border-[color:var(--linea-fuerte)] bg-white">
               {visibles.map((s, i) => (
                 <li key={i} className="flex flex-wrap items-baseline gap-x-3 gap-y-1 px-4 py-2.5 text-sm">
-                  <span className="w-24 shrink-0 tabular-nums text-xs text-neutral-400">{s.fecha}</span>
+                  <span className="w-24 shrink-0 tabular-nums text-xs text-[color:var(--tinta-suave)]">{s.fecha}</span>
 
                   <span
                     className={`rounded px-1.5 py-0.5 text-[11px] font-semibold ${
                       s.origen === "panel"
-                        ? "bg-[#ff6b00]/10 text-[#ff6b00]"
-                        : "bg-neutral-100 text-neutral-600"
+                        ? "bg-[color:var(--acento)]/10 text-[color:var(--acento)]"
+                        : "bg-black/[0.04] text-[color:var(--tinta-media)]"
                     }`}
                     title={s.origen === "panel" ? "Hecho desde el panel" : "Registrado por el conector"}
                   >
                     {s.accion}
                   </span>
 
-                  <span className={s.resultado === "ok" ? "text-neutral-700" : "font-medium text-red-600"}>
+                  <span className={s.resultado === "ok" ? "text-[color:var(--tinta)]" : "font-medium text-red-600"}>
                     {s.resumen}
                   </span>
 
-                  {s.quien && <span className="ml-auto text-xs text-neutral-400">{s.quien}</span>}
+                  {s.quien && <span className="ml-auto text-xs text-[color:var(--tinta-suave)]">{s.quien}</span>}
                 </li>
               ))}
             </ul>
           )}
 
-          <p className="mt-3 text-xs text-neutral-400">
+          <p className="mt-3 text-xs text-[color:var(--tinta-suave)]">
             «En el sitio» es lo que el conector anotó dentro de WordPress. «Desde el panel» es lo que hizo
             tu equipo desde aquí, con nombre.
           </p>
@@ -366,7 +462,7 @@ export default function FichaCliente({
 
       {activa === "datos" && (
         <div className="mt-4">
-          <dl className="grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-neutral-200 bg-neutral-200 sm:grid-cols-3">
+          <dl className="grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-[color:var(--linea-fuerte)] bg-black/[0.08] sm:grid-cols-3">
             {datos.map((d) => (
               <Contador key={d.etiqueta} etiqueta={d.etiqueta} valor={d.valor} />
             ))}

@@ -88,7 +88,9 @@ function nombreDesdeSlug(slug: string): string {
     .replace(/-/g, " ")
     .replace(/\s+/g, " ")
     .trim()
-    .replace(/\b\w/g, (c) => c.toUpperCase());
+    // Solo la primera letra de cada palabra. `\b\w` parecía lo mismo, pero \b
+    // corta también en la ñ y en las vocales con tilde: salía «CañEríAs».
+    .replace(/(^|\s)(\S)/g, (_, sep: string, c: string) => sep + c.toLocaleUpperCase("es"));
 }
 
 export interface FilaLeida {

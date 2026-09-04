@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import Periodo, { usePeriodo } from "@/components/Periodo";
 import {
   Linea,
   Tramos,
@@ -50,14 +51,6 @@ interface Datos {
   enlaces: { medido: string; resumen: Record<string, number> | null } | null;
 }
 
-const PERIODOS = [
-  [28, "1 mes"],
-  [90, "3 meses"],
-  [180, "6 meses"],
-  [365, "1 año"],
-  [730, "2 años"],
-] as const;
-
 const miles = (n: number) => Math.round(n).toLocaleString("es-CL");
 
 /**
@@ -78,8 +71,15 @@ function variacion(valores: number[]): number | null {
   return Math.round(((ahora - antes) / antes) * 100);
 }
 
-export default function Panorama({ clienteId }: { clienteId: string }) {
-  const [dias, setDias] = useState(180);
+export default function Panorama({
+  clienteId,
+  irA,
+}: {
+  clienteId: string;
+  /** Cambia de pestaña dentro de la ficha: «Medir velocidad» lleva a Técnico sin salir. */
+  irA?: (pestaña: string) => void;
+}) {
+  const { dias, setDias, permitidos } = usePeriodo(180, [28, 90, 180, 365, 730]);
   const [d, setD] = useState<Datos | null>(null);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -130,17 +130,7 @@ export default function Panorama({ clienteId }: { clienteId: string }) {
           </p>
         </div>
 
-        <div className="segmentos">
-          {PERIODOS.map(([n, texto]) => (
-            <button
-              key={n}
-              onClick={() => setDias(n)}
-              className={`segmento ${dias === n ? "segmento-activo" : ""}`}
-            >
-              {texto}
-            </button>
-          ))}
-        </div>
+        <Periodo dias={dias} setDias={setDias} permitidos={permitidos} />
       </div>
 
       {d.avisoGsc && (
@@ -172,11 +162,13 @@ export default function Panorama({ clienteId }: { clienteId: string }) {
           etiqueta="Palabras en seguimiento"
           valor={miles(d.keywords)}
           pie={d.posiciones.length ? `${d.posiciones.length} mediciones` : "sin medir aún"}
+          accion={!d.keywords && irA ? { texto: "Seguir palabras", alPulsar: () => irA("posiciones") } : undefined}
         />
         <Cifra
           etiqueta="Velocidad"
           valor={d.velocidad != null ? String(d.velocidad) : "—"}
           pie={d.velocidad != null ? "nota de PageSpeed" : "sin medir"}
+          accion={d.velocidad == null && irA ? { texto: "Medir velocidad", alPulsar: () => irA("tecnico") } : undefined}
         />
       </div>
 
@@ -223,9 +215,11 @@ export default function Panorama({ clienteId }: { clienteId: string }) {
 
       {d.historico.length <= 1 && (
         <p className="mt-3 text-[13px] text-[color:var(--tinta-media)]">
-          Para ver la curva de palabras clave por posición mes a mes, explora este dominio desde{" "}
-          <span className="font-medium text-[color:var(--tinta)]">Explorar dominio</span>. Se paga
-          una vez y queda guardada.
+          La curva de palabras clave por posición mes a mes sale de explorar el dominio: se paga una
+          vez y queda guardada.{" "}
+          <a href="/panel/explorar" className="font-medium text-[color:var(--acento)] underline-offset-4 hover:underline">
+            Explorar este dominio →
+          </a>
         </p>
       )}
 

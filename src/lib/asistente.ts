@@ -334,7 +334,8 @@ export async function conversar(
   sistema: string,
   historial: Turno[],
   emitir: (evento: { tipo: string; [k: string]: unknown }) => void,
-  uso: Uso = usoVacio()
+  uso: Uso = usoVacio(),
+  señal?: AbortSignal
 ) {
   const anthropic = await cliente();
   // El modelo fijado a mano en ajustes gana: `modelo()` ya lo resuelve, así que
@@ -351,7 +352,7 @@ export async function conversar(
     tools: herramientasDe(ctx),
     messages: conCache(historial.map((t) => ({ role: t.rol, content: contenidoDe(t) }))),
     stream: true,
-  });
+  }, { signal: señal });
 
   for await (const flujo of runner) {
     for await (const evento of flujo) {
@@ -360,6 +361,10 @@ export async function conversar(
       } else if (evento.type === "content_block_delta" && evento.delta.type === "text_delta") {
         uso.texto += evento.delta.text;
         emitir({ tipo: "texto", texto: evento.delta.text });
+      } else if (evento.type === "content_block_delta" && evento.delta.type === "thinking_delta") {
+        // El razonamiento se enseña mientras ocurre. Antes se descartaba y la
+        // pantalla quedaba muerta diez segundos: no era lento, parecía colgado.
+        emitir({ tipo: "pensando", texto: evento.delta.thinking });
       }
     }
 

@@ -14,12 +14,12 @@ export const metadata = { title: "Entrar · AppSEO" };
 export default async function Entrar({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string }>;
+  searchParams: Promise<{ error?: string; email?: string }>;
 }) {
   const sesion = await auth();
   if (sesion?.user) redirect("/panel");
 
-  const { error } = await searchParams;
+  const { error, email } = await searchParams;
   const sinUsuarios = (await db.usuario.count()) === 0;
 
   async function entrar(datos: FormData) {
@@ -34,7 +34,9 @@ export default async function Entrar({
       // signIn lanza una redirección interna cuando va bien; hay que dejarla pasar.
       if (e instanceof Error && e.message === "NEXT_REDIRECT") throw e;
       if ((e as { digest?: string })?.digest?.startsWith("NEXT_REDIRECT")) throw e;
-      redirect("/entrar?error=1");
+      // El correo vuelve en la URL para no obligar a escribirlo dos veces. La
+      // contraseña, nunca.
+      redirect(`/entrar?error=1&email=${encodeURIComponent(String(datos.get("email") ?? ""))}`);
     }
   }
 
@@ -66,6 +68,7 @@ export default async function Entrar({
             name="email"
             type="email"
             required
+            defaultValue={email ?? ""}
             autoComplete="username"
             className="rounded-lg border border-neutral-200 bg-white px-3 py-2.5 text-sm outline-none transition focus:border-[#ff6b00] focus:ring-2 focus:ring-[#ff6b00]/20"
           />

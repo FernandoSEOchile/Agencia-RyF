@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { Cabecera, useOrden, type Columna } from "@/components/Tabla";
+import { dinero } from "@/lib/formato";
 
 /**
  * Palabras clave: lo que ya tenemos y lo que falta por comprar, en una pantalla.
@@ -119,7 +120,7 @@ export default function Palabras({ puedePagar }: { puedePagar: boolean }) {
       }
 
       setAviso(
-        `${miles(d.cuantas)} palabras traídas · ${miles(d.nuevas)} que no teníamos · costó US$${Number(d.coste).toFixed(4)}` +
+        `${miles(d.cuantas)} palabras traídas · ${miles(d.nuevas)} que no teníamos · costó ${dinero(Number(d.coste))}` +
           (d.avisos?.length ? ` · ${d.avisos.join(" · ")}` : "")
       );
 
@@ -152,7 +153,7 @@ export default function Palabras({ puedePagar }: { puedePagar: boolean }) {
         return;
       }
 
-      setAviso(`${miles(d.tocadas)} palabras actualizadas · costó US$${Number(d.coste).toFixed(4)}`);
+      setAviso(`${miles(d.tocadas)} palabras actualizadas · costó ${dinero(Number(d.coste))}`);
       await cargar();
     } catch {
       setError("No se pudo actualizar.");

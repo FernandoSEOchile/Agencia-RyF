@@ -324,9 +324,40 @@ export default function Rastreo({
         </div>
       )}
 
-      {problemas && (
-        <div className="mt-5 grid gap-3 grid-cols-2 sm:grid-cols-4 lg:grid-cols-7">
-          {INFORMES.filter((i) => problemas[i.id] !== undefined).map((i) => {
+      {problemas && (() => {
+        // Lo grave con cifra primero, luego lo demás con cifra, y los ceros al
+        // final y atenuados. Antes «90 canibalizaciones» pesaba lo mismo que
+        // «0 sin viewport» y había que leer la rejilla entera para saber qué
+        // mirar.
+        const visibles = INFORMES.filter((i) => problemas[i.id] !== undefined);
+        const peso = (i: (typeof INFORMES)[number]) =>
+          problemas[i.id] === 0 ? 2 : i.grave ? 0 : 1;
+        const ordenados = [...visibles].sort(
+          (x, y) => peso(x) - peso(y) || problemas[y.id] - problemas[x.id]
+        );
+        const conCifra = ordenados.filter((i) => problemas[i.id] > 0);
+        return (
+          <>
+            <p className="mt-5 text-[14px]">
+              {conCifra.length === 0 ? (
+                <span className="font-medium text-emerald-700">Nada que arreglar en lo rastreado.</span>
+              ) : (
+                <>
+                  <span className="font-medium">
+                    {conCifra.length} {conCifra.length === 1 ? "cosa" : "cosas"} que mirar:
+                  </span>{" "}
+                  <span className="text-[color:var(--tinta-media)]">
+                    {conCifra
+                      .slice(0, 4)
+                      .map((i) => `${miles(problemas[i.id])} ${i.etiqueta.toLowerCase()}`)
+                      .join(", ")}
+                    {conCifra.length > 4 ? "…" : "."}
+                  </span>
+                </>
+              )}
+            </p>
+        <div className="mt-3 grid gap-3 grid-cols-2 sm:grid-cols-4 lg:grid-cols-7">
+          {ordenados.map((i) => {
             const n = problemas[i.id];
             const activo = abierto === i.id;
             return (
@@ -337,7 +368,9 @@ export default function Rastreo({
                 className={`rounded-2xl border px-4 py-3 text-left transition ${
                   activo
                     ? "border-[color:var(--tinta)] bg-white shadow-sm"
-                    : "border-[color:var(--linea)] bg-white hover:border-[color:var(--linea-fuerte)]"
+                    : n === 0
+                      ? "border-transparent bg-black/[0.025] opacity-70 hover:opacity-100"
+                      : "border-[color:var(--linea)] bg-white hover:border-[color:var(--linea-fuerte)]"
                 }`}
               >
                 <p
@@ -410,7 +443,9 @@ export default function Rastreo({
             </p>
           </button>
         </div>
-      )}
+          </>
+        );
+      })()}
 
       {abierto && (
         <div className="mt-5">

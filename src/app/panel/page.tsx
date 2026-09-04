@@ -2,12 +2,13 @@ import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { auth, signOut } from "@/lib/auth";
+import { auth } from "@/lib/auth";
 import { clientesDe } from "@/lib/clientes";
 import { ultimas } from "@/lib/vigia";
 import { db } from "@/lib/db";
 import Barra from "@/components/Barra";
 import Plataforma, { IconoWordPress } from "@/components/Plataforma";
+import { fecha } from "@/lib/formato";
 
 export const metadata = { title: "Clientes · Panel AppSEO" };
 export const dynamic = "force-dynamic";
@@ -65,11 +66,6 @@ export default async function Panel() {
     include: { usuario: { select: { nombre: true } }, cliente: { select: { nombre: true } } },
   });
 
-  async function salir() {
-    "use server";
-    await signOut({ redirectTo: "/entrar" });
-  }
-
   const conEscritura = clientes.filter((c) => c.soloLectura === false).length;
   const atrasados = clientes.filter((c) => c.version && c.version !== ultima).length;
 
@@ -81,16 +77,9 @@ export default async function Panel() {
 
   return (
     <>
-      <Barra
+      <Barra usuarioId={sesion.user?.id}
         usuario={sesion.user.name}
         rol={rol}
-        acciones={
-          <form action={salir}>
-            <button className="text-[12px] font-medium text-white/55 transition hover:text-white">
-              Salir
-            </button>
-          </form>
-        }
       />
 
       <main className="contenedor py-14">
@@ -266,7 +255,7 @@ export default async function Panel() {
               {registro.map((r) => (
                 <li key={r.id} className="flex flex-wrap items-baseline gap-x-3 gap-y-1 px-5 py-3 text-[13px]">
                   <span className="w-20 shrink-0 tabular-nums text-[11px] text-[color:var(--tinta-suave)]">
-                    {r.creado.toISOString().slice(5, 16).replace("T", " ")}
+                    {fecha(r.creado, { hora: true })}
                   </span>
                   <span className="pastilla bg-[color:var(--acento)]/10 text-[color:var(--acento)]">
                     {r.accion}

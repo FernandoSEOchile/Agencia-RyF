@@ -1,7 +1,10 @@
 "use client";
 
+import { useConfirmar } from "@/components/Confirmar";
 import { useState } from "react";
+  const { confirmar, dialogo } = useConfirmar();
 import SearchConsole from "@/components/SearchConsole";
+import { dinero } from "@/lib/formato";
 
 export interface KeywordVista {
   id: string;
@@ -139,7 +142,7 @@ export default function Posiciones({
       }
 
       setAviso(
-        `${j.medidas} consultas medidas por US$${Number(j.coste).toFixed(3)}` +
+        `${j.medidas} consultas medidas por ${dinero(Number(j.coste))}` +
           (j.fallos ? ` · ${j.fallos} fallaron` : "") +
           (j.pendientes ? ` · quedan ${j.pendientes} para la próxima pasada` : "")
       );
@@ -151,7 +154,7 @@ export default function Posiciones({
   }
 
   async function quitar(id: string, termino: string) {
-    if (!confirm(`¿Quitar «${termino}» del seguimiento? Se pierde su histórico.`)) return;
+    if (!(await confirmar({ titulo: `¿Quitar «${termino}» del seguimiento?`, detalle: "Se pierde su histórico de posiciones.", boton: "Quitar" }))) return;
     setOcupado(true);
     try {
       await llamar("DELETE", { keywordId: id });
@@ -192,6 +195,7 @@ export default function Posiciones({
 
   return (
     <div className="mt-5">
+      {dialogo}
       {hayGsc && (
       <div className="segmentos">
         {FUENTES.map(([id, n]) => (

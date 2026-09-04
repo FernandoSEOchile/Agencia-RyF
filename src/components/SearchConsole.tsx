@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Periodo, { usePeriodo } from "@/components/Periodo";
 
 interface Fila {
   consulta: string;
@@ -36,12 +37,6 @@ interface Respuesta {
   filas: Fila[];
   error?: string;
 }
-
-const PERIODOS = [
-  [28, "28 días"],
-  [90, "3 meses"],
-  [180, "6 meses"],
-] as const;
 
 const VISTAS = [
   ["oportunidades", "Oportunidades"],
@@ -99,7 +94,7 @@ export default function SearchConsole({
   const [datos, setDatos] = useState<Respuesta | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [cargando, setCargando] = useState(true);
-  const [dias, setDias] = useState<number>(28);
+  const { dias, setDias, permitidos } = usePeriodo(28, [28, 90, 180, 365]);
   const [vista, setVista] = useState<(typeof VISTAS)[number][0]>(
     soloCanibal ? "canibal" : "oportunidades"
   );
@@ -333,17 +328,7 @@ export default function SearchConsole({
   return (
     <div className="mt-4">
       <div className="flex flex-wrap items-center gap-2">
-        <div className="segmentos">
-          {PERIODOS.map(([d, n]) => (
-            <button
-              key={d}
-              onClick={() => setDias(d)}
-              className={`segmento ${dias === d ? "segmento-activo" : ""}`}
-            >
-              {n}
-            </button>
-          ))}
-        </div>
+        <Periodo dias={dias} setDias={setDias} permitidos={permitidos} />
         <span className="font-mono text-[11px] text-[color:var(--tinta-suave)]">{datos.propiedad}</span>
         {cargando && <span className="text-[12px] text-[color:var(--tinta-suave)]">actualizando…</span>}
         {puedeEditar && (

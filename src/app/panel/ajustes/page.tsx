@@ -189,7 +189,7 @@ export default async function Ajustes({
 
   return (
     <>
-      <Barra usuario={sesion.user!.name} rol="ADMIN" />
+      <Barra usuarioId={sesion.user?.id} usuario={sesion.user!.name} rol="ADMIN" />
       <main className="mx-auto max-w-2xl px-6 py-8">
         <Link href="/panel" className="text-sm text-neutral-500 underline-offset-4 hover:underline">
           ← Clientes
@@ -452,7 +452,6 @@ export default async function Ajustes({
                 <span className="min-w-0">
                   <span className="block text-sm font-semibold text-neutral-900">{nombre}</span>
                   <span className="block text-xs text-neutral-500">{nota}</span>
-                  <code className="mt-0.5 block font-mono text-[10px] text-neutral-400">{id}</code>
                 </span>
               </label>
             ))}

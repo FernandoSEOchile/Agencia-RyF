@@ -100,7 +100,7 @@ export default async function NuevoCliente({
 
   return (
     <>
-      <Barra usuario={sesion.user.name} rol={rolSesion} />
+      <Barra usuarioId={sesion.user?.id} usuario={sesion.user.name} rol={rolSesion} />
       <main className="mx-auto max-w-xl px-6 py-10">
       <Link href="/panel" className="text-sm text-neutral-500 underline-offset-4 hover:underline">
         ← Clientes

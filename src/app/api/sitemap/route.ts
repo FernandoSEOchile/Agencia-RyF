@@ -10,6 +10,7 @@ import { NextRequest } from "next/server";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { api, veTodo } from "@/lib/clientes";
+import { fecha } from "@/lib/formato";
 import {
   tiendaDe,
   listarProductos,
@@ -191,7 +192,7 @@ async function inventarioShopify(
   const cambioDe = (titulo: string) => {
     const r = registro.find((x) => titulo && x.resumen.includes(titulo));
     return r
-      ? { fecha: r.creado.toISOString().slice(0, 16).replace("T", " "), accion: r.accion, resumen: r.resumen }
+      ? { fecha: fecha(r.creado, { hora: true }), accion: r.accion, resumen: r.resumen }
       : null;
   };
 

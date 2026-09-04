@@ -1,7 +1,9 @@
 "use client";
 
+import { useConfirmar } from "@/components/Confirmar";
 import { useEffect, useState } from "react";
 import { Cabecera, useOrden, type Columna } from "@/components/Tabla";
+import { dinero } from "@/lib/formato";
 
 interface Tramos {
   pos1: number;
@@ -124,6 +126,7 @@ function Curva({ datos }: { datos: { mes: string; trafico: number }[] }) {
 
 export default function Explorar({ puedeExplorar }: { puedeExplorar: boolean }) {
   const [dominio, setDominio] = useState("");
+  const { confirmar, dialogo } = useConfirmar();
   const [pais, setPais] = useState(2152);
   const [datos, setDatos] = useState<{
     medido: string | null;
@@ -174,16 +177,13 @@ export default function Explorar({ puedeExplorar }: { puedeExplorar: boolean }) 
     const guardado = datos?.panorama && datos.panorama.dominio === limpiar(d) ? datos : null;
     if (guardado?.medido) {
       const dias = Math.round((Date.now() - new Date(guardado.medido).getTime()) / 86_400_000);
-      const antes = guardado.coste ? `US$${guardado.coste.toFixed(4)}` : "algo";
-      const ok = confirm(
-        [
-          `Ya tienes ${d} guardado, consultado hace ${dias} ${dias === 1 ? "día" : "días"} y costó ${antes}.`,
-          "",
-          "Verlo no cuesta nada. Volver a consultarlo se paga otra vez.",
-          "",
-          "¿Consultar de nuevo?",
-        ].join(String.fromCharCode(10))
-      );
+      const antes = guardado.coste ? dinero(guardado.coste) : "algo";
+      const ok = await confirmar({
+        titulo: `¿Consultar ${d} otra vez?`,
+        detalle: `Ya lo tienes guardado, consultado hace ${dias} ${dias === 1 ? "día" : "días"} y costó ${antes}. Verlo no cuesta nada; volver a consultarlo se paga otra vez.`,
+        boton: "Consultar de nuevo",
+        peligroso: false,
+      });
       if (!ok) return;
     }
 
@@ -199,7 +199,7 @@ export default function Explorar({ puedeExplorar }: { puedeExplorar: boolean }) 
       const j = await r.json();
       if (!r.ok) throw new Error(j.error || "No se pudo explorar.");
       setAviso(
-        `Consultado por US$${Number(j.coste).toFixed(4)}.` +
+        `Consultado por ${dinero(Number(j.coste))}.` +
           (j.avisos?.length ? ` Avisos: ${j.avisos.join(" · ")}` : "")
       );
       await mirar(d, pais);
@@ -230,6 +230,7 @@ export default function Explorar({ puedeExplorar }: { puedeExplorar: boolean }) 
 
   return (
     <div>
+      {dialogo}
       <form
         onSubmit={(e) => {
           e.preventDefault();

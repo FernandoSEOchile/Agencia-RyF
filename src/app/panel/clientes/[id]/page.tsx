@@ -8,6 +8,7 @@ import { credenciales } from "@/lib/dataforseo";
 import { aplicacion } from "@/lib/gsc";
 import Barra from "@/components/Barra";
 import Plataforma from "@/components/Plataforma";
+import { fecha } from "@/lib/formato";
 
 export const dynamic = "force-dynamic";
 
@@ -228,7 +229,7 @@ export default async function Ficha({
 
   return (
     <>
-      <Barra usuario={sesion.user.name} rol={rol} />
+      <Barra usuarioId={sesion.user?.id} usuario={sesion.user.name} rol={rol} />
       <main className="contenedor py-10">
       <Link href="/panel" className="boton-sutil">
         ← Clientes
@@ -263,8 +264,8 @@ export default async function Ficha({
             </button>
           </form>
           <form action={comprobar}>
-            <button className="boton">
-              Comprobar
+            <button className="boton" title="Pregunta al conector si responde y con qué versión">
+              Comprobar conexión
             </button>
           </form>
         </div>
@@ -343,7 +344,7 @@ export default async function Ficha({
         conversaciones={conversaciones.map((x) => ({
           id: x.id,
           titulo: x.titulo,
-          fecha: x.tocado.toISOString().slice(5, 16).replace("T", " "),
+          fecha: fecha(x.tocado, { hora: true }),
           mensajes: x._count.mensajes,
           autor: x.usuarioId === sesion.user!.id ? null : (nombres.get(x.usuarioId) ?? "otra persona"),
         }))}

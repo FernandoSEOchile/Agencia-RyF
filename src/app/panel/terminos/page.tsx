@@ -30,7 +30,7 @@ export default async function PaginaPalabras() {
 
   return (
     <>
-      <Barra
+      <Barra usuarioId={sesion.user?.id}
         usuario={sesion.user.name}
         rol={rol}
         acciones={

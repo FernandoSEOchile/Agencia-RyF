@@ -7,6 +7,7 @@ import { clientesDe } from "@/lib/clientes";
 import Barra from "@/components/Barra";
 import { IconoWordPress } from "@/components/Plataforma";
 import SitiosConector from "@/components/SitiosConector";
+import { fecha } from "@/lib/formato";
 
 export const metadata = { title: "Conector · Panel AppSEO" };
 export const dynamic = "force-dynamic";
@@ -79,7 +80,7 @@ export default async function PaginaConector() {
 
   return (
     <>
-      <Barra
+      <Barra usuarioId={sesion.user?.id}
         usuario={sesion.user.name}
         rol={rol}
         acciones={
@@ -114,7 +115,7 @@ export default async function PaginaConector() {
                 </a>
                 <span className="text-[13px] tabular-nums text-[color:var(--tinta-suave)]">
                   {p.kb} KB
-                  {p.publicado && ` · publicada el ${p.publicado.toISOString().slice(0, 10)}`}
+                  {p.publicado && ` · publicada ${fecha(p.publicado)}`}
                 </span>
               </div>
 

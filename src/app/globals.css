@@ -25,7 +25,9 @@
      ve apagado al lado del blanco. */
   --tinta: #1d1d1f;
   --tinta-media: #6e6e73;
-  --tinta-suave: #86868b;
+  /* #757579 y no #86868b: el gris de antes quedaba en 3,4:1 sobre blanco, por
+     debajo del mínimo legible para texto pequeño, y es el color de las fechas. */
+  --tinta-suave: #757579;
   --fondo: #fbfbfd;
   --panel: #ffffff;
   --linea: rgba(0, 0, 0, 0.08);
@@ -107,12 +109,20 @@ h2,
 
   /* Control segmentado, en lugar de pestañas subrayadas. */
   .segmentos {
-    @apply inline-flex items-center gap-0.5 rounded-full bg-black/[0.045] p-1;
+    @apply inline-flex max-w-full items-center gap-0.5 rounded-full bg-black/[0.045] p-1;
+    /* Con doce pestañas en una fila, sin esto las últimas se salían de la
+       pantalla en móvil y no había forma de llegar a ellas. */
+    overflow-x: auto;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+  }
+  .segmentos::-webkit-scrollbar {
+    display: none;
   }
 
   .segmento {
-    @apply rounded-full px-3.5 py-1.5 text-[13px] font-medium text-[color:var(--tinta-media)]
-           transition duration-150 hover:text-[color:var(--tinta)];
+    @apply min-h-9 shrink-0 whitespace-nowrap rounded-full px-3.5 py-1.5 text-[13px] font-medium
+           text-[color:var(--tinta-media)] transition duration-150 hover:text-[color:var(--tinta)];
   }
 
   .segmento-activo {

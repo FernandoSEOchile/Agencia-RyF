@@ -12,6 +12,7 @@ import { conversar, usoVacio, instrucciones, mensajeDeError, type Turno } from "
 import { veTodo, memoriasDe } from "@/lib/clientes";
 import { apuntarClaude, costeClaude } from "@/lib/gasto";
 import { modelo as modeloActual } from "@/lib/config";
+import { titular } from "@/lib/titulos";
 
 export const runtime = "nodejs";
 export const maxDuration = 300;
@@ -160,7 +161,15 @@ export async function POST(req: NextRequest) {
   const codificador = new TextEncoder();
   const usadas: string[] = [];
 
+  // «Parar» en el navegador corta el fetch; eso llega aquí como cancel() del
+  // flujo, y con la señal se corta también la llamada a la API. Sin esto el
+  // servidor seguía escribiendo en el sitio del cliente con nadie mirando.
+  const parada = new AbortController();
+
   const flujo = new ReadableStream({
+    cancel() {
+      parada.abort();
+    },
     async start(control) {
       const enviar = (e: Record<string, unknown>) =>
         control.enqueue(codificador.encode(JSON.stringify(e) + "\n"));
@@ -181,7 +190,8 @@ export async function POST(req: NextRequest) {
             if (e.tipo === "herramienta") usadas.push(String(e.nombre));
             enviar(e);
           },
-          uso
+          uso,
+          parada.signal
         );
 
         await db.mensaje.create({
@@ -210,8 +220,34 @@ export async function POST(req: NextRequest) {
             uso.cacheLectura
           ),
         });
+        // Un hilo recién abierto se llama como su primer mensaje, cortado a 60
+        // caracteres. Cinco hilos que empiezan igual se llaman igual, así que
+        // al cerrar el primer turno se le pide un título de verdad al modelo
+        // barato. Si falla, se queda el de antes: no vale la pena avisar.
+        if (previos.length === 0 && uso.texto) {
+          titular(conversacion.id, mensaje ?? "", uso.texto).catch(() => {});
+        }
       } catch (e) {
-        enviar({ tipo: "error", mensaje: mensajeDeError(e) });
+        if (parada.signal.aborted) {
+          // Lo que ya se escribió, queda. Se guarda el trozo de respuesta para
+          // que la conversación no tenga un hueco.
+          if (uso.texto) {
+            await db.mensaje
+              .create({
+                data: {
+                  conversacionId: conversacion.id,
+                  rol: "assistant",
+                  contenido: uso.texto + "\n\n*(detenido aquí)*",
+                  usadas: usadas.length ? JSON.stringify(usadas) : null,
+                  entrada: uso.entrada,
+                  salida: uso.salida,
+                },
+              })
+              .catch(() => {});
+          }
+        } else {
+          enviar({ tipo: "error", mensaje: mensajeDeError(e) });
+        }
       } finally {
         // Fuera del try a propósito: una respuesta cortada también se cobra.
         if (uso.entrada || uso.salida || uso.cacheLectura || uso.cacheEscritura) {

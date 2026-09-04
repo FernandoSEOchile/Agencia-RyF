@@ -27,7 +27,7 @@ export default async function PaginaExplorar() {
 
   return (
     <>
-      <Barra
+      <Barra usuarioId={sesion.user?.id}
         usuario={sesion.user.name}
         rol={rol}
         acciones={

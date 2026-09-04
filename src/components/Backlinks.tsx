@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Cabecera, useOrden, type Columna } from "@/components/Tabla";
+import { dinero } from "@/lib/formato";
 
 interface Perfil {
   dominio: string;
@@ -116,7 +117,7 @@ export default function Backlinks({
       const j = await r.json();
       if (!r.ok) throw new Error(j.error || "No se pudo consultar.");
       setAviso(
-        `Perfil actualizado por US$${Number(j.coste).toFixed(4)}.` +
+        `Perfil actualizado por ${dinero(Number(j.coste))}.` +
           (j.avisos?.length ? ` Con avisos: ${j.avisos.join(" · ")}` : "")
       );
       await cargar();
@@ -160,7 +161,7 @@ export default function Backlinks({
         {datos?.medido && (
           <span className="text-[12px] text-[color:var(--tinta-suave)]">
             medido el {datos.medido.slice(0, 10)}
-            {datos.coste ? ` · costó US$${datos.coste.toFixed(4)}` : ""}
+            {datos.coste ? ` · costó ${dinero(datos.coste)}` : ""}
           </span>
         )}
         {ocupado && (

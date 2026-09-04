@@ -1,6 +1,8 @@
 "use client";
 
+import { useConfirmar } from "@/components/Confirmar";
 import { useEffect, useState } from "react";
+  const { confirmar, dialogo } = useConfirmar();
 
 interface Entrada {
   id: string;
@@ -95,15 +97,11 @@ export default function Bitacora({
 
   async function redactar(mes: string, modo: "nuevo" | "actualizar" | "rehacer" = "nuevo") {
     if (modo === "rehacer") {
-      const ok = confirm(
-        [
-          `Se borrarán todas las entradas de ${mesLegible(mes)} que escribió la IA y se redactará el mes entero de nuevo.`,
-          "",
-          "Lo que hayas añadido a mano se conserva.",
-          "",
-          "¿Rehacer?",
-        ].join(String.fromCharCode(10))
-      );
+      const ok = await confirmar({
+        titulo: `¿Rehacer ${mesLegible(mes)} desde cero?`,
+        detalle: "Se borran las entradas que escribió la IA y se redacta el mes entero de nuevo. Lo que añadiste a mano se conserva.",
+        boton: "Rehacer",
+      });
       if (!ok) return;
     }
 
@@ -184,6 +182,7 @@ export default function Bitacora({
 
   return (
     <div className="mt-5">
+      {dialogo}
       <div className="flex flex-wrap items-center gap-2 imprimir-oculto">
         {puedeEditar && (
           <button onClick={() => setAbierto(!abierto)} className="boton">

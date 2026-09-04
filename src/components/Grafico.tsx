@@ -742,6 +742,7 @@ export function Cifra({
   variacion,
   pie,
   mejorMenos = false,
+  accion,
 }: {
   etiqueta: string;
   valor: string;
@@ -750,6 +751,8 @@ export function Cifra({
   pie?: string;
   /** Para la posición media, donde bajar es mejorar. */
   mejorMenos?: boolean;
+  /** Qué hacer cuando la tarjeta está vacía: un botón dentro, sin mandar a otra pantalla. */
+  accion?: { texto: string; alPulsar: () => void };
 }) {
   const sube = (variacion ?? 0) > 0;
   const bueno = mejorMenos ? !sube : sube;
@@ -769,6 +772,15 @@ export function Cifra({
       )}
 
       {pie && <p className="mt-1.5 text-[12px] text-[color:var(--tinta-suave)]">{pie}</p>}
+      {accion && (
+        <button
+          type="button"
+          onClick={accion.alPulsar}
+          className="mt-2 text-[12px] font-medium text-[color:var(--acento)] underline-offset-4 hover:underline"
+        >
+          {accion.texto} →
+        </button>
+      )}
     </div>
   );
 }

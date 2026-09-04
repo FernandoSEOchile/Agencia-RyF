@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { Cabecera, useOrden, type Columna } from "@/components/Tabla";
+import { dinero } from "@/lib/formato";
+import Periodo from "@/components/Periodo";
 
 interface Concepto {
   servicio: string;
@@ -36,19 +38,12 @@ const COLUMNAS: readonly Columna<ColGasto>[] = [
   { id: "monto", texto: "Gasto", clase: "text-right", num: true },
 ];
 
-const PERIODOS = [
-  [7, "7 días"],
-  [28, "28 días"],
-  [90, "3 meses"],
-  [365, "1 año"],
-] as const;
-
 function fecha(diasAtras: number): string {
   return new Date(Date.now() - diasAtras * 86_400_000).toISOString().slice(0, 10);
 }
 
 const dolares = (n: number) =>
-  n >= 1 ? `US$${n.toFixed(2)}` : n > 0 ? `US$${n.toFixed(4)}` : "US$0";
+  dinero(n, "—");
 
 export default function Gasto({ clienteId }: { clienteId: string }) {
   const [datos, setDatos] = useState<Datos | null>(null);
@@ -96,17 +91,7 @@ export default function Gasto({ clienteId }: { clienteId: string }) {
   return (
     <div className="mt-5">
       <div className="flex flex-wrap items-center gap-3">
-        <div className="segmentos">
-          {PERIODOS.map(([n, texto]) => (
-            <button
-              key={n}
-              onClick={() => elegirPeriodo(n)}
-              className={`segmento ${dias === n ? "segmento-activo" : ""}`}
-            >
-              {texto}
-            </button>
-          ))}
-        </div>
+        <Periodo dias={dias ?? 0} setDias={elegirPeriodo} permitidos={[7, 28, 90, 365]} />
 
         <label className="flex items-center gap-2 text-[12px] text-[color:var(--tinta-media)]">
           desde

@@ -40,7 +40,7 @@ const COLUMNAS: { id: Columna; texto: string; alineado?: string }[] = [
 function colorEstado(estado: string) {
   if (estado === "publish" || estado === "con descripción") return "bg-emerald-50 text-emerald-700";
   if (estado === "draft" || estado === "sin descripción") return "bg-amber-50 text-amber-800";
-  return "bg-neutral-100 text-neutral-600";
+  return "bg-black/[0.04] text-[color:var(--tinta-media)]";
 }
 
 function nombreEstado(estado: string) {
@@ -166,7 +166,7 @@ export default function Sitemap({ clienteId }: { clienteId: string }) {
                 setPagina(1);
               }}
               className={`rounded-full px-2.5 py-0.5 text-[11px] font-medium transition ${
-                estado === id ? "bg-[#ff6b00]/10 text-[#ff6b00]" : "text-neutral-500 hover:bg-neutral-100"
+                estado === id ? "bg-[color:var(--acento)]/10 text-[color:var(--acento)]" : "text-[color:var(--tinta-media)] hover:bg-black/[0.04]"
               }`}
             >
               {texto}
@@ -179,7 +179,7 @@ export default function Sitemap({ clienteId }: { clienteId: string }) {
 
       {cargando ? (
         <p className="mt-6 flex items-center gap-2 text-[13px] text-[color:var(--tinta-media)]">
-          <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-[#ff6b00]" />
+          <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-[color:var(--acento)]" />
           Leyendo el sitio…
         </p>
       ) : (
@@ -193,9 +193,9 @@ export default function Sitemap({ clienteId }: { clienteId: string }) {
                       key={c.id}
                       onClick={() => ordenarPor(c.id)}
                       title="Ordenar por esta columna"
-                      className={`cursor-pointer select-none px-3 py-2.5 font-semibold first:pl-4 last:pr-4 hover:text-neutral-700 ${
+                      className={`cursor-pointer select-none px-3 py-2.5 font-semibold first:pl-4 last:pr-4 hover:text-[color:var(--tinta)] ${
                         c.alineado ?? ""
-                      } ${orden === c.id ? "text-[#ff6b00]" : ""}`}
+                      } ${orden === c.id ? "text-[color:var(--acento)]" : ""}`}
                     >
                       {c.texto}
                       {orden === c.id && <span className="ml-1">{desc ? "↓" : "↑"}</span>}
@@ -238,7 +238,7 @@ export default function Sitemap({ clienteId }: { clienteId: string }) {
                     <td className="max-w-[280px] px-5 py-3 text-[13px] text-[color:var(--tinta-media)]">
                       {f.cambio ? (
                         <>
-                          <span className="mr-1.5 rounded bg-[#ff6b00]/10 px-1.5 py-0.5 text-[10px] font-semibold text-[#ff6b00]">
+                          <span className="mr-1.5 rounded bg-[color:var(--acento)]/10 px-1.5 py-0.5 text-[10px] font-semibold text-[color:var(--acento)]">
                             {f.cambio.accion}
                           </span>
                           <span className="text-[color:var(--tinta-media)]">{f.cambio.resumen}</span>

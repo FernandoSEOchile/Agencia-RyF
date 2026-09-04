@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Cabecera, useOrden, type Columna } from "@/components/Tabla";
+import { dinero } from "@/lib/formato";
+import Periodo from "@/components/Periodo";
 
 interface Datos {
   desde: string;
@@ -22,13 +24,6 @@ interface Datos {
   porConcepto: { servicio: string; concepto: string; monto: number; veces: number }[];
   porDia: { dia: string; claude: number; dataforseo: number }[];
 }
-
-const PERIODOS = [
-  [7, "7 días"],
-  [28, "28 días"],
-  [90, "3 meses"],
-  [365, "1 año"],
-] as const;
 
 const VISTAS = [
   ["clientes", "Por cliente"],
@@ -66,7 +61,7 @@ function fecha(diasAtras: number) {
   return new Date(Date.now() - diasAtras * 86_400_000).toISOString().slice(0, 10);
 }
 
-const dolares = (n: number) => (n >= 1 ? `US$${n.toFixed(2)}` : n > 0 ? `US$${n.toFixed(4)}` : "—");
+const dolares = (n: number) => dinero(n, "—");
 
 export default function GastoGeneral() {
   const [datos, setDatos] = useState<Datos | null>(null);
@@ -111,21 +106,15 @@ export default function GastoGeneral() {
   return (
     <div>
       <div className="flex flex-wrap items-center gap-3">
-        <div className="segmentos">
-          {PERIODOS.map(([n, texto]) => (
-            <button
-              key={n}
-              onClick={() => {
-                setDias(n);
-                setDesde(fecha(n));
-                setHasta(fecha(0));
-              }}
-              className={`segmento ${dias === n ? "segmento-activo" : ""}`}
-            >
-              {texto}
-            </button>
-          ))}
-        </div>
+        <Periodo
+          dias={dias ?? 0}
+          setDias={(n) => {
+            setDias(n);
+            setDesde(fecha(n));
+            setHasta(fecha(0));
+          }}
+          permitidos={[7, 28, 90, 365]}
+        />
 
         <label className="flex items-center gap-2 text-[12px] text-[color:var(--tinta-media)]">
           desde
