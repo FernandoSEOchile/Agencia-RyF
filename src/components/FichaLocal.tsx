@@ -139,7 +139,7 @@ export default function FichaLocal({
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h2 className="text-[17px] font-semibold">Análisis de la ficha</h2>
-          <p className="mt-0.5 max-w-2xl text-[13px] text-[color:var(--tinta-media)]">
+          <p className="mt-0.5 max-w-2xl text-[14px] text-[color:var(--tinta-media)]">
             Lee la ficha de Google Business del negocio y la puntúa: qué señales tiene, cómo está de
             reseñas, cuánto contenido aprovecha y cuánta presencia acumula.
           </p>
@@ -165,18 +165,18 @@ export default function FichaLocal({
         )}
       </div>
 
-      {error && <p className="mt-3 text-[13px] font-medium text-red-600">{error}</p>}
+      {error && <p className="mt-3 text-[14px] font-medium text-red-600">{error}</p>}
 
       {corriendo && (
-        <p className="mt-3 text-[13px] text-[color:var(--tinta-suave)]">
+        <p className="mt-3 text-[14px] text-[color:var(--tinta-suave)]">
           Consultando la ficha y redactando el diagnóstico. Medio minuto.
         </p>
       )}
 
       {!a && !corriendo && (
-        <div className="mt-6 rounded-2xl border border-dashed border-[color:var(--linea-fuerte)] px-6 py-14 text-center">
+        <div className="mt-6 rounded-2xl border border-[color:var(--linea)] bg-[color:var(--panel)] px-6 py-14 text-center">
           <p className="text-[15px] font-medium">Esta ficha no se ha analizado nunca.</p>
-          <p className="mx-auto mt-2 max-w-md text-[13px] text-[color:var(--tinta-media)]">
+          <p className="mx-auto mt-2 max-w-md text-[14px] text-[color:var(--tinta-media)]">
             Escribe el nombre del negocio tal como sale en Google Maps.
           </p>
         </div>
@@ -188,7 +188,7 @@ export default function FichaLocal({
           <div className="tarjeta mt-5 flex flex-wrap items-start gap-6 p-5">
             <div className="text-center">
               <p
-                className="text-[42px] font-semibold leading-none tabular-nums"
+                className="text-[42px] cifra font-semibold leading-none tabular-nums"
                 style={{ color: colorNota(a.nota) }}
               >
                 {a.nota}
@@ -196,7 +196,7 @@ export default function FichaLocal({
               </p>
               {anterior && (
                 <p
-                  className={`mt-1.5 text-[12px] font-medium tabular-nums ${
+                  className={`mt-1.5 text-[13px] font-medium tabular-nums ${
                     a.nota > anterior.nota ? "text-emerald-700" : a.nota < anterior.nota ? "text-red-600" : "text-[color:var(--tinta-suave)]"
                   }`}
                 >
@@ -209,13 +209,13 @@ export default function FichaLocal({
 
             <div className="min-w-[240px] flex-1">
               <p className="text-[15px] font-semibold">{a.negocio}</p>
-              <p className="mt-0.5 text-[12px] text-[color:var(--tinta-suave)]">
+              <p className="mt-0.5 text-[13px] text-[color:var(--tinta-suave)]">
                 {a.datos.categoria ?? "sin categoría"}
                 {a.datos.direccion && ` · ${a.datos.direccion}`}
               </p>
 
               {a.informe?.resumen && (
-                <p className="mt-3 border-l-2 border-[color:var(--acento)] pl-3 text-[13px] leading-relaxed text-[color:var(--tinta-media)]">
+                <p className="mt-3 border-l-2 border-[color:var(--acento)] pl-3 text-[14px] leading-relaxed text-[color:var(--tinta-media)]">
                   {a.informe.resumen}
                 </p>
               )}
@@ -229,8 +229,8 @@ export default function FichaLocal({
               return (
                 <div key={b.id} className="tarjeta p-4">
                   <div className="flex items-baseline justify-between gap-2">
-                    <p className="text-[13px] font-medium">{b.etiqueta}</p>
-                    <p className="text-[13px] font-semibold tabular-nums" style={{ color: colorNota(parte * 100) }}>
+                    <p className="text-[14px] font-medium">{b.etiqueta}</p>
+                    <p className="text-[14px] font-semibold tabular-nums" style={{ color: colorNota(parte * 100) }}>
                       {b.puntos}
                       <span className="text-[color:var(--tinta-suave)]">/{b.tope}</span>
                     </p>
@@ -241,7 +241,7 @@ export default function FichaLocal({
                       style={{ width: `${parte * 100}%`, background: colorNota(parte * 100) }}
                     />
                   </div>
-                  <p className="mt-2 text-[12px] leading-relaxed text-[color:var(--tinta-suave)]">
+                  <p className="mt-2 text-[13px] leading-relaxed text-[color:var(--tinta-suave)]">
                     {b.detalle}
                   </p>
                 </div>
@@ -252,16 +252,16 @@ export default function FichaLocal({
           {/* Arreglos rápidos: lo que se hace hoy. */}
           {a.informe?.rapidos?.length ? (
             <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50/60 p-5">
-              <h3 className="text-[13px] font-semibold text-amber-900">
+              <h3 className="text-[14px] font-semibold text-amber-900">
                 Arreglos de menos de una hora
               </h3>
               <ol className="mt-3 flex flex-col gap-2.5">
                 {a.informe.rapidos.map((q, i) => (
                   <li key={i} className="flex gap-3">
-                    <span className="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-amber-500 text-[11px] font-semibold tabular-nums text-white">
+                    <span className="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-amber-500 text-[12px] font-semibold tabular-nums text-white">
                       {i + 1}
                     </span>
-                    <p className="text-[13px] leading-relaxed">
+                    <p className="text-[14px] leading-relaxed">
                       <span className="font-medium">{q.titulo}</span>{" "}
                       <span className="text-[color:var(--tinta-media)]">— {q.porque}</span>
                     </p>
@@ -273,10 +273,10 @@ export default function FichaLocal({
 
           {a.informe?.fuertes?.length ? (
             <div className="mt-3 rounded-2xl border border-emerald-200 bg-emerald-50/50 p-5">
-              <h3 className="text-[13px] font-semibold text-emerald-900">Lo que ya está bien</h3>
+              <h3 className="text-[14px] font-semibold text-emerald-900">Lo que ya está bien</h3>
               <ul className="mt-3 flex flex-col gap-2">
                 {a.informe.fuertes.map((f, i) => (
-                  <li key={i} className="flex gap-2.5 text-[13px] leading-relaxed">
+                  <li key={i} className="flex gap-2.5 text-[14px] leading-relaxed">
                     <span className="text-emerald-700">✓</span>
                     <span className="text-[color:var(--tinta-media)]">{f}</span>
                   </li>
@@ -305,7 +305,7 @@ export default function FichaLocal({
             {hallazgos.map((h, i) => (
               <div key={i} className="flex gap-3 px-5 py-3.5">
                 <span
-                  className={`mt-0.5 shrink-0 text-[13px] ${
+                  className={`mt-0.5 shrink-0 text-[14px] ${
                     h.estado === "critico"
                       ? "text-red-600"
                       : h.estado === "mejorar"
@@ -316,8 +316,8 @@ export default function FichaLocal({
                   {h.estado === "critico" ? "✕" : h.estado === "mejorar" ? "▲" : "✓"}
                 </span>
                 <div>
-                  <p className="text-[13px] font-medium">{h.que}</p>
-                  <p className="mt-0.5 text-[12px] leading-relaxed text-[color:var(--tinta-media)]">
+                  <p className="text-[14px] font-medium">{h.que}</p>
+                  <p className="mt-0.5 text-[13px] leading-relaxed text-[color:var(--tinta-media)]">
                     {h.porque}
                   </p>
                 </div>
@@ -325,7 +325,7 @@ export default function FichaLocal({
             ))}
 
             {hallazgos.length === 0 && (
-              <p className="px-5 py-6 text-center text-[13px] text-[color:var(--tinta-suave)]">
+              <p className="px-5 py-6 text-center text-[14px] text-[color:var(--tinta-suave)]">
                 Nada en esta categoría.
               </p>
             )}

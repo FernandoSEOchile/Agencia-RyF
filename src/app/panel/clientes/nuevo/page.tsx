@@ -33,7 +33,7 @@ export default async function NuevoCliente({
         ← Clientes
       </Link>
 
-      <h1 className="mt-4 text-[30px] font-semibold leading-tight">Conectar un sitio</h1>
+      <h1 className="mt-4 text-[30px] font-bold leading-tight">Conectar un sitio</h1>
       <p className="mt-2 max-w-xl text-[14px] leading-relaxed text-[color:var(--tinta-media)]">
         WordPress y Shopify se conectan distinto porque funcionan distinto: en WordPress se instala un
         plugin que genera una cadena, y en Shopify no se instala nada dentro de la tienda —se autoriza
@@ -44,10 +44,10 @@ export default async function NuevoCliente({
         <IconoWordPress tam={20} />
         WordPress o WooCommerce
       </h2>
-      <p className="mt-2 text-[13px] leading-relaxed text-[color:var(--tinta-media)]">
+      <p className="mt-2 text-[14px] leading-relaxed text-[color:var(--tinta-media)]">
         En el escritorio del cliente: <strong>AppSEO → Conexión</strong>, y copia la cadena completa.
       </p>
-      <p className="mt-2 text-[13px] leading-relaxed text-[color:var(--tinta-media)]">
+      <p className="mt-2 text-[14px] leading-relaxed text-[color:var(--tinta-media)]">
         Sirve también para <strong>reconectar un sitio que ya está aquí</strong>: si el dominio
         coincide, se actualiza la credencial de ese cliente en vez de crear uno nuevo, y no se
         pierde nada de lo que ya tenía.
@@ -55,7 +55,7 @@ export default async function NuevoCliente({
 
       {!listo && (
         <p className="mt-6 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">
-          Falta <code className="font-mono text-xs">APPSEO_CLAVE_CIFRADO</code> en el entorno. Sin ella no se
+          Falta <code className="font-mono text-[13px]">APPSEO_CLAVE_CIFRADO</code> en el entorno. Sin ella no se
           pueden guardar credenciales.
         </p>
       )}
@@ -64,7 +64,7 @@ export default async function NuevoCliente({
 
       <form action={conectarSitio} className="mt-8 flex flex-col gap-4">
         <label className="flex flex-col gap-1.5">
-          <span className="text-xs font-medium uppercase tracking-wide text-neutral-500">
+          <span className="text-[13px] font-medium uppercase tracking-wide text-neutral-500">
             Nombre del cliente <span className="normal-case text-neutral-400">(opcional)</span>
           </span>
           <input
@@ -75,16 +75,16 @@ export default async function NuevoCliente({
         </label>
 
         <label className="flex flex-col gap-1.5">
-          <span className="text-xs font-medium uppercase tracking-wide text-neutral-500">Cadena de conexión</span>
+          <span className="text-[13px] font-medium uppercase tracking-wide text-neutral-500">Cadena de conexión</span>
           <textarea
             name="cadena"
             required
             rows={5}
             spellCheck={false}
             placeholder="appseo_eyJ2IjoxLCJzaXRlIjoi..."
-            className="rounded-lg border border-neutral-200 px-3 py-2.5 font-mono text-xs outline-none focus:border-[#ff6b00] focus:ring-2 focus:ring-[#ff6b00]/20"
+            className="rounded-lg border border-neutral-200 px-3 py-2.5 font-mono text-[13px] outline-none focus:border-[#ff6b00] focus:ring-2 focus:ring-[#ff6b00]/20"
           />
-          <span className="text-xs text-neutral-500">
+          <span className="text-[13px] text-neutral-500">
             Se comprueba contra el sitio antes de guardarla, y se almacena cifrada.
           </span>
         </label>
@@ -100,13 +100,13 @@ export default async function NuevoCliente({
         <IconoShopify tam={20} />
         Shopify
       </h2>
-      <p className="mt-2 text-[13px] leading-relaxed text-[color:var(--tinta-media)]">
+      <p className="mt-2 text-[14px] leading-relaxed text-[color:var(--tinta-media)]">
         Aquí no se instala nada dentro de la tienda: Shopify no lo permite. Escribes su dominio, te
         lleva a Shopify a autorizar la app <strong>AppSEO</strong>, y al volver la tienda ya está
         conectada. El permiso lo da quien administra la tienda, y puede retirarlo desde su propio
         panel cuando quiera.
       </p>
-      <p className="mt-2 text-[13px] leading-relaxed text-[color:var(--tinta-media)]">
+      <p className="mt-2 text-[14px] leading-relaxed text-[color:var(--tinta-media)]">
         No hay que copiar ningún token: lo recibe el panel directamente y se guarda cifrado. Si la
         tienda no es tuya, mándale este mismo enlace al cliente y que lo autorice él.
       </p>
@@ -119,9 +119,9 @@ export default async function NuevoCliente({
             required
             spellCheck={false}
             placeholder="mitienda.myshopify.com"
-            className="rounded-xl border border-[color:var(--linea-fuerte)] bg-white px-3.5 py-2.5 font-mono text-[12px] outline-none transition focus:border-[color:var(--acento)]"
+            className="rounded-xl border border-[color:var(--linea-fuerte)] bg-white px-3.5 py-2.5 font-mono text-[13px] outline-none transition focus:border-[color:var(--acento)]"
           />
-          <span className="text-[12px] text-[color:var(--tinta-suave)]">
+          <span className="text-[13px] text-[color:var(--tinta-suave)]">
             El interno, el que sale en la barra del admin de Shopify. Su dominio público —el que ve
             Google— se detecta solo.
           </span>

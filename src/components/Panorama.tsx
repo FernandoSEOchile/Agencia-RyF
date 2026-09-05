@@ -147,7 +147,7 @@ export default function Panorama({
     );
   }
 
-  if (error) return <p className="text-[13px] font-medium text-red-600">{error}</p>;
+  if (error) return <p className="text-[14px] font-medium text-red-600">{error}</p>;
   if (!d) return null;
 
   const clics = d.trafico.map((x) => x.clics);
@@ -166,7 +166,7 @@ export default function Panorama({
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h2 className="text-[17px] font-semibold">Cómo va {d.cliente.nombre}</h2>
-          <p className="mt-0.5 text-[13px] text-[color:var(--tinta-media)]">
+          <p className="mt-0.5 text-[14px] text-[color:var(--tinta-media)]">
             Lo que se puede medir del sitio, junto y en el tiempo.
           </p>
         </div>
@@ -175,13 +175,15 @@ export default function Panorama({
       </div>
 
       {d.avisoGsc && (
-        <p className="mt-4 rounded-xl border border-[color:var(--linea)] bg-white px-4 py-3 text-[13px] text-[color:var(--tinta-media)]">
+        <p className="mt-4 rounded-xl border border-[color:var(--linea)] bg-white px-4 py-3 text-[14px] text-[color:var(--tinta-media)]">
           {d.avisoGsc}
         </p>
       )}
 
       {/* Cifras: lo que se mira primero y decide si hay que preocuparse. */}
-      <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+      {/* Las cinco cifras en un solo bloque, con una junta de un pelo entre
+          ellas, y la unica sombra de la pantalla: es lo que se mira primero. */}
+      <div className="tarjeta tarjeta-destacada mt-5 grid gap-px overflow-hidden bg-[color:var(--linea)] sm:grid-cols-2 lg:grid-cols-5">
         <Cifra
           etiqueta="Clics"
           valor={miles(clics.reduce((t, v) => t + v, 0))}
@@ -227,7 +229,7 @@ export default function Panorama({
         <div className="tarjeta -mt-1 px-5 py-3">
           <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
             {(d.anotaciones ?? []).map((a) => (
-              <span key={a.id} className="flex items-center gap-1.5 text-[12px]">
+              <span key={a.id} className="flex items-center gap-1.5 text-[13px]">
                 <span className="tabular-nums text-[color:var(--tinta-suave)]">{a.fecha.slice(5)}</span>
                 <span>{a.texto}</span>
                 {puedeEditar && (
@@ -243,7 +245,7 @@ export default function Panorama({
               </span>
             ))}
             {(d.anotaciones ?? []).length === 0 && !puedeEditar && (
-              <span className="text-[12px] text-[color:var(--tinta-suave)]">Sin anotaciones en este periodo.</span>
+              <span className="text-[13px] text-[color:var(--tinta-suave)]">Sin anotaciones en este periodo.</span>
             )}
             {puedeEditar && (
               <form
@@ -259,7 +261,7 @@ export default function Panorama({
                   max={new Date().toISOString().slice(0, 10)}
                   onChange={(e) => setAnotFecha(e.target.value)}
                   aria-label="Fecha de la anotación"
-                  className="rounded-full border border-[color:var(--linea-fuerte)] bg-white px-2.5 py-1 text-[12px] outline-none focus:border-[color:var(--acento)]"
+                  className="rounded-full border border-[color:var(--linea-fuerte)] bg-white px-2.5 py-1 text-[13px] outline-none focus:border-[color:var(--acento)]"
                 />
                 <input
                   value={anotTexto}
@@ -267,7 +269,7 @@ export default function Panorama({
                   maxLength={200}
                   placeholder="Anotar un cambio: migración, core update, tema nuevo…"
                   aria-label="Texto de la anotación"
-                  className="w-64 rounded-full border border-[color:var(--linea-fuerte)] bg-white px-3 py-1 text-[12px] outline-none focus:border-[color:var(--acento)]"
+                  className="w-64 rounded-full border border-[color:var(--linea-fuerte)] bg-white px-3 py-1 text-[13px] outline-none focus:border-[color:var(--acento)]"
                 />
                 <button type="submit" disabled={!anotTexto.trim()} className="boton disabled:opacity-40">
                   Anotar
@@ -302,7 +304,7 @@ export default function Panorama({
       </div>
 
       {d.historico.length > 1 && d.exploradoEl && (
-        <p className="mt-3 text-[13px] text-[color:var(--tinta-media)]">
+        <p className="mt-3 text-[14px] text-[color:var(--tinta-media)]">
           La curva de posiciones sale de la exploración del dominio del {d.exploradoEl} y es una{" "}
           <span className="font-medium text-[color:var(--tinta)]">estimación de DataForSEO</span>,
           no una medición. Sirve para ver la forma de la tendencia; las cifras exactas son las de
@@ -311,7 +313,7 @@ export default function Panorama({
       )}
 
       {d.historico.length <= 1 && (
-        <p className="mt-3 text-[13px] text-[color:var(--tinta-media)]">
+        <p className="mt-3 text-[14px] text-[color:var(--tinta-media)]">
           La curva de palabras clave por posición mes a mes sale de explorar el dominio: se paga una
           vez y queda guardada.{" "}
           <a href="/panel/explorar" className="font-medium text-[color:var(--acento)] underline-offset-4 hover:underline">
@@ -321,7 +323,7 @@ export default function Panorama({
       )}
 
       {d.trabajo.length > 0 && (
-        <p className="mt-3 text-[13px] text-[color:var(--tinta-media)]">
+        <p className="mt-3 text-[14px] text-[color:var(--tinta-media)]">
           Las marcas amarillas bajo la línea de clics son los días en que se tocó el sitio:{" "}
           <span className="font-medium text-[color:var(--tinta)]">
             {miles(d.trabajo.reduce((t, x) => t + x.cuantos, 0))} cambios

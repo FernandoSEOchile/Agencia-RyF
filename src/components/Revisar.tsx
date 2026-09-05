@@ -45,7 +45,7 @@ export default function Revisar() {
   return (
     <div className="flex items-center gap-3">
       {estado.texto && (
-        <span className={`text-[13px] ${estado.bien ? "text-emerald-700" : "text-red-600"}`}>
+        <span className={`text-[14px] ${estado.bien ? "text-emerald-700" : "text-red-600"}`}>
           {estado.texto}
         </span>
       )}

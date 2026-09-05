@@ -118,7 +118,7 @@ export default async function Usuarios({
           ← Clientes
         </Link>
 
-        <h1 className="text-[30px] font-semibold leading-tight">Usuarios</h1>
+        <h1 className="text-[30px] font-bold leading-tight">Usuarios</h1>
         <p className="mt-0.5 text-sm text-neutral-500">
           Quién entra al panel y qué puede hacer. Solo los administradores ven esta pantalla.
         </p>
@@ -164,10 +164,10 @@ export default async function Usuarios({
                   <div className="min-w-0">
                     <p className="font-semibold text-neutral-900">
                       {u.nombre}
-                      {soyYo && <span className="ml-2 rounded bg-[#ff6b00]/10 px-1.5 py-0.5 text-[11px] font-semibold text-[#ff6b00]">tú</span>}
-                      {!u.activo && <span className="ml-2 rounded bg-neutral-100 px-1.5 py-0.5 text-[11px] font-semibold text-neutral-500">desactivado</span>}
+                      {soyYo && <span className="ml-2 rounded bg-[#ff6b00]/10 px-1.5 py-0.5 text-[12px] font-semibold text-[#ff6b00]">tú</span>}
+                      {!u.activo && <span className="ml-2 rounded bg-neutral-100 px-1.5 py-0.5 text-[12px] font-semibold text-neutral-500">desactivado</span>}
                     </p>
-                    <p className="text-xs text-neutral-500">
+                    <p className="text-[13px] text-neutral-500">
                       {u.email}
                       {u.ultimoAcceso && ` · último acceso ${fecha(u.ultimoAcceso, { hora: true })}`}
                     </p>
@@ -175,7 +175,7 @@ export default async function Usuarios({
 
                   <div className="flex flex-wrap items-center gap-2">
                     <select name="rol" defaultValue={u.rol} disabled={soyYo}
-                      className="rounded-lg border border-neutral-200 bg-white px-2.5 py-1.5 text-xs font-medium outline-none focus:border-[#ff6b00] disabled:bg-neutral-50 disabled:text-neutral-400">
+                      className="rounded-lg border border-neutral-200 bg-white px-2.5 py-1.5 text-[13px] font-medium outline-none focus:border-[#ff6b00] disabled:bg-neutral-50 disabled:text-neutral-400">
                       {ROLES.map(([v, t]) => (
                         <option key={v} value={v}>{t}</option>
                       ))}
@@ -184,7 +184,7 @@ export default async function Usuarios({
                         valor real va en este campo oculto. */}
                     {soyYo && <input type="hidden" name="rol" value={u.rol} />}
 
-                    <label className="flex items-center gap-1.5 text-xs text-neutral-600">
+                    <label className="flex items-center gap-1.5 text-[13px] text-neutral-600">
                       <input type="checkbox" name="activo" value="1" defaultChecked={u.activo} disabled={soyYo}
                         className="accent-[#ff6b00]" />
                       Activo
@@ -195,7 +195,7 @@ export default async function Usuarios({
 
                 {conAsignacion && clientes.length > 0 && (
                   <div className="mt-4 border-t border-neutral-100 pt-3">
-                    <p className="text-[11px] font-semibold uppercase tracking-wide text-neutral-400">
+                    <p className="text-[12px] font-semibold uppercase tracking-wide text-neutral-400">
                       Clientes asignados
                     </p>
                     <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1.5">
@@ -214,9 +214,9 @@ export default async function Usuarios({
                 <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-neutral-100 pt-3">
                   <input name="clave" type="password" minLength={10} placeholder="Nueva contraseña (opcional)"
                     autoComplete="new-password"
-                    className="w-56 rounded-lg border border-neutral-200 px-3 py-1.5 text-xs outline-none focus:border-[#ff6b00]" />
+                    className="w-56 rounded-lg border border-neutral-200 px-3 py-1.5 text-[13px] outline-none focus:border-[#ff6b00]" />
                   <button type="submit"
-                    className="ml-auto rounded-lg border border-neutral-300 px-3.5 py-1.5 text-xs font-semibold text-neutral-700 transition hover:border-[#ff6b00] hover:text-[#ff6b00]">
+                    className="ml-auto rounded-lg border border-neutral-300 px-3.5 py-1.5 text-[13px] font-semibold text-neutral-700 transition hover:border-[#ff6b00] hover:text-[#ff6b00]">
                     Guardar cambios
                   </button>
                 </div>

@@ -86,7 +86,7 @@ export default async function PaginaConector() {
           ← Clientes
         </Link>
 
-        <h1 className="mt-4 flex items-center gap-2.5 text-[32px] font-semibold leading-tight">
+        <h1 className="mt-4 flex items-center gap-2.5 text-[32px] font-bold leading-tight">
           <IconoWordPress tam={26} />
           Conector para WordPress
         </h1>
@@ -102,19 +102,19 @@ export default async function PaginaConector() {
                 <a href="/api/plugin/descargar" className="boton-fuerte">
                   Descargar la versión {p.version}
                 </a>
-                <span className="text-[13px] tabular-nums text-[color:var(--tinta-suave)]">
+                <span className="text-[14px] tabular-nums text-[color:var(--tinta-suave)]">
                   {p.kb} KB
                   {p.publicado && ` · publicada ${fecha(p.publicado)}`}
                 </span>
               </div>
 
               {p.notas && (
-                <p className="mt-3 text-[13px] leading-relaxed text-[color:var(--tinta-media)]">
+                <p className="mt-3 text-[14px] leading-relaxed text-[color:var(--tinta-media)]">
                   <span className="font-medium text-[color:var(--tinta)]">Novedades:</span> {p.notas}
                 </p>
               )}
 
-              <p className="mt-4 border-t border-[color:var(--linea)] pt-4 text-[13px] leading-relaxed text-[color:var(--tinta-media)]">
+              <p className="mt-4 border-t border-[color:var(--linea)] pt-4 text-[14px] leading-relaxed text-[color:var(--tinta-media)]">
                 Esta es siempre la última versión publicada. Los sitios ya conectados con la
                 actualización automática activada se ponen al día solos en unas horas; este ZIP es
                 para instalarlo por primera vez, o cuando haya que hacerlo a mano.
@@ -124,7 +124,7 @@ export default async function PaginaConector() {
             {sitios.length > 0 && (
               <section className="mt-10">
                 <h2 className="text-[17px] font-semibold">Tus sitios</h2>
-                <p className="mt-1 max-w-2xl text-[13px] leading-relaxed text-[color:var(--tinta-media)]">
+                <p className="mt-1 max-w-2xl text-[14px] leading-relaxed text-[color:var(--tinta-media)]">
                   El botón le pide al sitio que compruebe ahora, sin esperar a que caduque su caché.
                   Instalar lo decide él: si tiene desactivada la gestión de plugins, te lo dirá y
                   tendrás que actualizarlo desde su escritorio, donde ya aparecerá.
@@ -144,12 +144,12 @@ export default async function PaginaConector() {
                   key={paso.titulo}
                   className="flex gap-4 rounded-2xl border border-[color:var(--linea)] bg-white p-5"
                 >
-                  <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[color:var(--tinta)] text-[13px] font-semibold tabular-nums text-white">
+                  <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[color:var(--tinta)] text-[14px] font-semibold tabular-nums text-white">
                     {i + 1}
                   </span>
                   <div>
                     <p className="text-[14px] font-medium">{paso.titulo}</p>
-                    <p className="mt-1 text-[13px] leading-relaxed text-[color:var(--tinta-media)]">
+                    <p className="mt-1 text-[14px] leading-relaxed text-[color:var(--tinta-media)]">
                       {paso.detalle}
                     </p>
                   </div>
@@ -158,7 +158,7 @@ export default async function PaginaConector() {
             </ol>
 
             {rol !== "LECTOR" && (
-              <p className="mt-6 text-[13px] text-[color:var(--tinta-media)]">
+              <p className="mt-6 text-[14px] text-[color:var(--tinta-media)]">
                 Cuando tengas la cadena,{" "}
                 <Link href="/panel/clientes/nuevo" className="font-medium underline underline-offset-4">
                   conecta el sitio
@@ -168,7 +168,7 @@ export default async function PaginaConector() {
             )}
           </>
         ) : (
-          <p className="mt-8 rounded-2xl border border-dashed border-[color:var(--linea-fuerte)] px-6 py-16 text-center text-[14px] text-[color:var(--tinta-media)]">
+          <p className="mt-8 rounded-2xl border border-[color:var(--linea)] bg-[color:var(--panel)] px-6 py-16 text-center text-[14px] text-[color:var(--tinta-media)]">
             Todavía no hay ningún paquete publicado en este servidor.
           </p>
         )}

@@ -239,9 +239,9 @@ export default function Posiciones({
       </div>
       )}
 
-      {error && <p className="mt-4 rounded-2xl bg-red-50 px-4 py-3 text-[13px] text-red-700">{error}</p>}
+      {error && <p className="mt-4 rounded-2xl bg-red-50 px-4 py-3 text-[14px] text-red-700">{error}</p>}
       {aviso && (
-        <p className="mt-4 rounded-2xl bg-emerald-50 px-4 py-3 text-[13px] text-emerald-700">{aviso}</p>
+        <p className="mt-4 rounded-2xl bg-emerald-50 px-4 py-3 text-[14px] text-emerald-700">{aviso}</p>
       )}
 
       {fuente === "gsc" ? (
@@ -263,13 +263,13 @@ export default function Posiciones({
             <button onClick={() => medir(false)} disabled={ocupado} className="boton">
               Medir todo
             </button>
-            <label className="flex items-center gap-2 text-[12px] text-[color:var(--tinta-media)]">
+            <label className="flex items-center gap-2 text-[13px] text-[color:var(--tinta-media)]">
               Medir sola
               <select
                 value={programada ?? ""}
                 onChange={(e) => programar(e.target.value ? Number(e.target.value) : null)}
                 aria-label="Medir automáticamente"
-                className="rounded-full border border-[color:var(--linea-fuerte)] bg-white px-3 py-1 text-[12px] outline-none focus:border-[color:var(--acento)]"
+                className="rounded-full border border-[color:var(--linea-fuerte)] bg-white px-3 py-1 text-[13px] outline-none focus:border-[color:var(--acento)]"
               >
                 <option value="">no</option>
                 <option value="7">cada semana</option>
@@ -286,14 +286,14 @@ export default function Posiciones({
         )}
 
         {ocupado && (
-          <span className="text-[13px] text-[color:var(--tinta-suave)]">
+          <span className="text-[14px] text-[color:var(--tinta-suave)]">
             Consultando Google… puede tardar un minuto.
           </span>
         )}
       </div>
 
       {!hayProveedor && (
-        <p className="mt-4 rounded-2xl bg-amber-50 px-4 py-3 text-[13px] text-amber-800">
+        <p className="mt-4 rounded-2xl bg-amber-50 px-4 py-3 text-[14px] text-amber-800">
           Falta conectar DataForSEO. Un administrador puede hacerlo en Ajustes; hasta entonces se
           pueden añadir consultas pero no medirlas.
         </p>
@@ -306,16 +306,16 @@ export default function Posiciones({
             onChange={(e) => setTexto(e.target.value)}
             rows={6}
             placeholder={"Una consulta por línea:\nregalos corporativos\ntermos personalizados\nmochilas para notebook"}
-            className="w-full rounded-xl border border-[color:var(--linea-fuerte)] bg-white px-3.5 py-2.5 text-[13px] outline-none transition focus:border-[color:var(--acento)]"
+            className="w-full rounded-xl border border-[color:var(--linea-fuerte)] bg-white px-3.5 py-2.5 text-[14px] outline-none transition focus:border-[color:var(--acento)]"
           />
 
           <div className="mt-3 flex flex-wrap items-center gap-3">
-            <label className="flex items-center gap-2 text-[13px]">
+            <label className="flex items-center gap-2 text-[14px]">
               <span className="text-[color:var(--tinta-media)]">País</span>
               <select
                 value={ubicacion}
                 onChange={(e) => setUbicacion(Number(e.target.value))}
-                className="rounded-full border border-[color:var(--linea-fuerte)] bg-white px-3 py-1.5 text-[13px] outline-none"
+                className="rounded-full border border-[color:var(--linea-fuerte)] bg-white px-3 py-1.5 text-[14px] outline-none"
               >
                 {UBICACIONES.map(([id, n]) => (
                   <option key={id} value={id}>
@@ -349,7 +349,7 @@ export default function Posiciones({
             </button>
           </div>
 
-          <p className="mt-3 text-[12px] text-[color:var(--tinta-suave)]">
+          <p className="mt-3 text-[13px] text-[color:var(--tinta-suave)]">
             La misma consulta en escritorio y en móvil son dos seguimientos distintos, porque Google
             devuelve resultados distintos. En ecommerce suele importar más el móvil.
           </p>
@@ -357,9 +357,9 @@ export default function Posiciones({
       )}
 
       {keywords.length === 0 ? (
-        <div className="mt-5 rounded-2xl border border-dashed border-[color:var(--linea-fuerte)] px-6 py-20 text-center">
+        <div className="mt-5 rounded-2xl border border-[color:var(--linea)] bg-[color:var(--panel)] px-6 py-20 text-center">
           <p className="text-[15px] font-medium">Todavía no se sigue ninguna consulta.</p>
-          <p className="mx-auto mt-2 max-w-md text-[13px] text-[color:var(--tinta-media)]">
+          <p className="mx-auto mt-2 max-w-md text-[14px] text-[color:var(--tinta-media)]">
             Añade las palabras por las que este cliente quiere posicionar. Cada medición consulta
             Google de verdad y cuesta unas milésimas de dólar, así que se hace cuando tú lo pides.
           </p>
@@ -375,7 +375,7 @@ export default function Posiciones({
             ].map(([k, v, color]) => (
               <div key={k} className="px-5 py-4">
                 <dt className="rotulo">{k}</dt>
-                <dd className={`mt-1 text-[24px] font-semibold tabular-nums ${color}`}>{v}</dd>
+                <dd className={`mt-1 text-[24px] cifra font-semibold tabular-nums ${color}`}>{v}</dd>
               </div>
             ))}
           </dl>
@@ -390,7 +390,7 @@ export default function Posiciones({
             ].map(([k, v, color]) => (
               <div key={String(k)} className="px-5 py-4">
                 <dt className="rotulo">{String(k)}</dt>
-                <dd className={`mt-1 text-[24px] font-semibold tabular-nums ${color}`}>
+                <dd className={`mt-1 text-[24px] cifra font-semibold tabular-nums ${color}`}>
                   {Number(v).toLocaleString("es-CL")}
                 </dd>
               </div>
@@ -403,10 +403,10 @@ export default function Posiciones({
               onChange={(e) => setBuscaKw(e.target.value)}
               placeholder="Buscar palabra o URL…"
               aria-label="Buscar palabra o URL"
-              className="w-full max-w-xs rounded-full border border-[color:var(--linea-fuerte)] bg-white px-3.5 py-1.5 text-[13px] outline-none transition focus:border-[color:var(--acento)]"
+              className="w-full max-w-xs rounded-full border border-[color:var(--linea-fuerte)] bg-white px-3.5 py-1.5 text-[14px] outline-none transition focus:border-[color:var(--acento)]"
             />
             {qKw && (
-              <span className="text-[12px] text-[color:var(--tinta-suave)]">
+              <span className="text-[13px] text-[color:var(--tinta-suave)]">
                 {visiblesKw.length} de {keywords.length}
               </span>
             )}
@@ -426,14 +426,14 @@ export default function Posiciones({
                   }))
                 )
               }
-              className="ml-auto text-[12px] text-[color:var(--tinta-suave)] transition hover:text-[color:var(--acento)]"
+              className="ml-auto text-[13px] text-[color:var(--tinta-suave)] transition hover:text-[color:var(--acento)]"
             >
               Descargar CSV
             </button>
           </div>
 
           <div className="tarjeta mt-2 overflow-x-auto">
-            <table className="w-full min-w-[720px] border-collapse text-[13px]">
+            <table className="w-full min-w-[720px] border-collapse text-[14px]">
               <thead>
                 <tr className="border-b border-[color:var(--linea)] text-left">
                   {COLUMNAS.map((c) => (
@@ -445,7 +445,7 @@ export default function Posiciones({
                         }`}
                       >
                         {c.texto}
-                        <span className="ml-1 inline-block w-2 text-[9px]">
+                        <span className="ml-1 inline-block w-2 text-[10px]">
                           {orden.col === c.id ? (orden.asc ? "▲" : "▼") : ""}
                         </span>
                       </button>
@@ -461,7 +461,7 @@ export default function Posiciones({
                     <tr key={k.id} className="align-top transition hover:bg-black/[0.015]">
                       <td className="px-5 py-3">
                         <p className="font-medium">{k.termino}</p>
-                        <p className="mt-0.5 text-[11px] text-[color:var(--tinta-suave)]">
+                        <p className="mt-0.5 text-[12px] text-[color:var(--tinta-suave)]">
                           {k.dispositivo === "mobile" ? "móvil" : "escritorio"}
                           {k.medido && ` · ${k.medido}`}
                           {k.mediciones === 0 && " · sin medir"}
@@ -477,7 +477,7 @@ export default function Posiciones({
                         )}
                         {k.bloquesArriba !== null && k.bloquesArriba > 0 && (
                           <span
-                            className="ml-1 text-[11px] font-normal text-[color:var(--tinta-suave)]"
+                            className="ml-1 text-[12px] font-normal text-[color:var(--tinta-suave)]"
                             title={`${k.bloquesArriba} bloques de Google (anuncios, mapas, preguntas) por encima`}
                           >
                             +{k.bloquesArriba}
@@ -518,7 +518,7 @@ export default function Posiciones({
                           <button
                             onClick={() => quitar(k.id, k.termino)}
                             disabled={ocupado}
-                            className="text-[12px] text-[color:var(--tinta-suave)] transition hover:text-red-600"
+                            className="text-[13px] text-[color:var(--tinta-suave)] transition hover:text-red-600"
                           >
                             Quitar
                           </button>
@@ -531,7 +531,7 @@ export default function Posiciones({
             </table>
           </div>
 
-          <p className="mt-4 max-w-3xl text-[12px] leading-relaxed text-[color:var(--tinta-suave)]">
+          <p className="mt-4 max-w-3xl text-[13px] leading-relaxed text-[color:var(--tinta-suave)]">
             El puesto es la posición entre los resultados orgánicos. El número pequeño al lado cuenta
             los bloques de Google que van por encima —anuncios, mapa local, «otras preguntas»—, porque
             ser tercero debajo de tres bloques no es lo mismo que ser tercero. Cada pasada mide como

@@ -83,13 +83,13 @@ export default async function Entrar({
       <div className="mb-8 overflow-hidden rounded-2xl bg-[#111111] px-6 py-7 text-center">
         <Image src="/ryf.webp" alt="Agencia RYF" width={512} height={199} priority className="mx-auto h-8 w-auto" />
         <p className="mt-3 text-sm font-semibold text-white">Panel AppSEO</p>
-        <p className="mt-0.5 text-xs text-white/50">Gestión de clientes conectados</p>
+        <p className="mt-0.5 text-[13px] text-white/50">Gestión de clientes conectados</p>
       </div>
 
       {sinUsuarios && (
         <p className="mb-6 rounded-lg bg-amber-50 px-4 py-3 text-sm text-amber-800">
           No hay ningún usuario todavía. Crea el primero con{" "}
-          <code className="font-mono text-xs">npm run panel:usuario</code>.
+          <code className="font-mono text-[13px]">npm run panel:usuario</code>.
         </p>
       )}
 
@@ -106,7 +106,7 @@ export default async function Entrar({
       <form action={entrar} className="flex flex-col gap-4">
         <input type="hidden" name="volver" value={volver ?? ""} />
         <label className="flex flex-col gap-1.5">
-          <span className="text-xs font-medium uppercase tracking-wide text-neutral-500">Correo</span>
+          <span className="text-[13px] font-medium uppercase tracking-wide text-neutral-500">Correo</span>
           <input
             name="email"
             type="email"
@@ -118,7 +118,7 @@ export default async function Entrar({
         </label>
 
         <label className="flex flex-col gap-1.5">
-          <span className="text-xs font-medium uppercase tracking-wide text-neutral-500">Contraseña</span>
+          <span className="text-[13px] font-medium uppercase tracking-wide text-neutral-500">Contraseña</span>
           <input
             name="clave"
             type="password"

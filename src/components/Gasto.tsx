@@ -100,7 +100,7 @@ export default function Gasto({
       <div className="flex flex-wrap items-center gap-3">
         <Periodo dias={dias ?? 0} setDias={elegirPeriodo} permitidos={[7, 28, 90, 365]} />
 
-        <label className="flex items-center gap-2 text-[12px] text-[color:var(--tinta-media)]">
+        <label className="flex items-center gap-2 text-[13px] text-[color:var(--tinta-media)]">
           desde
           <input
             type="date"
@@ -110,7 +110,7 @@ export default function Gasto({
               setDias(null);
               setDesde(e.target.value);
             }}
-            className="rounded-full border border-[color:var(--linea-fuerte)] bg-white px-3 py-1 text-[12px] outline-none focus:border-[color:var(--acento)]"
+            className="rounded-full border border-[color:var(--linea-fuerte)] bg-white px-3 py-1 text-[13px] outline-none focus:border-[color:var(--acento)]"
           />
           hasta
           <input
@@ -122,14 +122,14 @@ export default function Gasto({
               setDias(null);
               setHasta(e.target.value);
             }}
-            className="rounded-full border border-[color:var(--linea-fuerte)] bg-white px-3 py-1 text-[12px] outline-none focus:border-[color:var(--acento)]"
+            className="rounded-full border border-[color:var(--linea-fuerte)] bg-white px-3 py-1 text-[13px] outline-none focus:border-[color:var(--acento)]"
           />
         </label>
 
-        {cargando && <span className="text-[12px] text-[color:var(--tinta-suave)]">cargando…</span>}
+        {cargando && <span className="text-[13px] text-[color:var(--tinta-suave)]">cargando…</span>}
       </div>
 
-      {error && <p className="mt-4 rounded-2xl bg-red-50 px-4 py-3 text-[13px] text-red-700">{error}</p>}
+      {error && <p className="mt-4 rounded-2xl bg-red-50 px-4 py-3 text-[14px] text-red-700">{error}</p>}
 
       {datos && (
         <>
@@ -141,7 +141,7 @@ export default function Gasto({
             ].map(([k, v, color]) => (
               <div key={String(k)} className="px-5 py-4">
                 <dt className="rotulo">{String(k)}</dt>
-                <dd className={`mt-1 text-[24px] font-semibold tabular-nums ${color}`}>
+                <dd className={`mt-1 text-[24px] cifra font-semibold tabular-nums ${color}`}>
                   {dolares(Number(v))}
                 </dd>
               </div>
@@ -156,14 +156,14 @@ export default function Gasto({
             const alMes = (datos.total * 30) / diasRango;
             const parte = Math.round((100 * alMes) / tarifa);
             return (
-              <p className={`mt-3 text-[13px] ${parte >= 60 ? "text-red-700" : "text-[color:var(--tinta-media)]"}`}>
+              <p className={`mt-3 text-[14px] ${parte >= 60 ? "text-red-700" : "text-[color:var(--tinta-media)]"}`}>
                 Tarifa {dinero(tarifa)} al mes · a este ritmo el mes cuesta {dinero(alMes)}, el{" "}
                 <span className="font-medium text-[color:var(--tinta)]">{parte}%</span> de lo que se cobra
                 {parte >= 60 ? " — margen estrecho." : "."}
               </p>
             );
           })() : (
-            <p className="mt-3 text-[12px] text-[color:var(--tinta-suave)]">
+            <p className="mt-3 text-[13px] text-[color:var(--tinta-suave)]">
               Pon la tarifa mensual en Datos para ver qué parte de lo cobrado se va en operar este cliente.
             </p>
           )}
@@ -194,7 +194,7 @@ export default function Gasto({
                   );
                 })}
               </div>
-              <p className="mt-3 flex flex-wrap gap-4 text-[11px] text-[color:var(--tinta-suave)]">
+              <p className="mt-3 flex flex-wrap gap-4 text-[12px] text-[color:var(--tinta-suave)]">
                 <span className="flex items-center gap-1.5">
                   <span className="inline-block h-2 w-2 bg-[color:var(--tinta)]/80" /> Claude
                 </span>
@@ -209,12 +209,12 @@ export default function Gasto({
           )}
 
           <div className="tarjeta mt-3 overflow-x-auto">
-            <table className="w-full min-w-[520px] border-collapse text-[13px]">
+            <table className="w-full min-w-[520px] border-collapse text-[14px]">
               <Cabecera columnas={COLUMNAS} orden={orden} ordenar={ordenar} />
               <tbody className="divide-y divide-[color:var(--linea)]">
                 {conceptos.length === 0 ? (
                   <tr>
-                    <td colSpan={4} className="px-5 py-8 text-center text-[13px] text-[color:var(--tinta-suave)]">
+                    <td colSpan={4} className="px-5 py-8 text-center text-[14px] text-[color:var(--tinta-suave)]">
                       Sin gasto registrado en este periodo.
                     </td>
                   </tr>
@@ -246,7 +246,7 @@ export default function Gasto({
             </table>
           </div>
 
-          <p className="mt-4 max-w-3xl text-[12px] leading-relaxed text-[color:var(--tinta-suave)]">
+          <p className="mt-4 max-w-3xl text-[13px] leading-relaxed text-[color:var(--tinta-suave)]">
             Cada operación se apunta en el momento y con el importe ya calculado, no recalculado
             después: las tarifas cambian y el resultado sería una cifra que nunca se pagó. Se cuenta el
             chat, la corrección de arquitectura, la bitácora, la medición de posiciones, el análisis

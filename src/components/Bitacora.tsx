@@ -201,15 +201,15 @@ export default function Bitacora({
           </>
         )}
         {ocupado && (
-          <span className="text-[13px] text-[color:var(--tinta-suave)]">Trabajando…</span>
+          <span className="text-[14px] text-[color:var(--tinta-suave)]">Trabajando…</span>
         )}
       </div>
 
       {error && (
-        <p className="mt-4 rounded-2xl bg-red-50 px-4 py-3 text-[13px] text-red-700 imprimir-oculto">{error}</p>
+        <p className="mt-4 rounded-2xl bg-red-50 px-4 py-3 text-[14px] text-red-700 imprimir-oculto">{error}</p>
       )}
       {aviso && (
-        <p className="mt-4 rounded-2xl bg-emerald-50 px-4 py-3 text-[13px] text-emerald-700 imprimir-oculto">
+        <p className="mt-4 rounded-2xl bg-emerald-50 px-4 py-3 text-[14px] text-emerald-700 imprimir-oculto">
           {aviso}
         </p>
       )}
@@ -223,7 +223,7 @@ export default function Bitacora({
                 type="month"
                 value={mesNuevo}
                 onChange={(e) => setMesNuevo(e.target.value)}
-                className="rounded-xl border border-[color:var(--linea-fuerte)] bg-white px-3 py-2 text-[13px] outline-none focus:border-[color:var(--acento)]"
+                className="rounded-xl border border-[color:var(--linea-fuerte)] bg-white px-3 py-2 text-[14px] outline-none focus:border-[color:var(--acento)]"
               />
             </label>
             <label className="flex flex-col gap-1.5">
@@ -231,7 +231,7 @@ export default function Bitacora({
               <select
                 value={categoria}
                 onChange={(e) => setCategoria(e.target.value)}
-                className="rounded-xl border border-[color:var(--linea-fuerte)] bg-white px-3 py-2 text-[13px] outline-none"
+                className="rounded-xl border border-[color:var(--linea-fuerte)] bg-white px-3 py-2 text-[14px] outline-none"
               >
                 {CATEGORIAS.map(([id, n]) => (
                   <option key={id} value={id}>
@@ -246,7 +246,7 @@ export default function Bitacora({
                 value={titulo}
                 onChange={(e) => setTitulo(e.target.value)}
                 placeholder="Optimización de contenido en 12 fichas de producto"
-                className="rounded-xl border border-[color:var(--linea-fuerte)] bg-white px-3.5 py-2 text-[13px] outline-none focus:border-[color:var(--acento)]"
+                className="rounded-xl border border-[color:var(--linea-fuerte)] bg-white px-3.5 py-2 text-[14px] outline-none focus:border-[color:var(--acento)]"
               />
             </label>
           </div>
@@ -256,7 +256,7 @@ export default function Bitacora({
             <input
               value={detalle}
               onChange={(e) => setDetalle(e.target.value)}
-              className="w-full rounded-xl border border-[color:var(--linea-fuerte)] bg-white px-3.5 py-2 text-[13px] outline-none focus:border-[color:var(--acento)]"
+              className="w-full rounded-xl border border-[color:var(--linea-fuerte)] bg-white px-3.5 py-2 text-[14px] outline-none focus:border-[color:var(--acento)]"
             />
           </label>
 
@@ -273,7 +273,7 @@ export default function Bitacora({
       {sinRedactar.length > 0 && puedeEditar && (
         <div className="tarjeta mt-4 p-5 imprimir-oculto">
           <p className="rotulo">Meses con trabajo sin redactar</p>
-          <p className="mt-1.5 text-[13px] text-[color:var(--tinta-media)]">
+          <p className="mt-1.5 text-[14px] text-[color:var(--tinta-media)]">
             Se redactan a partir del registro técnico, agrupando lo repetido. Revísalo siempre antes de
             enviárselo a nadie.
           </p>
@@ -290,9 +290,9 @@ export default function Bitacora({
       )}
 
       {entradas.length === 0 ? (
-        <div className="mt-5 rounded-2xl border border-dashed border-[color:var(--linea-fuerte)] px-6 py-16 text-center">
+        <div className="mt-5 rounded-2xl border border-[color:var(--linea)] bg-[color:var(--panel)] px-6 py-16 text-center">
           <p className="text-[15px] font-medium">La bitácora está vacía.</p>
-          <p className="mx-auto mt-2 max-w-md text-[13px] text-[color:var(--tinta-media)]">
+          <p className="mx-auto mt-2 max-w-md text-[14px] text-[color:var(--tinta-media)]">
             Aquí se acumula, mes a mes, lo que se hizo por este cliente, escrito para que lo lea él. Se
             puede redactar desde el registro de trabajo o añadir a mano.
           </p>
@@ -302,7 +302,7 @@ export default function Bitacora({
           <header className="border-b border-[color:var(--linea)] pb-4">
             <p className="rotulo">Trabajo realizado</p>
             <h2 className="mt-1 text-[22px] font-semibold">{datos?.cliente}</h2>
-            <p className="text-[13px] text-[color:var(--tinta-suave)]">{datos?.dominio}</p>
+            <p className="text-[14px] text-[color:var(--tinta-suave)]">{datos?.dominio}</p>
           </header>
 
           {meses.map((m) => {
@@ -318,9 +318,9 @@ export default function Bitacora({
                       <div className="min-w-0 flex-1">
                         <p className="text-[14px] leading-snug">{e.titulo}</p>
                         {e.detalle && (
-                          <p className="mt-0.5 text-[13px] text-[color:var(--tinta-media)]">{e.detalle}</p>
+                          <p className="mt-0.5 text-[14px] text-[color:var(--tinta-media)]">{e.detalle}</p>
                         )}
-                        <p className="mt-0.5 text-[11px] text-[color:var(--tinta-suave)] imprimir-oculto">
+                        <p className="mt-0.5 text-[12px] text-[color:var(--tinta-suave)] imprimir-oculto">
                           {NOMBRE_CATEGORIA[e.categoria] ?? e.categoria}
                           {!e.automatico && " · a mano"}
                         </p>
@@ -330,7 +330,7 @@ export default function Bitacora({
                         <button
                           onClick={() => quitar(e.id)}
                           disabled={ocupado}
-                          className="imprimir-oculto shrink-0 text-[11px] text-[color:var(--tinta-suave)] transition hover:text-red-600"
+                          className="imprimir-oculto shrink-0 text-[12px] text-[color:var(--tinta-suave)] transition hover:text-red-600"
                         >
                           Quitar
                         </button>
@@ -344,7 +344,7 @@ export default function Bitacora({
                     <button
                       onClick={() => redactar(m, "actualizar")}
                       disabled={ocupado}
-                      className="boton !py-1.5 !text-[11px]"
+                      className="boton !py-1.5 !text-[12px]"
                       title="Solo lee lo ocurrido desde la última vez que se redactó"
                     >
                       Añadir lo nuevo
@@ -352,7 +352,7 @@ export default function Bitacora({
                     <button
                       onClick={() => redactar(m, "rehacer")}
                       disabled={ocupado}
-                      className="boton !py-1.5 !text-[11px]"
+                      className="boton !py-1.5 !text-[12px]"
                       title="Borra lo escrito por la IA y redacta el mes entero otra vez"
                     >
                       Rehacer el mes desde cero
@@ -365,7 +365,7 @@ export default function Bitacora({
         </div>
       )}
 
-      <p className="mt-4 max-w-3xl text-[12px] leading-relaxed text-[color:var(--tinta-suave)] imprimir-oculto">
+      <p className="mt-4 max-w-3xl text-[13px] leading-relaxed text-[color:var(--tinta-suave)] imprimir-oculto">
         «Añadir lo nuevo» solo mira lo ocurrido desde la última vez, así que se puede pulsar cuantas
         veces haga falta sin que se repita nada; si algo amplía una entrada que ya estaba —más fichas
         del mismo trabajo—, la actualiza en vez de duplicarla. «Rehacer desde cero» borra lo escrito

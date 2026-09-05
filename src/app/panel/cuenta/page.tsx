@@ -74,17 +74,17 @@ export default async function Cuenta({
     <>
       <Barra usuarioId={sesion.user.id} usuario={sesion.user.name} rol={yo.rol} />
       <main className="mx-auto max-w-xl px-6 py-10">
-        <h1 className="text-[28px] font-semibold leading-tight">Mi cuenta</h1>
-        <p className="mt-1 text-[13px] text-[color:var(--tinta-media)]">
+        <h1 className="text-[28px] font-bold leading-tight">Mi cuenta</h1>
+        <p className="mt-1 text-[14px] text-[color:var(--tinta-media)]">
           {yo.email} · {yo.rol.toLowerCase()} · en el panel desde {fecha(yo.creado)}
         </p>
 
-        {ok && <p className="mt-5 rounded-2xl bg-emerald-50 px-4 py-3 text-[13px] text-emerald-700">{ok}</p>}
-        {error && <p className="mt-5 rounded-2xl bg-red-50 px-4 py-3 text-[13px] text-red-700">{error}</p>}
+        {ok && <p className="mt-5 rounded-2xl bg-emerald-50 px-4 py-3 text-[14px] text-emerald-700">{ok}</p>}
+        {error && <p className="mt-5 rounded-2xl bg-red-50 px-4 py-3 text-[14px] text-red-700">{error}</p>}
 
         <section className="tarjeta mt-6 p-5">
           <h2 className="text-[15px] font-semibold">Nombre</h2>
-          <p className="mt-0.5 text-[13px] text-[color:var(--tinta-media)]">
+          <p className="mt-0.5 text-[14px] text-[color:var(--tinta-media)]">
             Así te ven tus compañeros en los hilos y en el registro.
           </p>
           <form action={cambiarNombre} className="mt-3 flex flex-wrap gap-2">
@@ -97,7 +97,7 @@ export default async function Cuenta({
 
         <section className="tarjeta mt-4 p-5">
           <h2 className="text-[15px] font-semibold">Contraseña</h2>
-          <p className="mt-0.5 text-[13px] text-[color:var(--tinta-media)]">
+          <p className="mt-0.5 text-[14px] text-[color:var(--tinta-media)]">
             Mínimo diez caracteres. Hace falta la actual para cambiarla.
           </p>
           <form action={cambiarClave} className="mt-3 grid gap-2">

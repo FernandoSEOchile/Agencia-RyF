@@ -168,12 +168,12 @@ export default function SearchConsole({
   }
 
   const aviso = error && (
-    <p className="mt-4 rounded-2xl bg-red-50 px-4 py-3 text-[13px] text-red-700">{error}</p>
+    <p className="mt-4 rounded-2xl bg-red-50 px-4 py-3 text-[14px] text-red-700">{error}</p>
   );
 
   if (!datos?.configurado) {
     return (
-      <p className="mt-4 rounded-2xl bg-black/[0.03] px-4 py-3 text-[13px] text-[color:var(--tinta-media)]">
+      <p className="mt-4 rounded-2xl bg-black/[0.03] px-4 py-3 text-[14px] text-[color:var(--tinta-media)]">
         Search Console no está habilitado en este panel. Un administrador debe configurarlo en Ajustes.
       </p>
     );
@@ -186,9 +186,9 @@ export default function SearchConsole({
     return (
       <div className="mt-4">
         {aviso}
-        <div className="rounded-2xl border border-dashed border-[color:var(--linea-fuerte)] p-6 text-center">
+        <div className="rounded-2xl border border-[color:var(--linea)] bg-[color:var(--panel)] p-6 text-center">
           <p className="text-[15px] font-medium">Conecta Search Console</p>
-          <p className="mx-auto mt-2 max-w-md text-[13px] text-[color:var(--tinta-media)]">
+          <p className="mx-auto mt-2 max-w-md text-[14px] text-[color:var(--tinta-media)]">
             Autoriza la cuenta de Google que tiene acceso a este sitio. El panel solo podrá leer los
             datos de búsqueda, y puedes revocar el permiso desde tu cuenta de Google cuando quieras.
           </p>
@@ -198,7 +198,7 @@ export default function SearchConsole({
               Conectar con Google
             </a>
           ) : (
-            <p className="mt-3 text-[12px] text-[color:var(--tinta-suave)]">
+            <p className="mt-3 text-[13px] text-[color:var(--tinta-suave)]">
               No tienes permiso para conectar cuentas.
             </p>
           )}
@@ -212,7 +212,7 @@ export default function SearchConsole({
                     <button
                       disabled={cargando}
                       onClick={() => guardar({ conexionId: c.id })}
-                      className="boton !text-[12px]"
+                      className="boton !text-[13px]"
                     >
                       {c.correo}
                     </button>
@@ -242,14 +242,14 @@ export default function SearchConsole({
     return (
       <div className="mt-4">
         {aviso}
-        <div className="rounded-2xl border border-dashed border-[color:var(--linea-fuerte)] p-5">
-          <p className="text-[13px] font-medium">¿Qué propiedad corresponde a este cliente?</p>
-          <p className="mt-1 text-[12px] text-[color:var(--tinta-suave)]">
+        <div className="rounded-2xl border border-[color:var(--linea)] bg-[color:var(--panel)] p-5">
+          <p className="text-[14px] font-medium">¿Qué propiedad corresponde a este cliente?</p>
+          <p className="mt-1 text-[13px] text-[color:var(--tinta-suave)]">
             Conectado como {datos.conexion.correo}
           </p>
 
           {datos.propiedades.length === 0 ? (
-            <p className="mt-3 text-[13px] text-[color:var(--tinta-media)]">
+            <p className="mt-3 text-[14px] text-[color:var(--tinta-media)]">
               Esa cuenta de Google no tiene ninguna propiedad verificada en Search Console. Prueba con
               otra cuenta.
             </p>
@@ -259,10 +259,10 @@ export default function SearchConsole({
                 value={buscaProp}
                 onChange={(e) => setBuscaProp(e.target.value)}
                 placeholder="Buscar propiedad…"
-                className="mt-3 w-full max-w-sm rounded-full border border-[color:var(--linea-fuerte)] bg-white px-4 py-1.5 text-[13px] outline-none transition focus:border-[color:var(--acento)]"
+                className="mt-3 w-full max-w-sm rounded-full border border-[color:var(--linea-fuerte)] bg-white px-4 py-1.5 text-[14px] outline-none transition focus:border-[color:var(--acento)]"
               />
 
-              <p className="mt-2 text-[12px] text-[color:var(--tinta-suave)]">
+              <p className="mt-2 text-[13px] text-[color:var(--tinta-suave)]">
                 {datos.propiedades.length} propiedades en esta cuenta, las de este dominio primero.
                 Cuidado con la variante: para Google, una propiedad con «www» y otra sin él son dos
                 sitios distintos, y la equivocada devuelve casi nada.
@@ -274,7 +274,7 @@ export default function SearchConsole({
                     <button
                       disabled={!puedeEditar || cargando}
                       onClick={() => guardar({ propiedad: x.url })}
-                      className="boton font-mono !text-[12px]"
+                      className="boton font-mono !text-[13px]"
                     >
                       {x.url}
                     </button>
@@ -287,7 +287,7 @@ export default function SearchConsole({
           {puedeEditar && (
             <button
               onClick={() => guardar({ conexionId: "" })}
-              className="mt-4 text-[12px] text-[color:var(--tinta-suave)] transition hover:text-red-600"
+              className="mt-4 text-[13px] text-[color:var(--tinta-suave)] transition hover:text-red-600"
             >
               Usar otra cuenta de Google
             </button>
@@ -335,12 +335,12 @@ export default function SearchConsole({
     <div className="mt-4">
       <div className="flex flex-wrap items-center gap-2">
         <Periodo dias={dias} setDias={setDias} permitidos={permitidos} />
-        <span className="font-mono text-[11px] text-[color:var(--tinta-suave)]">{datos.propiedad}</span>
-        {cargando && <span className="text-[12px] text-[color:var(--tinta-suave)]">actualizando…</span>}
+        <span className="font-mono text-[12px] text-[color:var(--tinta-suave)]">{datos.propiedad}</span>
+        {cargando && <span className="text-[13px] text-[color:var(--tinta-suave)]">actualizando…</span>}
         {puedeEditar && (
           <button
             onClick={() => guardar({ propiedad: "" })}
-            className="ml-auto text-[12px] text-[color:var(--tinta-suave)] transition hover:text-[color:var(--acento)]"
+            className="ml-auto text-[13px] text-[color:var(--tinta-suave)] transition hover:text-[color:var(--acento)]"
             title={`Conectado como ${datos.conexion.correo}`}
           >
             Cambiar propiedad
@@ -359,7 +359,7 @@ export default function SearchConsole({
         ].map(([k, v, color]) => (
           <div key={k} className="px-5 py-4">
             <dt className="rotulo">{k}</dt>
-            <dd className={`mt-1 text-[22px] font-semibold tabular-nums ${color}`}>{v}</dd>
+            <dd className={`mt-1 text-[22px] cifra font-semibold tabular-nums ${color}`}>{v}</dd>
           </div>
         ))}
       </dl>
@@ -377,14 +377,14 @@ export default function SearchConsole({
         ].map(([k, v, color]) => (
           <div key={String(k)} className="px-5 py-4">
             <dt className="rotulo">{String(k)}</dt>
-            <dd className={`mt-1 text-[22px] font-semibold tabular-nums ${color}`}>
+            <dd className={`mt-1 text-[22px] cifra font-semibold tabular-nums ${color}`}>
               {Number(v).toLocaleString("es-CL")}
             </dd>
           </div>
         ))}
       </dl>
 
-      <p className="mt-3 text-[13px] text-[color:var(--tinta-media)]">
+      <p className="mt-3 text-[14px] text-[color:var(--tinta-media)]">
         {oportunidades.length > 0 && (
           <>
             <strong className="font-semibold text-[color:var(--tinta)]">{oportunidades.length}</strong>{" "}
@@ -417,14 +417,14 @@ export default function SearchConsole({
           value={busca}
           onChange={(e) => setBusca(e.target.value)}
           placeholder="Filtrar consultas…"
-          className="ml-auto w-60 rounded-full border border-[color:var(--linea-fuerte)] bg-white px-4 py-1.5 text-[13px] outline-none transition focus:border-[color:var(--acento)]"
+          className="ml-auto w-60 rounded-full border border-[color:var(--linea-fuerte)] bg-white px-4 py-1.5 text-[14px] outline-none transition focus:border-[color:var(--acento)]"
         />
       </div>
 
       {vista === "canibal" ? (
         <div className="mt-3 space-y-3">
           {visibles.length === 0 ? (
-            <p className="tarjeta px-5 py-8 text-center text-[13px] text-[color:var(--tinta-suave)]">
+            <p className="tarjeta px-5 py-8 text-center text-[14px] text-[color:var(--tinta-suave)]">
               Ninguna consulta con dos páginas repartiéndose las impresiones. Buena señal.
             </p>
           ) : (
@@ -439,14 +439,14 @@ export default function SearchConsole({
                   >
                     {f.paginas} páginas
                   </span>
-                  <span className="text-[12px] text-[color:var(--tinta-suave)]">
+                  <span className="text-[13px] text-[color:var(--tinta-suave)]">
                     la principal se lleva el {dominio(f)}% · posición media {f.posicion} ·{" "}
                     {f.impresiones.toLocaleString("es-CL")} impresiones
                   </span>
                   {puedeEditar && onSeguir && (
                     <button
                       onClick={() => onSeguir(f.consulta)}
-                      className="ml-auto text-[12px] text-[color:var(--tinta-suave)] transition hover:text-[color:var(--acento)]"
+                      className="ml-auto text-[13px] text-[color:var(--tinta-suave)] transition hover:text-[color:var(--acento)]"
                     >
                       Seguir
                     </button>
@@ -455,7 +455,7 @@ export default function SearchConsole({
 
                 <ul className="mt-3 divide-y divide-[color:var(--linea)] border-t border-[color:var(--linea)]">
                   {f.urls.map((u, i) => (
-                    <li key={u.url} className="flex flex-wrap items-baseline gap-x-3 py-2 text-[13px]">
+                    <li key={u.url} className="flex flex-wrap items-baseline gap-x-3 py-2 text-[14px]">
                       <span
                         className={`pastilla shrink-0 ${
                           i === 0 ? "bg-emerald-50 text-emerald-700" : "bg-black/[0.05] text-[color:var(--tinta-media)]"
@@ -485,7 +485,7 @@ export default function SearchConsole({
                   ))}
                 </ul>
 
-                <p className="mt-2 text-[12px] leading-relaxed text-[color:var(--tinta-suave)]">
+                <p className="mt-2 text-[13px] leading-relaxed text-[color:var(--tinta-suave)]">
                   Decide qué página debe quedarse con esta búsqueda y quítale la intención a las otras:
                   cambia sus títulos y encabezados, o enlázalas hacia la elegida.
                 </p>
@@ -495,7 +495,7 @@ export default function SearchConsole({
         </div>
       ) : (
       <div className="tarjeta mt-3 overflow-x-auto">
-        <table className="w-full min-w-[840px] border-collapse text-[13px]">
+        <table className="w-full min-w-[840px] border-collapse text-[14px]">
           <thead>
             <tr className="border-b border-[color:var(--linea)] text-left">
               {COLUMNAS.map((c) => (
@@ -507,7 +507,7 @@ export default function SearchConsole({
                     }`}
                   >
                     {c.texto}
-                    <span className="ml-1 inline-block w-2 text-[9px]">
+                    <span className="ml-1 inline-block w-2 text-[10px]">
                       {orden.col === c.id ? (orden.asc ? "▲" : "▼") : ""}
                     </span>
                   </button>
@@ -519,7 +519,7 @@ export default function SearchConsole({
           <tbody className="divide-y divide-[color:var(--linea)]">
             {visibles.length === 0 ? (
               <tr>
-                <td colSpan={7} className="px-5 py-8 text-center text-[13px] text-[color:var(--tinta-suave)]">
+                <td colSpan={7} className="px-5 py-8 text-center text-[14px] text-[color:var(--tinta-suave)]">
                   {vista === "oportunidades"
                     ? "No hay consultas entre los puestos 4 y 20 con impresiones suficientes."
                     : "Search Console no devolvió datos para este periodo."}
@@ -576,7 +576,7 @@ export default function SearchConsole({
                     {puedeEditar && onSeguir && (
                       <button
                         onClick={() => onSeguir(f.consulta)}
-                        className="text-[12px] text-[color:var(--tinta-suave)] transition hover:text-[color:var(--acento)]"
+                        className="text-[13px] text-[color:var(--tinta-suave)] transition hover:text-[color:var(--acento)]"
                         title="Añadir al seguimiento de posiciones"
                       >
                         Seguir
@@ -591,7 +591,7 @@ export default function SearchConsole({
       </div>
       )}
 
-      <p className="mt-4 max-w-3xl text-[12px] leading-relaxed text-[color:var(--tinta-suave)]">
+      <p className="mt-4 max-w-3xl text-[13px] leading-relaxed text-[color:var(--tinta-suave)]">
         Datos reales de Google, sin coste. La posición es un promedio de todas las veces que el sitio
         se mostró en el periodo, no la foto de un momento — por eso sale con decimales y no coincide
         exactamente con lo que mide DataForSEO. Search Console va con dos o tres días de retraso, así

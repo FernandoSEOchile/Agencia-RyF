@@ -110,7 +110,7 @@ export default function ChatArquitectura({ arquitecturaId }: { arquitecturaId: s
     <div className="tarjeta mt-4 p-5">
       <div className="flex flex-wrap items-baseline gap-2">
         <h3 className="text-[15px] font-semibold">Arreglar la arquitectura hablando</h3>
-        <p className="text-[12px] text-[color:var(--tinta-suave)]">
+        <p className="text-[13px] text-[color:var(--tinta-suave)]">
           Puede releer el Excel con otro criterio, cambiar niveles, quitar lo que se coló y recotejar.
         </p>
       </div>
@@ -123,12 +123,12 @@ export default function ChatArquitectura({ arquitecturaId }: { arquitecturaId: s
           {turnos.map((t, i) =>
             t.rol === "user" ? (
               <div key={i} className="flex justify-end">
-                <div className="max-w-[85%] rounded-2xl bg-[color:var(--tinta)] px-4 py-2 text-[13px] text-white">
+                <div className="max-w-[85%] rounded-2xl bg-[color:var(--tinta)] px-4 py-2 text-[14px] text-white">
                   {t.contenido}
                 </div>
               </div>
             ) : (
-              <div key={i} className="max-w-[95%] text-[13px] leading-relaxed">
+              <div key={i} className="max-w-[95%] text-[14px] leading-relaxed">
                 {t.contenido ? (
                   <Markdown>{t.contenido}</Markdown>
                 ) : (
@@ -139,7 +139,7 @@ export default function ChatArquitectura({ arquitecturaId }: { arquitecturaId: s
           )}
 
           {actividad && (
-            <p className="flex items-center gap-2 text-[12px] text-[color:var(--tinta-suave)]">
+            <p className="flex items-center gap-2 text-[13px] text-[color:var(--tinta-suave)]">
               <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-[color:var(--acento)]" />
               {actividad}…
             </p>
@@ -148,11 +148,11 @@ export default function ChatArquitectura({ arquitecturaId }: { arquitecturaId: s
       )}
 
       {error && (
-        <p className="mt-3 rounded-xl bg-red-50 px-4 py-3 text-[13px] text-red-700">{error}</p>
+        <p className="mt-3 rounded-xl bg-red-50 px-4 py-3 text-[14px] text-red-700">{error}</p>
       )}
 
       {huboCambios && !ocupado && (
-        <p className="mt-3 flex flex-wrap items-center gap-2 rounded-xl bg-emerald-50 px-4 py-3 text-[13px] text-emerald-800">
+        <p className="mt-3 flex flex-wrap items-center gap-2 rounded-xl bg-emerald-50 px-4 py-3 text-[14px] text-emerald-800">
           La arquitectura cambió.
           <button
             onClick={() => window.location.reload()}
@@ -167,7 +167,7 @@ export default function ChatArquitectura({ arquitecturaId }: { arquitecturaId: s
         <ul className="mt-4 flex flex-wrap gap-2">
           {SUGERENCIAS.map((s) => (
             <li key={s}>
-              <button onClick={() => enviar(s)} disabled={ocupado} className="boton !text-[12px]">
+              <button onClick={() => enviar(s)} disabled={ocupado} className="boton !text-[13px]">
                 {s}
               </button>
             </li>
@@ -194,7 +194,7 @@ export default function ChatArquitectura({ arquitecturaId }: { arquitecturaId: s
           rows={2}
           disabled={ocupado}
           placeholder="Cuéntale qué quedó mal…"
-          className="flex-1 resize-none rounded-xl border border-[color:var(--linea-fuerte)] bg-white px-3.5 py-2.5 text-[13px] outline-none transition focus:border-[color:var(--acento)] disabled:opacity-50"
+          className="flex-1 resize-none rounded-xl border border-[color:var(--linea-fuerte)] bg-white px-3.5 py-2.5 text-[14px] outline-none transition focus:border-[color:var(--acento)] disabled:opacity-50"
         />
         <button type="submit" disabled={ocupado || !entrada.trim()} className="boton-fuerte self-end">
           {ocupado ? "…" : "Enviar"}

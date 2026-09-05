@@ -119,7 +119,7 @@ export default function Navegacion({
               </option>
             ))}
           </select>
-          <span aria-hidden className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-white/50">
+          <span aria-hidden className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[11px] text-white/50">
             ▼
           </span>
         </label>
@@ -130,7 +130,7 @@ export default function Navegacion({
         onClick={() => setAbierta(true)}
         title="Buscar cliente o pantalla (Ctrl+K)"
         aria-label="Buscar cliente o pantalla"
-        className="hidden h-8 items-center gap-1.5 rounded-full border border-white/15 px-2.5 text-[11px] text-white/50 transition hover:text-white md:flex"
+        className="hidden h-8 items-center gap-1.5 rounded-full border border-white/15 px-2.5 text-[12px] text-white/50 transition hover:text-white md:flex"
       >
         <kbd className="font-sans">Ctrl</kbd>
         <kbd className="font-sans">K</kbd>
@@ -182,12 +182,12 @@ export default function Navegacion({
                     }`}
                   >
                     <span className="truncate">{o.texto}</span>
-                    <span className="shrink-0 text-[11px] text-[color:var(--tinta-suave)]">{o.pista}</span>
+                    <span className="shrink-0 text-[12px] text-[color:var(--tinta-suave)]">{o.pista}</span>
                   </button>
                 </li>
               ))}
               {opciones.length === 0 && (
-                <li className="px-4 py-3 text-[13px] text-[color:var(--tinta-suave)]">Nada con «{busca}».</li>
+                <li className="px-4 py-3 text-[14px] text-[color:var(--tinta-suave)]">Nada con «{busca}».</li>
               )}
             </ul>
           </div>

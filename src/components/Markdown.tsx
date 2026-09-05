@@ -38,7 +38,7 @@ export default function Markdown({ children }: { children: string }) {
           // Sin `className` es código en línea; con él, un bloque con lenguaje.
           const bloque = Boolean(className);
           return bloque ? (
-            <code className="block overflow-x-auto whitespace-pre rounded-lg bg-[color:var(--tinta)] p-3 font-mono text-xs text-[color:var(--tinta-media)]">
+            <code className="block overflow-x-auto whitespace-pre rounded-lg bg-[color:var(--tinta)] p-3 font-mono text-[13px] text-[color:var(--tinta-media)]">
               {children}
             </code>
           ) : (
@@ -57,7 +57,7 @@ export default function Markdown({ children }: { children: string }) {
         // propio scroll para que no arrastren la página entera.
         table: ({ children }) => (
           <div className="mb-2.5 overflow-x-auto last:mb-0">
-            <table className="w-full border-collapse text-xs">{children}</table>
+            <table className="w-full border-collapse text-[13px]">{children}</table>
           </div>
         ),
         th: ({ children }) => (

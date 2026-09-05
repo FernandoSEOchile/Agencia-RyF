@@ -29,7 +29,7 @@ export default async function PaginaGasto() {
           ← Clientes
         </Link>
 
-        <h1 className="mt-4 text-[32px] font-semibold leading-tight">Gasto</h1>
+        <h1 className="mt-4 text-[32px] font-bold leading-tight">Gasto</h1>
         <p className="mt-1 max-w-2xl text-[15px] text-[color:var(--tinta-media)]">
           Lo que cuesta operar la cartera entera, repartido por cliente, por concepto y por persona.
         </p>

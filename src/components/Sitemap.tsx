@@ -149,7 +149,7 @@ export default function Sitemap({ clienteId }: { clienteId: string }) {
           value={busqueda}
           onChange={(e) => setBusqueda(e.target.value)}
           placeholder="Filtrar por título o URL…"
-          className="ml-auto w-60 rounded-full border border-[color:var(--linea-fuerte)] bg-white px-4 py-1.5 text-[13px] outline-none transition focus:border-[color:var(--acento)]"
+          className="ml-auto w-60 rounded-full border border-[color:var(--linea-fuerte)] bg-white px-4 py-1.5 text-[14px] outline-none transition focus:border-[color:var(--acento)]"
         />
       </div>
 
@@ -165,7 +165,7 @@ export default function Sitemap({ clienteId }: { clienteId: string }) {
                 setEstado(id);
                 setPagina(1);
               }}
-              className={`rounded-full px-2.5 py-0.5 text-[11px] font-medium transition ${
+              className={`rounded-full px-2.5 py-0.5 text-[12px] font-medium transition ${
                 estado === id ? "bg-[color:var(--acento)]/10 text-[color:var(--acento)]" : "text-[color:var(--tinta-media)] hover:bg-black/[0.04]"
               }`}
             >
@@ -178,7 +178,7 @@ export default function Sitemap({ clienteId }: { clienteId: string }) {
       {error && <p className="mt-4 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p>}
 
       {cargando ? (
-        <p className="mt-6 flex items-center gap-2 text-[13px] text-[color:var(--tinta-media)]">
+        <p className="mt-6 flex items-center gap-2 text-[14px] text-[color:var(--tinta-media)]">
           <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-[color:var(--acento)]" />
           Leyendo el sitio…
         </p>
@@ -216,29 +216,29 @@ export default function Sitemap({ clienteId }: { clienteId: string }) {
                       >
                         {f.titulo}
                       </a>
-                      <span className="block truncate text-[11px] text-[color:var(--tinta-suave)]">
+                      <span className="block truncate text-[12px] text-[color:var(--tinta-suave)]">
                         {f.url.replace(/^https?:\/\/[^/]+/, "") || "/"} · {f.subtipo}
                       </span>
                     </td>
                     <td className="px-3 py-2.5">
                       <span
-                        className={`whitespace-nowrap rounded-full px-2 py-0.5 text-[11px] font-semibold ${colorEstado(
+                        className={`whitespace-nowrap rounded-full px-2 py-0.5 text-[12px] font-semibold ${colorEstado(
                           f.estado
                         )}`}
                       >
                         {nombreEstado(f.estado)}
                       </span>
                     </td>
-                    <td className="px-3 py-3 text-right text-[13px] tabular-nums text-[color:var(--tinta-media)]">
+                    <td className="px-3 py-3 text-right text-[14px] tabular-nums text-[color:var(--tinta-media)]">
                       {f.palabras ?? "—"}
                     </td>
-                    <td className="whitespace-nowrap px-3 py-3 text-[13px] tabular-nums text-[color:var(--tinta-media)]">
+                    <td className="whitespace-nowrap px-3 py-3 text-[14px] tabular-nums text-[color:var(--tinta-media)]">
                       {f.modificado ?? "—"}
                     </td>
-                    <td className="max-w-[280px] px-5 py-3 text-[13px] text-[color:var(--tinta-media)]">
+                    <td className="max-w-[280px] px-5 py-3 text-[14px] text-[color:var(--tinta-media)]">
                       {f.cambio ? (
                         <>
-                          <span className="mr-1.5 rounded bg-[color:var(--acento)]/10 px-1.5 py-0.5 text-[10px] font-semibold text-[color:var(--acento)]">
+                          <span className="mr-1.5 rounded bg-[color:var(--acento)]/10 px-1.5 py-0.5 text-[11px] font-semibold text-[color:var(--acento)]">
                             {f.cambio.accion}
                           </span>
                           <span className="text-[color:var(--tinta-media)]">{f.cambio.resumen}</span>
@@ -256,7 +256,7 @@ export default function Sitemap({ clienteId }: { clienteId: string }) {
             </table>
           </div>
 
-          <div className="mt-4 flex flex-wrap items-center gap-3 text-[12px] text-[color:var(--tinta-media)]">
+          <div className="mt-4 flex flex-wrap items-center gap-3 text-[13px] text-[color:var(--tinta-media)]">
             <span className="tabular-nums">
               {busqueda.trim() ? `${visibles.length} de ${filas.length} en esta página · ` : ""}
               {total.toLocaleString("es-CL")} en total
@@ -285,7 +285,7 @@ export default function Sitemap({ clienteId }: { clienteId: string }) {
           </div>
 
           {paginas > 1 && (
-            <p className="mt-1.5 text-[11px] text-[color:var(--tinta-suave)]">
+            <p className="mt-1.5 text-[12px] text-[color:var(--tinta-suave)]">
               El orden se aplica sobre la página que estás viendo, no sobre el catálogo entero.
             </p>
           )}

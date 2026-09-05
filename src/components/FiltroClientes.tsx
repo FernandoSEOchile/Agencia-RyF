@@ -34,10 +34,10 @@ export default function FiltroClientes({ total }: { total: number }) {
         onChange={(e) => setTexto(e.target.value)}
         placeholder="Buscar cliente por nombre o dominio…"
         aria-label="Buscar cliente"
-        className="w-full max-w-sm rounded-xl border border-[color:var(--linea-fuerte)] bg-white px-3.5 py-2 text-[13px] outline-none transition focus:border-[color:var(--acento)]"
+        className="w-full max-w-sm rounded-xl border border-[color:var(--linea-fuerte)] bg-white px-3.5 py-2 text-[14px] outline-none transition focus:border-[color:var(--acento)]"
       />
       {texto && (
-        <span className="text-[13px] text-[color:var(--tinta-suave)]">
+        <span className="text-[14px] text-[color:var(--tinta-suave)]">
           {visibles} de {total}
         </span>
       )}

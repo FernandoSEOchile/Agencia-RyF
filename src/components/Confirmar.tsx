@@ -69,7 +69,7 @@ export function useConfirmar() {
           {pregunta.titulo}
         </p>
         {pregunta.detalle && (
-          <p className="mt-1.5 text-[13px] leading-relaxed text-[color:var(--tinta-media)]">
+          <p className="mt-1.5 text-[14px] leading-relaxed text-[color:var(--tinta-media)]">
             {pregunta.detalle}
           </p>
         )}
@@ -84,7 +84,7 @@ export function useConfirmar() {
             className={
               pregunta.peligroso === false
                 ? "boton-fuerte"
-                : "inline-flex items-center justify-center rounded-full bg-red-600 px-4 py-1.5 text-[13px] font-semibold text-white transition hover:bg-red-700"
+                : "inline-flex items-center justify-center rounded-full bg-red-600 px-4 py-1.5 text-[14px] font-semibold text-white transition hover:bg-red-700"
             }
           >
             {pregunta.boton ?? "Borrar"}

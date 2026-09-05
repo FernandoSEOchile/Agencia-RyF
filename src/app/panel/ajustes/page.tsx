@@ -219,7 +219,7 @@ export default async function Ajustes({
           ← Clientes
         </Link>
 
-        <h1 className="text-[30px] font-semibold leading-tight">Ajustes</h1>
+        <h1 className="text-[30px] font-bold leading-tight">Ajustes</h1>
         <p className="mt-0.5 text-sm text-neutral-500">
           La clave de la API y el modelo con el que responde el asistente. Solo lo ven los administradores.
         </p>
@@ -231,7 +231,7 @@ export default async function Ajustes({
         <section className="mt-6 rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm">
           <h2 className="text-sm font-semibold text-neutral-900">Clave de la API de Anthropic</h2>
 
-          <div className="mt-3 flex flex-wrap items-center gap-2 text-xs">
+          <div className="mt-3 flex flex-wrap items-center gap-2 text-[13px]">
             {cfg.hayClave ? (
               <>
                 <span className="rounded-full bg-emerald-50 px-2.5 py-1 font-semibold text-emerald-700">
@@ -251,7 +251,7 @@ export default async function Ajustes({
 
           <form action={guardarClave} className="mt-4 flex flex-wrap items-end gap-2">
             <label className="flex min-w-[240px] flex-1 flex-col gap-1.5">
-              <span className="text-xs font-medium uppercase tracking-wide text-neutral-500">
+              <span className="text-[13px] font-medium uppercase tracking-wide text-neutral-500">
                 Clave nueva
               </span>
               <input
@@ -260,7 +260,7 @@ export default async function Ajustes({
                 required
                 autoComplete="off"
                 placeholder="sk-ant-…"
-                className="rounded-lg border border-neutral-200 px-3 py-2 font-mono text-xs outline-none focus:border-[#ff6b00] focus:ring-2 focus:ring-[#ff6b00]/20"
+                className="rounded-lg border border-neutral-200 px-3 py-2 font-mono text-[13px] outline-none focus:border-[#ff6b00] focus:ring-2 focus:ring-[#ff6b00]/20"
               />
             </label>
             <button
@@ -271,14 +271,14 @@ export default async function Ajustes({
             </button>
           </form>
 
-          <p className="mt-2 text-xs text-neutral-500">
+          <p className="mt-2 text-[13px] text-neutral-500">
             Se prueba contra la API antes de guardarla, y se almacena cifrada. Nunca vuelve a mostrarse
             entera: si la pierdes, se genera otra en console.anthropic.com.
           </p>
 
           {cfg.origen === "panel" && (
             <form action={quitarClave} className="mt-3 border-t border-neutral-100 pt-3">
-              <button className="text-xs font-medium text-neutral-500 underline-offset-4 hover:text-red-600 hover:underline">
+              <button className="text-[13px] font-medium text-neutral-500 underline-offset-4 hover:text-red-600 hover:underline">
                 Borrar la clave del panel
               </button>
             </form>
@@ -288,7 +288,7 @@ export default async function Ajustes({
         {/* --- Espacio de trabajo --- */}
         <section className="mt-5 rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm">
           <h2 className="text-sm font-semibold text-neutral-900">Espacio de trabajo</h2>
-          <p className="mt-0.5 text-xs text-neutral-500">
+          <p className="mt-0.5 text-[13px] text-neutral-500">
             Solo hace falta si tu clave es de las que van ligadas a una identidad: esas rechazan cualquier
             petición que no diga en qué espacio actúa, aunque la clave sea válida y haya saldo. Lo
             encuentras en la URL de la consola de Anthropic al entrar en el espacio, o en sus ajustes.
@@ -296,14 +296,14 @@ export default async function Ajustes({
 
           <form action={cambiarEspacio} className="mt-3 flex flex-wrap items-end gap-2">
             <label className="flex min-w-[240px] flex-1 flex-col gap-1.5">
-              <span className="text-xs font-medium uppercase tracking-wide text-neutral-500">
+              <span className="text-[13px] font-medium uppercase tracking-wide text-neutral-500">
                 Identificador <span className="normal-case text-neutral-400">(vacío para no enviarlo)</span>
               </span>
               <input
                 name="espacio"
                 defaultValue={cfg.espacio}
                 placeholder="wrkspc_…"
-                className="rounded-lg border border-neutral-200 px-3 py-2 font-mono text-xs outline-none focus:border-[#ff6b00] focus:ring-2 focus:ring-[#ff6b00]/20"
+                className="rounded-lg border border-neutral-200 px-3 py-2 font-mono text-[13px] outline-none focus:border-[#ff6b00] focus:ring-2 focus:ring-[#ff6b00]/20"
               />
             </label>
             <button
@@ -318,17 +318,17 @@ export default async function Ajustes({
         {/* --- Search Console --- */}
         <section className="tarjeta mt-5 p-5">
           <h2 className="text-[15px] font-semibold">Search Console</h2>
-          <p className="mt-1 text-[13px] text-[color:var(--tinta-media)]">
+          <p className="mt-1 text-[14px] text-[color:var(--tinta-media)]">
             Las posiciones reales de lo que cada sitio ya posiciona, gratis y directamente de Google.
             La aplicación de Google se configura en el servidor y no aquí: es la misma para todo el
             panel y no cambia nunca. Cada persona autoriza su cuenta desde la ficha del cliente.
           </p>
 
-          <p className="mt-3 flex flex-wrap items-center gap-2 text-[13px]">
+          <p className="mt-3 flex flex-wrap items-center gap-2 text-[14px]">
             {gsc ? (
               <>
                 <span className="pastilla bg-emerald-50 text-emerald-700">activo</span>
-                <span className="break-all font-mono text-[12px] text-[color:var(--tinta-media)]">
+                <span className="break-all font-mono text-[13px] text-[color:var(--tinta-media)]">
                   {gsc.id}
                 </span>
               </>
@@ -338,7 +338,7 @@ export default async function Ajustes({
           </p>
 
           {!gsc && (
-            <p className="mt-3 rounded-xl bg-black/[0.03] px-4 py-3 text-[12px] leading-relaxed text-[color:var(--tinta-media)]">
+            <p className="mt-3 rounded-xl bg-black/[0.03] px-4 py-3 text-[13px] leading-relaxed text-[color:var(--tinta-media)]">
               Faltan <code className="font-mono">GSC_CLIENT_ID</code> y{" "}
               <code className="font-mono">GSC_CLIENT_SECRET</code> en el entorno del servidor.
             </p>
@@ -346,7 +346,7 @@ export default async function Ajustes({
 
           <div className="mt-3 rounded-xl bg-black/[0.03] px-4 py-3">
             <p className="rotulo">URI de redirección autorizada en Google</p>
-            <p className="mt-1 break-all font-mono text-[12px]">{urlRedireccion()}</p>
+            <p className="mt-1 break-all font-mono text-[13px]">{urlRedireccion()}</p>
           </div>
 
           {cuentasGsc.length > 0 && (
@@ -354,9 +354,9 @@ export default async function Ajustes({
               <p className="rotulo">Cuentas de Google autorizadas</p>
               <ul className="mt-2 divide-y divide-[color:var(--linea)]">
                 {cuentasGsc.map((c) => (
-                  <li key={c.correo} className="flex flex-wrap items-baseline gap-2 py-2 text-[13px]">
-                    <span className="font-mono text-[12px]">{c.correo}</span>
-                    <span className="text-[12px] text-[color:var(--tinta-suave)]">
+                  <li key={c.correo} className="flex flex-wrap items-baseline gap-2 py-2 text-[14px]">
+                    <span className="font-mono text-[13px]">{c.correo}</span>
+                    <span className="text-[13px] text-[color:var(--tinta-suave)]">
                       {c._count.clientes} {c._count.clientes === 1 ? "cliente" : "clientes"}
                     </span>
                   </li>
@@ -369,22 +369,22 @@ export default async function Ajustes({
         {/* --- DataForSEO --- */}
         <section className="tarjeta mt-5 p-5">
           <h2 className="text-[15px] font-semibold">Posiciones en Google · DataForSEO</h2>
-          <p className="mt-1 text-[13px] text-[color:var(--tinta-media)]">
+          <p className="mt-1 text-[14px] text-[color:var(--tinta-media)]">
             Mide en qué puesto aparece cada cliente para las consultas que le sigas. Se paga por
             consulta, con saldo prepagado. El gasto real lo ves aquí abajo, leído de su cuenta. Las
             credenciales son las de su panel, no las de tu correo.
           </p>
 
           {dfs ? (
-            <p className="mt-3 flex flex-wrap items-center gap-2 text-[13px]">
+            <p className="mt-3 flex flex-wrap items-center gap-2 text-[14px]">
               <span className="pastilla bg-emerald-50 text-emerald-700">conectado</span>
-              <span className="font-mono text-[12px] text-[color:var(--tinta-media)]">{dfs.login}</span>
+              <span className="font-mono text-[13px] text-[color:var(--tinta-media)]">{dfs.login}</span>
               {dfs.pruebas && (
                 <span className="pastilla bg-amber-50 text-amber-700">modo de pruebas</span>
               )}
             </p>
           ) : (
-            <p className="mt-3 text-[13px] text-[color:var(--tinta-suave)]">Sin conectar.</p>
+            <p className="mt-3 text-[14px] text-[color:var(--tinta-suave)]">Sin conectar.</p>
           )}
 
           {/* El gasto se lee del propio proveedor, no de lo que anotamos: si
@@ -411,7 +411,7 @@ export default async function Ajustes({
                 name="dfsLogin"
                 defaultValue={dfs?.login ?? ""}
                 placeholder="correo@ejemplo.com"
-                className="rounded-xl border border-[color:var(--linea-fuerte)] bg-white px-3.5 py-2 text-[13px] outline-none transition focus:border-[color:var(--acento)]"
+                className="rounded-xl border border-[color:var(--linea-fuerte)] bg-white px-3.5 py-2 text-[14px] outline-none transition focus:border-[color:var(--acento)]"
               />
             </label>
             <label className="flex min-w-[200px] flex-1 flex-col gap-1.5">
@@ -420,10 +420,10 @@ export default async function Ajustes({
                 name="dfsClave"
                 type="password"
                 placeholder="••••••••"
-                className="rounded-xl border border-[color:var(--linea-fuerte)] bg-white px-3.5 py-2 text-[13px] outline-none transition focus:border-[color:var(--acento)]"
+                className="rounded-xl border border-[color:var(--linea-fuerte)] bg-white px-3.5 py-2 text-[14px] outline-none transition focus:border-[color:var(--acento)]"
               />
             </label>
-            <label className="flex items-center gap-2 pb-2 text-[13px] text-[color:var(--tinta-media)]">
+            <label className="flex items-center gap-2 pb-2 text-[14px] text-[color:var(--tinta-media)]">
               <input type="checkbox" name="dfsPruebas" value="si" defaultChecked={dfs?.pruebas ?? false} />
               Modo de pruebas
             </label>
@@ -432,14 +432,14 @@ export default async function Ajustes({
             </button>
           </form>
 
-          <p className="mt-2 text-[12px] text-[color:var(--tinta-suave)]">
+          <p className="mt-2 text-[13px] text-[color:var(--tinta-suave)]">
             El modo de pruebas usa su entorno gratuito: devuelve datos falsos con la forma real, sirve
             para verificar que todo funciona sin gastar saldo.
           </p>
 
           {dfs && (
             <form action={quitarDataForSeo} className="mt-3 border-t border-[color:var(--linea)] pt-3">
-              <button className="text-[12px] text-[color:var(--tinta-suave)] transition hover:text-red-600">
+              <button className="text-[13px] text-[color:var(--tinta-suave)] transition hover:text-red-600">
                 Desconectar DataForSEO
               </button>
             </form>
@@ -449,7 +449,7 @@ export default async function Ajustes({
         {/* --- Avisos --- */}
         <section className="mt-5 rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm">
           <h2 className="text-sm font-semibold text-neutral-900">Avisos</h2>
-          <p className="mt-0.5 text-xs text-neutral-500">
+          <p className="mt-0.5 text-[13px] text-neutral-500">
             El vigía revisa cada sitio cada diez minutos. Con un webhook, avisa aquí cuando uno se cae y
             cuando vuelve —solo al cambiar, no cada diez minutos—. Vale la URL de un webhook entrante de
             Slack, Discord o Google Chat.
@@ -461,7 +461,7 @@ export default async function Ajustes({
               defaultValue=""
               placeholder={cfg.avisos ? "Configurado · pega otra URL para cambiarla, o deja vacío para quitarla" : "https://hooks.slack.com/services/…"}
               aria-label="URL del webhook"
-              className="min-w-[280px] flex-1 rounded-lg border border-neutral-200 px-3 py-2 font-mono text-xs outline-none focus:border-[#ff6b00]"
+              className="min-w-[280px] flex-1 rounded-lg border border-neutral-200 px-3 py-2 font-mono text-[13px] outline-none focus:border-[#ff6b00]"
             />
             <button type="submit" className="boton">
               Guardar
@@ -469,7 +469,7 @@ export default async function Ajustes({
           </form>
           {cfg.avisos && (
             <form action={probarAvisos} className="mt-3">
-              <button className="text-[12px] font-medium text-[color:var(--acento)] underline-offset-4 hover:underline">
+              <button className="text-[13px] font-medium text-[color:var(--acento)] underline-offset-4 hover:underline">
                 Enviar un aviso de prueba
               </button>
             </form>
@@ -479,7 +479,7 @@ export default async function Ajustes({
         {/* --- Modelo --- */}
         <section className="mt-5 rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm">
           <h2 className="text-sm font-semibold text-neutral-900">Modelo</h2>
-          <p className="mt-0.5 text-xs text-neutral-500">
+          <p className="mt-0.5 text-[13px] text-neutral-500">
             En automático cada parte del panel usa el que le corresponde: el rápido para resumir la
             bitácora, el equilibrado para escribir y editar, y el potente para analizar. Fijar uno concreto
             lo aplica a todo y desactiva esa elección: úsalo si hay que forzar algo puntualmente, y vuelve
@@ -505,7 +505,7 @@ export default async function Ajustes({
                 />
                 <span className="min-w-0">
                   <span className="block text-sm font-semibold text-neutral-900">{nombre}</span>
-                  <span className="block text-xs text-neutral-500">{nota}</span>
+                  <span className="block text-[13px] text-neutral-500">{nota}</span>
                 </span>
               </label>
             ))}
@@ -518,7 +518,7 @@ export default async function Ajustes({
           </form>
         </section>
 
-        <p className="mt-5 text-xs text-neutral-400">
+        <p className="mt-5 text-[13px] text-neutral-400">
           Lo que se guarde aquí manda sobre la configuración del servidor. El archivo del servidor sigue
           sirviendo para que un panel recién instalado arranque sin que nadie lo configure.
         </p>

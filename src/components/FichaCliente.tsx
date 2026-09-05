@@ -124,8 +124,8 @@ function pestañaDeUrl(): Pestaña | null {
 function Contador({ etiqueta, valor }: { etiqueta: string; valor: string }) {
   return (
     <div className="bg-white px-4 py-3">
-      <dt className="text-[11px] font-medium uppercase tracking-wide text-[color:var(--tinta-media)]">{etiqueta}</dt>
-      <dd className="mt-0.5 text-lg font-semibold tabular-nums text-[color:var(--tinta)]">{valor}</dd>
+      <dt className="text-[12px] font-medium uppercase tracking-wide text-[color:var(--tinta-media)]">{etiqueta}</dt>
+      <dd className="mt-0.5 cifra text-[22px] font-semibold tabular-nums text-[color:var(--tinta)]">{valor}</dd>
     </div>
   );
 }
@@ -283,11 +283,11 @@ export default function FichaCliente({
         <div className="mt-5 flex gap-6">
           {conversaciones.length >= 1 && (
             <aside className="hidden w-52 shrink-0 sm:block">
-              <p className="text-[11px] font-semibold uppercase tracking-wide text-[color:var(--tinta-suave)]">
+              <p className="text-[12px] font-semibold uppercase tracking-wide text-[color:var(--tinta-suave)]">
                 Conversaciones del equipo
               </p>
               {totalConversaciones > conversaciones.length && (
-                <p className="mt-1 text-[10px] text-[color:var(--tinta-suave)]">
+                <p className="mt-1 text-[11px] text-[color:var(--tinta-suave)]">
                   Se ven las {conversaciones.length} últimas de {totalConversaciones}.
                 </p>
               )}
@@ -298,18 +298,18 @@ export default function FichaCliente({
                     <li key={cv.id} className="group relative">
                       <a
                         href={`?c=${cv.id}`}
-                        className={`block rounded-lg px-3 py-2 pr-7 text-xs transition ${
+                        className={`block rounded-lg px-3 py-2 pr-7 text-[13px] transition ${
                           abierta
                             ? "bg-[color:var(--acento)]/10 font-semibold text-[color:var(--tinta)]"
                             : "text-[color:var(--tinta-media)] hover:bg-black/[0.04]"
                         }`}
                       >
                         <span className="line-clamp-2">{cv.titulo}</span>
-                        <span className="mt-0.5 block text-[10px] tabular-nums text-[color:var(--tinta-suave)]">
+                        <span className="mt-0.5 block text-[11px] tabular-nums text-[color:var(--tinta-suave)]">
                           {cv.fecha} · {cv.mensajes} msj
                         </span>
                         {cv.autor && (
-                          <span className="mt-0.5 block text-[10px] font-medium text-[color:var(--acento)]">
+                          <span className="mt-0.5 block text-[11px] font-medium text-[color:var(--acento)]">
                             {cv.autor}
                           </span>
                         )}
@@ -351,7 +351,7 @@ export default function FichaCliente({
                     onClick={async () => {
                       if (await confirmar({ titulo: "¿Borrar los hilos vacíos?", detalle: "Se van los que quedaron con cero o un mensaje. No se puede deshacer.", boton: "Limpiar" })) await limpiar();
                     }}
-                    className="w-full rounded-lg border border-[color:var(--linea-fuerte)] px-3 py-1.5 text-[11px] text-[color:var(--tinta-media)] transition hover:border-red-200 hover:bg-red-50 hover:text-red-600"
+                    className="w-full rounded-lg border border-[color:var(--linea-fuerte)] px-3 py-1.5 text-[12px] text-[color:var(--tinta-media)] transition hover:border-red-200 hover:bg-red-50 hover:text-red-600"
                   >
                     Limpiar hilos vacíos
                   </button>
@@ -366,7 +366,7 @@ export default function FichaCliente({
               <select
                 defaultValue={conversacionInicial ?? ""}
                 onChange={(e) => { if (e.target.value) window.location.search = "?c=" + e.target.value; }}
-                className="mb-3 w-full rounded-lg border border-[color:var(--linea-fuerte)] bg-white px-3 py-2 text-xs sm:hidden"
+                className="mb-3 w-full rounded-lg border border-[color:var(--linea-fuerte)] bg-white px-3 py-2 text-[13px] sm:hidden"
               >
                 {conversaciones.map((cv) => (
                   <option key={cv.id} value={cv.id}>
@@ -451,7 +451,7 @@ export default function FichaCliente({
               <button
                 key={id}
                 onClick={() => setFiltro(id)}
-                className={`rounded-full px-3 py-1 text-xs font-medium transition ${
+                className={`rounded-full px-3 py-1 text-[13px] font-medium transition ${
                   filtro === id
                     ? "bg-[color:var(--tinta)] text-white"
                     : "bg-black/[0.04] text-[color:var(--tinta-media)] hover:bg-black/[0.08]"
@@ -465,14 +465,14 @@ export default function FichaCliente({
               onChange={(e) => setBuscaRegistro(e.target.value)}
               placeholder="Buscar en el registro…"
               aria-label="Buscar en el registro"
-              className="rounded-full border border-[color:var(--linea-fuerte)] bg-white px-3 py-1 text-xs outline-none transition focus:border-[color:var(--acento)]"
+              className="rounded-full border border-[color:var(--linea-fuerte)] bg-white px-3 py-1 text-[13px] outline-none transition focus:border-[color:var(--acento)]"
             />
             {personas.length > 1 && (
               <select
                 value={quien}
                 onChange={(e) => setQuien(e.target.value)}
                 aria-label="Filtrar por persona"
-                className="rounded-full border border-[color:var(--linea-fuerte)] bg-white px-3 py-1 text-xs outline-none focus:border-[color:var(--acento)]"
+                className="rounded-full border border-[color:var(--linea-fuerte)] bg-white px-3 py-1 text-[13px] outline-none focus:border-[color:var(--acento)]"
               >
                 <option value="">Cualquier persona</option>
                 {personas.map((per) => (
@@ -490,27 +490,27 @@ export default function FichaCliente({
                   visibles.map((s) => ({ fecha: s.fecha, accion: s.accion, resumen: s.resumen, resultado: s.resultado, origen: s.origen, quien: s.quien ?? "" }))
                 )
               }
-              className="text-xs text-[color:var(--tinta-suave)] transition hover:text-[color:var(--acento)]"
+              className="text-[13px] text-[color:var(--tinta-suave)] transition hover:text-[color:var(--acento)]"
             >
               Descargar CSV
             </button>
-            <p className="ml-auto text-xs text-[color:var(--tinta-suave)]">
+            <p className="ml-auto text-[13px] text-[color:var(--tinta-suave)]">
               {visibles.length} {visibles.length === 1 ? "operación" : "operaciones"}
             </p>
           </div>
 
           {visibles.length === 0 ? (
-            <p className="rounded-xl border border-dashed border-[color:var(--linea-fuerte)] px-6 py-10 text-center text-sm text-[color:var(--tinta-media)]">
+            <p className="rounded-xl border border-[color:var(--linea)] bg-[color:var(--panel)] px-6 py-10 text-center text-sm text-[color:var(--tinta-media)]">
               Sin operaciones registradas.
             </p>
           ) : (
             <ul className="divide-y divide-[color:var(--linea-fuerte)] overflow-hidden rounded-xl border border-[color:var(--linea-fuerte)] bg-white">
               {visibles.map((s, i) => (
                 <li key={i} className="flex flex-wrap items-baseline gap-x-3 gap-y-1 px-4 py-2.5 text-sm">
-                  <span className="w-24 shrink-0 tabular-nums text-xs text-[color:var(--tinta-suave)]">{s.fecha}</span>
+                  <span className="w-24 shrink-0 tabular-nums text-[13px] text-[color:var(--tinta-suave)]">{s.fecha}</span>
 
                   <span
-                    className={`rounded px-1.5 py-0.5 text-[11px] font-semibold ${
+                    className={`rounded px-1.5 py-0.5 text-[12px] font-semibold ${
                       s.origen === "panel"
                         ? "bg-[color:var(--acento)]/10 text-[color:var(--acento)]"
                         : "bg-black/[0.04] text-[color:var(--tinta-media)]"
@@ -525,22 +525,22 @@ export default function FichaCliente({
                   </span>
                   {s.detalle && (
                     <details className="basis-full">
-                      <summary className="cursor-pointer text-[11px] text-[color:var(--tinta-suave)] hover:text-[color:var(--tinta)]">
+                      <summary className="cursor-pointer text-[12px] text-[color:var(--tinta-suave)] hover:text-[color:var(--tinta)]">
                         Ver cómo estaba antes
                       </summary>
-                      <pre className="mt-1 max-h-64 overflow-auto whitespace-pre-wrap rounded-lg bg-black/[0.04] p-3 font-mono text-[11px] leading-relaxed">
+                      <pre className="mt-1 max-h-64 overflow-auto whitespace-pre-wrap rounded-lg bg-black/[0.04] p-3 font-mono text-[12px] leading-relaxed">
                         {s.detalle}
                       </pre>
                     </details>
                   )}
 
-                  {s.quien && <span className="ml-auto text-xs text-[color:var(--tinta-suave)]">{s.quien}</span>}
+                  {s.quien && <span className="ml-auto text-[13px] text-[color:var(--tinta-suave)]">{s.quien}</span>}
                 </li>
               ))}
             </ul>
           )}
 
-          <p className="mt-3 text-xs text-[color:var(--tinta-suave)]">
+          <p className="mt-3 text-[13px] text-[color:var(--tinta-suave)]">
             «En el sitio» es lo que el conector anotó dentro de WordPress. «Desde el panel» es lo que hizo
             tu equipo desde aquí, con nombre.
           </p>
@@ -562,13 +562,13 @@ export default function FichaCliente({
             <div className="tarjeta mt-4 p-5">
               <div className="flex items-baseline justify-between gap-3">
                 <p className="text-[14px] font-medium">Puesta en marcha</p>
-                <p className="text-[12px] tabular-nums text-[color:var(--tinta-suave)]">
+                <p className="text-[13px] tabular-nums text-[color:var(--tinta-suave)]">
                   {pasos.filter((x) => x.hecho).length} de {pasos.length}
                 </p>
               </div>
               <ul className="mt-3 grid gap-1.5 sm:grid-cols-2">
                 {pasos.map((x) => (
-                  <li key={x.texto} className="flex items-center gap-2 text-[13px]">
+                  <li key={x.texto} className="flex items-center gap-2 text-[14px]">
                     <span className={x.hecho ? "text-emerald-600" : "text-[color:var(--tinta-suave)]"}>
                       {x.hecho ? "✓" : "○"}
                     </span>
@@ -602,7 +602,7 @@ export default function FichaCliente({
                 maxLength={4000}
                 disabled={!puedeSubir}
                 placeholder="Tono de la marca, qué no tocar, productos estrella, cómo firman los textos… Se lo dice al asistente en cada turno, sin que haya que repetirlo."
-                className="mt-1.5 w-full rounded-xl border border-[color:var(--linea-fuerte)] bg-white px-3.5 py-2.5 text-[13px] leading-relaxed outline-none transition focus:border-[color:var(--acento)] disabled:bg-black/[0.03]"
+                className="mt-1.5 w-full rounded-xl border border-[color:var(--linea-fuerte)] bg-white px-3.5 py-2.5 text-[14px] leading-relaxed outline-none transition focus:border-[color:var(--acento)] disabled:bg-black/[0.03]"
               />
             </label>
 
@@ -617,11 +617,11 @@ export default function FichaCliente({
                   defaultValue={ajustes.tarifa ?? ""}
                   disabled={!puedeSubir}
                   placeholder="0"
-                  className="mt-1.5 block w-36 rounded-xl border border-[color:var(--linea-fuerte)] bg-white px-3.5 py-2 text-[13px] tabular-nums outline-none transition focus:border-[color:var(--acento)] disabled:bg-black/[0.03]"
+                  className="mt-1.5 block w-36 rounded-xl border border-[color:var(--linea-fuerte)] bg-white px-3.5 py-2 text-[14px] tabular-nums outline-none transition focus:border-[color:var(--acento)] disabled:bg-black/[0.03]"
                 />
               </label>
 
-              <label className="flex items-center gap-2 pb-2 text-[13px]">
+              <label className="flex items-center gap-2 pb-2 text-[14px]">
                 <input
                   type="checkbox"
                   name="escrituraBloqueada"
@@ -633,7 +633,7 @@ export default function FichaCliente({
                 Bloquear la escritura desde el panel
               </label>
             </div>
-            <p className="mt-1.5 text-[12px] text-[color:var(--tinta-suave)]">
+            <p className="mt-1.5 text-[13px] text-[color:var(--tinta-suave)]">
               La tarifa sirve para leer si el cliente sale rentable en Gasto. El bloqueo frena al asistente
               aunque el sitio permita escribir; vale también para Shopify, donde no hay plugin.
             </p>
@@ -656,7 +656,7 @@ export default function FichaCliente({
                       )
                         await darDeBaja();
                     }}
-                    className="ml-auto text-[12px] text-[color:var(--tinta-suave)] transition hover:text-red-600"
+                    className="ml-auto text-[13px] text-[color:var(--tinta-suave)] transition hover:text-red-600"
                   >
                     Dar de baja este cliente
                   </button>
@@ -670,7 +670,7 @@ export default function FichaCliente({
               herramientas. */}
           <div className="tarjeta mt-4 p-5">
             <p className="text-[14px] font-medium">Informe para el cliente</p>
-            <p className="mt-0.5 text-[13px] text-[color:var(--tinta-media)]">
+            <p className="mt-0.5 text-[14px] text-[color:var(--tinta-media)]">
               Un enlace privado que enseña la bitácora de este mes y del anterior, y los clics desde Google.
               Se puede revocar cuando quieras; crear uno nuevo anula el anterior.
             </p>
@@ -681,7 +681,7 @@ export default function FichaCliente({
                   value={enlaceInforme}
                   aria-label="Enlace del informe"
                   onFocus={(e) => e.currentTarget.select()}
-                  className="min-w-[260px] flex-1 rounded-xl border border-[color:var(--linea-fuerte)] bg-black/[0.03] px-3.5 py-2 font-mono text-[12px]"
+                  className="min-w-[260px] flex-1 rounded-xl border border-[color:var(--linea-fuerte)] bg-black/[0.03] px-3.5 py-2 font-mono text-[13px]"
                 />
                 <a href={enlaceInforme} target="_blank" rel="noopener" className="boton">
                   Abrir
@@ -699,7 +699,7 @@ export default function FichaCliente({
                     onClick={async () => {
                       if (await confirmar({ titulo: "¿Revocar el enlace del informe?", detalle: "Quien lo tenga dejará de ver el informe. Puedes crear otro después.", boton: "Revocar" })) await revocarEnlace();
                     }}
-                    className="text-[12px] text-[color:var(--tinta-suave)] transition hover:text-red-600"
+                    className="text-[13px] text-[color:var(--tinta-suave)] transition hover:text-red-600"
                   >
                     Revocar
                   </button>
@@ -719,10 +719,10 @@ export default function FichaCliente({
           <div className="tarjeta mt-4 p-5">
             <div className="flex items-baseline justify-between gap-3">
               <p className="text-[14px] font-medium">Lo que el asistente recuerda de este sitio</p>
-              <p className="text-[12px] tabular-nums text-[color:var(--tinta-suave)]">{memorias.length} apuntes</p>
+              <p className="text-[13px] tabular-nums text-[color:var(--tinta-suave)]">{memorias.length} apuntes</p>
             </div>
             {memorias.length === 0 ? (
-              <p className="mt-2 text-[13px] text-[color:var(--tinta-media)]">
+              <p className="mt-2 text-[14px] text-[color:var(--tinta-media)]">
                 Todavía nada. Guarda apuntes durante las conversaciones: cómo está montado el sitio, qué decidió
                 el cliente, qué no hay que tocar.
               </p>
@@ -731,9 +731,9 @@ export default function FichaCliente({
                 {memorias.map((m) => (
                   <li key={m.id} className="flex items-start gap-3 py-2.5">
                     <div className="min-w-0 flex-1">
-                      <p className="text-[13px] font-medium">{m.titulo}</p>
-                      <p className="mt-0.5 text-[13px] leading-relaxed text-[color:var(--tinta-media)]">{m.nota}</p>
-                      <p className="mt-0.5 text-[11px] text-[color:var(--tinta-suave)]">{m.fecha}</p>
+                      <p className="text-[14px] font-medium">{m.titulo}</p>
+                      <p className="mt-0.5 text-[14px] leading-relaxed text-[color:var(--tinta-media)]">{m.nota}</p>
+                      <p className="mt-0.5 text-[12px] text-[color:var(--tinta-suave)]">{m.fecha}</p>
                     </div>
                     {puedeSubir && (
                       <button
@@ -744,7 +744,7 @@ export default function FichaCliente({
                           d.set("memoriaId", m.id);
                           await olvidar(d);
                         }}
-                        className="shrink-0 text-[12px] text-[color:var(--tinta-suave)] transition hover:text-red-600"
+                        className="shrink-0 text-[13px] text-[color:var(--tinta-suave)] transition hover:text-red-600"
                       >
                         Olvidar
                       </button>
@@ -764,7 +764,7 @@ export default function FichaCliente({
             <div className="tarjeta mt-4 flex flex-wrap items-center justify-between gap-4 p-5">
               <div className="max-w-xl">
                 <p className="text-[14px] font-medium">Volver a conectar el sitio</p>
-                <p className="mt-1 text-[13px] leading-relaxed text-[color:var(--tinta-media)]">
+                <p className="mt-1 text-[14px] leading-relaxed text-[color:var(--tinta-media)]">
                   Si regeneraste la cadena de conexión en el WordPress, o el panel dejó de tener
                   acceso, pega la nueva aquí. Se actualiza este mismo cliente:{" "}
                   <span className="font-medium text-[color:var(--tinta)]">
@@ -782,7 +782,7 @@ export default function FichaCliente({
                     required
                     placeholder="Pega aquí la cadena de conexión"
                     aria-label="Cadena de conexión"
-                    className="min-w-[260px] flex-1 rounded-xl border border-[color:var(--linea-fuerte)] bg-white px-3.5 py-2 font-mono text-[12px] outline-none transition focus:border-[color:var(--acento)]"
+                    className="min-w-[260px] flex-1 rounded-xl border border-[color:var(--linea-fuerte)] bg-white px-3.5 py-2 font-mono text-[13px] outline-none transition focus:border-[color:var(--acento)]"
                   />
                   <button type="submit" className="boton shrink-0">
                     Reconectar

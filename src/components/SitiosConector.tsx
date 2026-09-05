@@ -97,7 +97,7 @@ export default function SitiosConector({
 
   return (
     <div className="tarjeta mt-4 overflow-x-auto">
-      <table className="w-full text-[13px]">
+      <table className="w-full text-[14px]">
         <Cabecera columnas={COLUMNAS} orden={orden} ordenar={ordenar} acciones />
         <tbody className="divide-y divide-[color:var(--linea)]">
           {filas.map((s) => {
@@ -120,7 +120,7 @@ export default function SitiosConector({
                   </span>
                   {est?.texto && (
                     <span
-                      className={`ml-2 text-[12px] ${
+                      className={`ml-2 text-[13px] ${
                         est.bien ? "text-emerald-700" : "text-red-600"
                       }`}
                     >

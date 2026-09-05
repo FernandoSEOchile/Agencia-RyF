@@ -64,7 +64,7 @@ const MESES_CORTOS = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "s
 function Curva({ datos }: { datos: { mes: string; trafico: number }[] }) {
   if (datos.length < 2) {
     return (
-      <p className="mt-3 rounded-2xl bg-black/[0.03] px-4 py-3 text-[13px] text-[color:var(--tinta-media)]">
+      <p className="mt-3 rounded-2xl bg-black/[0.03] px-4 py-3 text-[14px] text-[color:var(--tinta-media)]">
         El proveedor no tiene histórico de este dominio. Suele pasar con sitios pequeños o recientes:
         su base los empieza a seguir cuando aparecen en suficientes búsquedas.
       </p>
@@ -90,7 +90,7 @@ function Curva({ datos }: { datos: { mes: string; trafico: number }[] }) {
     <div className="tarjeta mt-3 p-5">
       <div className="flex flex-wrap items-baseline gap-2">
         <p className="rotulo">Tráfico orgánico estimado</p>
-        <p className="text-[12px] text-[color:var(--tinta-suave)]">
+        <p className="text-[13px] text-[color:var(--tinta-suave)]">
           {datos.length} {datos.length === 1 ? "mes" : "meses"} · máximo {numero(cima)} visitas al mes
         </p>
       </div>
@@ -110,7 +110,7 @@ function Curva({ datos }: { datos: { mes: string; trafico: number }[] }) {
         })}
       </svg>
 
-      <div className="mt-2 flex justify-between text-[10px] tabular-nums text-[color:var(--tinta-suave)]">
+      <div className="mt-2 flex justify-between text-[11px] tabular-nums text-[color:var(--tinta-suave)]">
         {etiquetas.map((d) => {
           const [a, m] = d.mes.split("-");
           return (
@@ -248,7 +248,7 @@ export default function Explorar({ puedeExplorar }: { puedeExplorar: boolean }) 
         <select
           value={pais}
           onChange={(e) => setPais(Number(e.target.value))}
-          className="rounded-full border border-[color:var(--linea-fuerte)] bg-white px-4 py-2.5 text-[13px] outline-none"
+          className="rounded-full border border-[color:var(--linea-fuerte)] bg-white px-4 py-2.5 text-[14px] outline-none"
         >
           {PAISES.map(([id, n]) => (
             <option key={id} value={id}>
@@ -271,9 +271,9 @@ export default function Explorar({ puedeExplorar }: { puedeExplorar: boolean }) 
         )}
       </form>
 
-      {error && <p className="mt-4 rounded-2xl bg-red-50 px-4 py-3 text-[13px] text-red-700">{error}</p>}
+      {error && <p className="mt-4 rounded-2xl bg-red-50 px-4 py-3 text-[14px] text-red-700">{error}</p>}
       {aviso && (
-        <p className="mt-4 rounded-2xl bg-emerald-50 px-4 py-3 text-[13px] text-emerald-700">{aviso}</p>
+        <p className="mt-4 rounded-2xl bg-emerald-50 px-4 py-3 text-[14px] text-emerald-700">{aviso}</p>
       )}
 
       {recientes.length > 0 && (
@@ -290,13 +290,13 @@ export default function Explorar({ puedeExplorar }: { puedeExplorar: boolean }) 
                     setPais(r.pais);
                     mirar(r.dominio, r.pais);
                   }}
-                  className={`boton font-mono !text-[12px] ${
+                  className={`boton font-mono !text-[13px] ${
                     p?.dominio === r.dominio ? "!border-[color:var(--acento)] !text-[color:var(--acento)]" : ""
                   }`}
                   title={`Consultado el ${r.creado.slice(0, 10)}`}
                 >
                   {r.dominio}
-                  <span className="ml-1.5 font-sans text-[10px] text-[color:var(--tinta-suave)]">
+                  <span className="ml-1.5 font-sans text-[11px] text-[color:var(--tinta-suave)]">
                     {r.creado.slice(5, 10)}
                   </span>
                 </button>
@@ -311,7 +311,7 @@ export default function Explorar({ puedeExplorar }: { puedeExplorar: boolean }) 
           <div className="mt-6 flex flex-wrap items-baseline gap-3">
             <h2 className="text-[22px] font-semibold">{p.dominio}</h2>
             {datos?.medido && (
-              <span className="text-[12px] text-[color:var(--tinta-suave)]">
+              <span className="text-[13px] text-[color:var(--tinta-suave)]">
                 consultado el {datos.medido.slice(0, 10)}
                 {!datos.fresca && " · conviene actualizarlo"}
               </span>
@@ -326,7 +326,7 @@ export default function Explorar({ puedeExplorar }: { puedeExplorar: boolean }) 
             ].map(([k, v]) => (
               <div key={k} className="px-5 py-4">
                 <dt className="rotulo">{k}</dt>
-                <dd className="mt-1 text-[24px] font-semibold tabular-nums">{v}</dd>
+                <dd className="mt-1 text-[24px] cifra font-semibold tabular-nums">{v}</dd>
               </div>
             ))}
           </dl>
@@ -350,7 +350,7 @@ export default function Explorar({ puedeExplorar }: { puedeExplorar: boolean }) 
                   />
                 ))}
               </div>
-              <div className="mt-3 flex flex-wrap gap-x-5 gap-y-1.5 text-[11px] text-[color:var(--tinta-media)]">
+              <div className="mt-3 flex flex-wrap gap-x-5 gap-y-1.5 text-[12px] text-[color:var(--tinta-media)]">
                 {[
                   ["1", t.pos1, "#0f9d58"],
                   ["2-3", t.pos2a3, "#37b24d"],
@@ -392,13 +392,13 @@ export default function Explorar({ puedeExplorar }: { puedeExplorar: boolean }) 
               value={busca}
               onChange={(e) => setBusca(e.target.value)}
               placeholder="Filtrar…"
-              className="ml-auto w-56 rounded-full border border-[color:var(--linea-fuerte)] bg-white px-4 py-1.5 text-[13px] outline-none transition focus:border-[color:var(--acento)]"
+              className="ml-auto w-56 rounded-full border border-[color:var(--linea-fuerte)] bg-white px-4 py-1.5 text-[14px] outline-none transition focus:border-[color:var(--acento)]"
             />
           </div>
 
           <div className="tarjeta mt-3 overflow-x-auto">
             {vista === "keywords" ? (
-              <table className="w-full min-w-[820px] border-collapse text-[13px]">
+              <table className="w-full min-w-[820px] border-collapse text-[14px]">
                 <Cabecera columnas={COL_KW} orden={oKw.orden} ordenar={oKw.ordenar} />
                 <tbody className="divide-y divide-[color:var(--linea)]">
                   {keywords.slice(0, 300).map((k, i) => (
@@ -438,7 +438,7 @@ export default function Explorar({ puedeExplorar }: { puedeExplorar: boolean }) 
                 </tbody>
               </table>
             ) : (
-              <table className="w-full min-w-[600px] border-collapse text-[13px]">
+              <table className="w-full min-w-[600px] border-collapse text-[14px]">
                 <Cabecera columnas={COL_COMP} orden={oComp.orden} ordenar={oComp.ordenar} />
                 <tbody className="divide-y divide-[color:var(--linea)]">
                   {competidores.map((x) => (
@@ -468,7 +468,7 @@ export default function Explorar({ puedeExplorar }: { puedeExplorar: boolean }) 
             )}
           </div>
 
-          <p className="mt-4 max-w-3xl text-[12px] leading-relaxed text-[color:var(--tinta-suave)]">
+          <p className="mt-4 max-w-3xl text-[13px] leading-relaxed text-[color:var(--tinta-suave)]">
             Estos números son estimaciones calculadas por el proveedor sobre su propio rastreo, no
             medidas. En Chile su cobertura es más corta que en mercados grandes, así que sirven para
             comparar dominios y priorizar, no para prometer cifras. Para un sitio tuyo, Search Console

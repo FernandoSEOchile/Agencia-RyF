@@ -94,7 +94,7 @@ export default function Velocidad({
   return (
     <section className="mt-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <p className="max-w-2xl text-[13px] text-[color:var(--tinta-suave)]">
+        <p className="max-w-2xl text-[14px] text-[color:var(--tinta-suave)]">
           Mide la portada y las dos páginas más lentas del último rastreo.
         </p>
 
@@ -106,19 +106,19 @@ export default function Velocidad({
       </div>
 
       {midiendo && (
-        <p className="mt-3 text-[13px] text-[color:var(--tinta-suave)]">
+        <p className="mt-3 text-[14px] text-[color:var(--tinta-suave)]">
           Tarda un minuto largo: Google carga cada página de verdad en un navegador.
         </p>
       )}
 
-      {error && <p className="mt-3 text-[13px] font-medium text-red-600">{error}</p>}
+      {error && <p className="mt-3 text-[14px] font-medium text-red-600">{error}</p>}
 
       {mediciones && mediciones.length > 0 && mediciones.every((m) => m.error) && (
-        <p className="mt-3 text-[13px] font-medium text-red-600">{mediciones[0].error}</p>
+        <p className="mt-3 text-[14px] font-medium text-red-600">{mediciones[0].error}</p>
       )}
 
       {mediciones && mediciones.length === 0 && !midiendo && !error && (
-        <p className="mt-3 text-[13px] text-[color:var(--tinta-suave)]">
+        <p className="mt-3 text-[14px] text-[color:var(--tinta-suave)]">
           Todavía no se ha medido nada en este sitio.
         </p>
       )}
@@ -128,8 +128,8 @@ export default function Velocidad({
           {mediciones.map((m) => (
             <div key={m.url} className="flex flex-wrap items-center gap-x-8 gap-y-3 px-5 py-4">
               <div className="min-w-[240px] flex-1">
-                <p className="truncate text-[13px]">{m.url}</p>
-                <p className="mt-0.5 text-[11px] text-[color:var(--tinta-suave)]">
+                <p className="truncate text-[14px]">{m.url}</p>
+                <p className="mt-0.5 text-[12px] text-[color:var(--tinta-suave)]">
                   {m.error
                     ? m.error
                     : m.reales
@@ -139,17 +139,17 @@ export default function Velocidad({
               </div>
 
               <div className="text-center">
-                <p className={`text-[26px] font-semibold tabular-nums ${colorNota(m.nota)}`}>
+                <p className={`text-[26px] cifra font-semibold tabular-nums ${colorNota(m.nota)}`}>
                   {m.nota ?? "—"}
                 </p>
-                <p className="text-[11px] text-[color:var(--tinta-suave)]">nota</p>
+                <p className="text-[12px] text-[color:var(--tinta-suave)]">nota</p>
               </div>
 
               <div className="text-center">
                 <p className={`text-[15px] font-medium tabular-nums ${color(m.lcp, 2.5, 4)}`}>
                   {m.lcp == null ? "—" : `${m.lcp.toFixed(1)} s`}
                 </p>
-                <p className="text-[11px] text-[color:var(--tinta-suave)]" title="Largest Contentful Paint: cuánto tarda en verse lo principal">
+                <p className="text-[12px] text-[color:var(--tinta-suave)]" title="Largest Contentful Paint: cuánto tarda en verse lo principal">
                   carga
                 </p>
               </div>
@@ -158,7 +158,7 @@ export default function Velocidad({
                 <p className={`text-[15px] font-medium tabular-nums ${color(m.cls, 0.1, 0.25)}`}>
                   {m.cls == null ? "—" : m.cls.toFixed(2)}
                 </p>
-                <p className="text-[11px] text-[color:var(--tinta-suave)]" title="Cumulative Layout Shift: cuánto baila la página mientras carga">
+                <p className="text-[12px] text-[color:var(--tinta-suave)]" title="Cumulative Layout Shift: cuánto baila la página mientras carga">
                   estabilidad
                 </p>
               </div>
@@ -167,7 +167,7 @@ export default function Velocidad({
                 <p className={`text-[15px] font-medium tabular-nums ${color(m.inp, 200, 500)}`}>
                   {m.inp == null ? "—" : `${m.inp} ms`}
                 </p>
-                <p className="text-[11px] text-[color:var(--tinta-suave)]" title="Interaction to Next Paint: cuánto tarda en responder a un toque">
+                <p className="text-[12px] text-[color:var(--tinta-suave)]" title="Interaction to Next Paint: cuánto tarda en responder a un toque">
                   respuesta
                 </p>
               </div>
@@ -176,7 +176,7 @@ export default function Velocidad({
                 <p className={`text-[15px] font-medium tabular-nums ${color(m.ttfb, 800, 1800)}`}>
                   {m.ttfb == null ? "—" : `${Math.round(m.ttfb)} ms`}
                 </p>
-                <p className="text-[11px] text-[color:var(--tinta-suave)]" title="Time To First Byte: lo que tarda el servidor. Si va mal, es el hosting">
+                <p className="text-[12px] text-[color:var(--tinta-suave)]" title="Time To First Byte: lo que tarda el servidor. Si va mal, es el hosting">
                   servidor
                 </p>
               </div>

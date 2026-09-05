@@ -50,7 +50,7 @@ export default async function Barra({
     : [];
 
   return (
-    <header className="sticky top-0 z-40 bg-[#111111]">
+    <header className="sticky top-0 z-40 border-b border-white/[0.06] bg-[#111111]">
       <div className="contenedor flex h-12 items-center gap-3 sm:gap-5">
         <Link href="/panel" className="flex shrink-0 items-center gap-3" aria-label="Portada del panel">
           <Image
@@ -67,14 +67,14 @@ export default async function Barra({
 
         <div className="ml-auto flex shrink-0 items-center gap-3">
           {usuario && (
-            <span className="hidden text-[12px] text-white/55 lg:block" title={rol?.toLowerCase()}>
+            <span className="hidden text-[13px] text-white/55 lg:block" title={rol?.toLowerCase()}>
               {usuario}
             </span>
           )}
           {acciones}
           {usuarioId && (
             <form action={salir}>
-              <button className="text-[12px] font-medium text-white/55 transition hover:text-white">
+              <button className="text-[13px] font-medium text-white/55 transition hover:text-white">
                 Salir
               </button>
             </form>

@@ -33,7 +33,7 @@ export default async function PaginaExplorar() {
           ← Clientes
         </Link>
 
-        <h1 className="mt-4 text-[32px] font-semibold leading-tight">Explorar dominio</h1>
+        <h1 className="mt-4 text-[32px] font-bold leading-tight">Explorar dominio</h1>
         <p className="mt-1 max-w-2xl text-[15px] text-[color:var(--tinta-media)]">
           Qué posiciona un sitio cualquiera, cuánto tráfico vale y contra quién compite. Sirve para
           estudiar a la competencia de un cliente y para preparar una propuesta antes de tenerlo.

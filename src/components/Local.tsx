@@ -277,14 +277,14 @@ export default function Local({
     <>
       <div>
         <h2 className="text-[17px] font-semibold">Posiciones locales</h2>
-        <p className="mt-0.5 max-w-2xl text-[13px] text-[color:var(--tinta-media)]">
+        <p className="mt-0.5 max-w-2xl text-[14px] text-[color:var(--tinta-media)]">
           En búsquedas locales no hay una posición: Google contesta según dónde está quien busca.
           Esto pregunta desde muchos puntos del mapa y enseña el puesto real en cada uno.
         </p>
       </div>
 
-      {error && <p className="mt-3 text-[13px] font-medium text-red-600">{error}</p>}
-      {aviso && <p className="mt-3 text-[13px] text-emerald-700">{aviso}</p>}
+      {error && <p className="mt-3 text-[14px] font-medium text-red-600">{error}</p>}
+      {aviso && <p className="mt-3 text-[14px] text-emerald-700">{aviso}</p>}
 
       {/* ---------------- Lanzar un barrido ---------------- */}
       {puedeBuscar && (
@@ -310,7 +310,7 @@ export default function Local({
           </div>
 
           {fichas && fichas.length === 0 && (
-            <p className="mt-3 text-[13px] text-[color:var(--tinta-media)]">
+            <p className="mt-3 text-[14px] text-[color:var(--tinta-media)]">
               No encontré ninguna ficha con ese nombre. Prueba con el nombre exacto de Google Maps.
             </p>
           )}
@@ -329,8 +329,8 @@ export default function Local({
                         : "border-[color:var(--linea)] bg-white hover:border-[color:var(--linea-fuerte)]"
                     }`}
                   >
-                    <p className="text-[13px] font-medium">{f.titulo}</p>
-                    <p className="mt-0.5 text-[12px] text-[color:var(--tinta-suave)]">
+                    <p className="text-[14px] font-medium">{f.titulo}</p>
+                    <p className="mt-0.5 text-[13px] text-[color:var(--tinta-suave)]">
                       {f.direccion ?? "sin dirección"}
                       {f.puntuacion != null && ` · ${f.puntuacion} ★ (${f.resenas ?? 0})`}
                       {f.lat == null && " · sin coordenadas, no sirve"}
@@ -358,7 +358,7 @@ export default function Local({
                 <select
                   value={lado}
                   onChange={(e) => setLado(Number(e.target.value))}
-                  className="rounded-lg border border-[color:var(--linea-fuerte)] bg-white px-3 py-2 text-[13px] outline-none focus:border-[color:var(--acento)]"
+                  className="rounded-lg border border-[color:var(--linea-fuerte)] bg-white px-3 py-2 text-[14px] outline-none focus:border-[color:var(--acento)]"
                 >
                   {LADOS.map((n) => (
                     <option key={n} value={n}>
@@ -373,7 +373,7 @@ export default function Local({
                 <select
                   value={separacion}
                   onChange={(e) => setSeparacion(Number(e.target.value))}
-                  className="rounded-lg border border-[color:var(--linea-fuerte)] bg-white px-3 py-2 text-[13px] outline-none focus:border-[color:var(--acento)]"
+                  className="rounded-lg border border-[color:var(--linea-fuerte)] bg-white px-3 py-2 text-[14px] outline-none focus:border-[color:var(--acento)]"
                 >
                   {[0.3, 0.5, 1, 2, 3, 5].map((n) => (
                     <option key={n} value={n}>
@@ -394,7 +394,7 @@ export default function Local({
           )}
 
           {elegida?.lat != null && (
-            <p className="mt-2 text-[12px] text-[color:var(--tinta-suave)]">
+            <p className="mt-2 text-[13px] text-[color:var(--tinta-suave)]">
               Cubre {((lado - 1) * separacion).toFixed(1)} km de lado a lado. Cuesta{" "}
               <span className="font-medium">US${coste}</span> y tarda{" "}
               {Math.ceil((lado * lado * 1.5) / 60)} minutos.
@@ -407,7 +407,7 @@ export default function Local({
       {barrido?.estado === "error" && (
         <div className="mt-4 rounded-2xl border border-red-200 bg-red-50 px-5 py-4">
           <p className="text-[14px] font-medium text-red-700">No se pudo medir.</p>
-          <p className="mt-1 text-[13px] leading-relaxed text-red-700/80">{barrido.nota}</p>
+          <p className="mt-1 text-[14px] leading-relaxed text-red-700/80">{barrido.nota}</p>
         </div>
       )}
       {barrido?.estado === "corriendo" && (
@@ -421,7 +421,7 @@ export default function Local({
               style={{ width: `${Math.round((barrido.hechos / barrido.total) * 100)}%` }}
             />
           </div>
-          <p className="mt-3 text-[12px] text-[color:var(--tinta-suave)]">
+          <p className="mt-3 text-[13px] text-[color:var(--tinta-suave)]">
             Puedes irte a otra pestaña: sigue por su cuenta.
           </p>
         </div>
@@ -432,37 +432,37 @@ export default function Local({
           <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             <div className="tarjeta px-5 py-4">
               <p className="rotulo">Puesto medio</p>
-              <p className="mt-1 text-[26px] font-semibold leading-none tabular-nums">
+              <p className="mt-1 text-[26px] cifra font-semibold leading-none tabular-nums">
                 {barrido.media ?? "—"}
               </p>
-              <p className="mt-1.5 text-[12px] text-[color:var(--tinta-suave)]">
+              <p className="mt-1.5 text-[13px] text-[color:var(--tinta-suave)]">
                 donde aparece
               </p>
             </div>
             <div className="tarjeta px-5 py-4">
               <p className="rotulo">Aparece en</p>
-              <p className="mt-1 text-[26px] font-semibold leading-none tabular-nums">
+              <p className="mt-1 text-[26px] cifra font-semibold leading-none tabular-nums">
                 {barrido.visible}%
               </p>
-              <p className="mt-1.5 text-[12px] text-[color:var(--tinta-suave)]">
+              <p className="mt-1.5 text-[13px] text-[color:var(--tinta-suave)]">
                 de los {barrido.medidos} puntos con datos
               </p>
             </div>
             <div className="tarjeta px-5 py-4">
               <p className="rotulo">En el top 3</p>
-              <p className="mt-1 text-[26px] font-semibold leading-none tabular-nums text-emerald-700">
+              <p className="mt-1 text-[26px] cifra font-semibold leading-none tabular-nums text-emerald-700">
                 {barrido.top3}
               </p>
-              <p className="mt-1.5 text-[12px] text-[color:var(--tinta-suave)]">
+              <p className="mt-1.5 text-[13px] text-[color:var(--tinta-suave)]">
                 de {barrido.puntos.length} puntos
               </p>
             </div>
             <div className="tarjeta px-5 py-4">
               <p className="rotulo">Costó</p>
-              <p className="mt-1 text-[26px] font-semibold leading-none tabular-nums">
+              <p className="mt-1 text-[26px] cifra font-semibold leading-none tabular-nums">
                 {dinero(barrido.coste)}
               </p>
-              <p className="mt-1.5 text-[12px] text-[color:var(--tinta-suave)]">
+              <p className="mt-1.5 text-[13px] text-[color:var(--tinta-suave)]">
                 {fecha(barrido.creado)}
               </p>
             </div>
@@ -473,7 +473,7 @@ export default function Local({
               <span className="font-medium">{barrido.negocio}</span>{" "}
               <span className="text-[color:var(--tinta-media)]">para «{barrido.keyword}»</span>
             </p>
-            <div className="flex flex-wrap items-center gap-3 text-[12px] text-[color:var(--tinta-media)]">
+            <div className="flex flex-wrap items-center gap-3 text-[13px] text-[color:var(--tinta-media)]">
               {[
                 ["1 a 3", "#1e8e3e"],
                 ["4 a 6", "#7cb342"],
@@ -499,9 +499,9 @@ export default function Local({
       )}
 
       {!barrido && (
-        <div className="mt-6 rounded-2xl border border-dashed border-[color:var(--linea-fuerte)] px-6 py-16 text-center">
+        <div className="mt-6 rounded-2xl border border-[color:var(--linea)] bg-[color:var(--panel)] px-6 py-16 text-center">
           <p className="text-[15px] font-medium">Este cliente no tiene barridos todavía.</p>
-          <p className="mx-auto mt-2 max-w-md text-[13px] text-[color:var(--tinta-media)]">
+          <p className="mx-auto mt-2 max-w-md text-[14px] text-[color:var(--tinta-media)]">
             Sirve para negocios con local físico. Busca su ficha de Google Maps arriba y lanza el
             primero.
           </p>

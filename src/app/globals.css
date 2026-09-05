@@ -30,8 +30,8 @@
   --tinta-suave: #757579;
   --fondo: #fbfbfd;
   --panel: #ffffff;
-  --linea: rgba(0, 0, 0, 0.08);
-  --linea-fuerte: rgba(0, 0, 0, 0.14);
+  --linea: rgba(0, 0, 0, 0.075);
+  --linea-fuerte: rgba(0, 0, 0, 0.16);
 }
 
 body {
@@ -47,6 +47,24 @@ h2,
 .titular {
   letter-spacing: -0.022em;
   text-wrap: balance;
+}
+
+/* Hanken Grotesk para lo que da identidad —títulos y cifras— e Inter para
+   leer. La fuente ya se cargaba para la web pública y el panel no la usaba:
+   todo era Inter, y por eso podía ser el panel de cualquiera. */
+h1,
+h2,
+.titular,
+.cifra {
+  font-family: var(--titular);
+}
+
+/* Una cifra grande se lee como una palabra: pesada, cerrada y con los
+   dígitos alineados para que dos cifras una sobre otra se puedan comparar. */
+.cifra {
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums;
 }
 
 /* Las barras de scroll por defecto de Windows son gruesas y parten el diseño
@@ -69,7 +87,12 @@ h2,
      es el blanco y la sombra, no la línea. */
   .tarjeta {
     @apply rounded-2xl border border-[color:var(--linea)] bg-[color:var(--panel)];
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+  }
+
+  /* La única superficie con sombra de verdad: el bloque que manda en la
+     pantalla. Si todas las tarjetas flotan, ninguna flota. */
+  .tarjeta-destacada {
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04), 0 12px 32px -16px rgba(0, 0, 0, 0.14);
   }
 
   .tarjeta-pulsable {
@@ -84,14 +107,14 @@ h2,
   /* Botones de cápsula, en dos pesos. */
   .boton {
     @apply inline-flex items-center justify-center gap-1.5 rounded-full border border-[color:var(--linea-fuerte)]
-           bg-white px-4 py-1.5 text-[13px] font-medium text-[color:var(--tinta)]
-           transition duration-150 hover:bg-neutral-50 disabled:opacity-40;
+           bg-white px-4 py-2 text-[13.5px] font-medium text-[color:var(--tinta)]
+           transition duration-150 hover:border-[color:var(--tinta)] disabled:opacity-40;
   }
 
   .boton-fuerte {
     @apply inline-flex items-center justify-center gap-1.5 rounded-full bg-[color:var(--tinta)]
-           px-4 py-1.5 text-[13px] font-medium text-white transition duration-150
-           hover:bg-black disabled:opacity-40;
+           px-4 py-2 text-[13.5px] font-medium text-white shadow-sm transition duration-150
+           hover:bg-[color:var(--acento)] disabled:opacity-40;
   }
 
   .boton-sutil {
@@ -121,7 +144,7 @@ h2,
   }
 
   .segmento {
-    @apply min-h-9 shrink-0 whitespace-nowrap rounded-full px-3.5 py-1.5 text-[13px] font-medium
+    @apply min-h-9 shrink-0 whitespace-nowrap rounded-full px-3.5 py-1.5 text-[13.5px] font-medium
            text-[color:var(--tinta-media)] transition duration-150 hover:text-[color:var(--tinta)];
   }
 
@@ -133,11 +156,11 @@ h2,
   /* Etiqueta de sección: versalitas finas, el recurso con el que Apple separa
      bloques sin meter una regla horizontal. */
   .rotulo {
-    @apply text-[11px] font-semibold uppercase tracking-[0.06em] text-[color:var(--tinta-suave)];
+    @apply text-[11px] font-semibold uppercase tracking-[0.08em] text-[color:var(--tinta-media)];
   }
 
   .pastilla {
-    @apply inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-medium;
+    @apply inline-flex items-center rounded-full px-2.5 py-0.5 text-[11.5px] font-semibold tracking-[0.01em];
   }
 }
 

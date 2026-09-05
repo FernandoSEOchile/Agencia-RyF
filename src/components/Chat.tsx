@@ -343,11 +343,11 @@ export default function Chat({
     <div ref={caja} style={{ height: alto }} className="flex min-h-[24rem] flex-col">
       <div ref={lista} className="flex-1 space-y-4 overflow-y-auto scroll-smooth pr-1">
         {turnos.length === 0 && (
-          <div className="rounded-xl border border-dashed border-[color:var(--linea-fuerte)] px-6 py-10 text-center">
+          <div className="rounded-xl border border-[color:var(--linea)] bg-[color:var(--panel)] px-6 py-10 text-center">
             <p className="text-sm text-[color:var(--tinta-media)]">
               Pídeme lo que necesites sobre <strong>{nombre}</strong>.
             </p>
-            <p className="mt-2 text-xs text-[color:var(--tinta-suave)]">
+            <p className="mt-2 text-[13px] text-[color:var(--tinta-suave)]">
               «¿Qué categorías no tienen descripción?» · «Revisa el SEO de la home» ·{" "}
               {puedeEscribir ? "«Escribe la descripción de la categoría X»" : "Este sitio está en solo lectura."}
             </p>
@@ -360,12 +360,12 @@ export default function Chat({
               className={
                 t.rol === "user"
                   ? "max-w-[85%] rounded-2xl rounded-br-sm bg-[color:var(--tinta)] px-4 py-2.5 text-sm text-white"
-                  : "max-w-[92%]"
+                  : "max-w-[72ch]"
               }
             >
               {t.usadas && t.usadas.length > 0 && (
                 <details className="mb-2 group/pasos" open={t.usadas.length <= 4}>
-                  <summary className="cursor-pointer list-none text-[11px] font-medium text-[color:var(--tinta-suave)] transition hover:text-[color:var(--tinta)]">
+                  <summary className="cursor-pointer list-none text-[12px] font-medium text-[color:var(--tinta-suave)] transition hover:text-[color:var(--tinta)]">
                     {t.usadas.length} {t.usadas.length === 1 ? "paso" : "pasos"}
                     <span className="ml-1 inline-block transition group-open/pasos:rotate-90">▸</span>
                   </summary>
@@ -373,7 +373,7 @@ export default function Chat({
                     {t.usadas.map((u, j) => (
                       <li
                         key={j}
-                        className={`rounded px-1.5 py-0.5 text-[11px] font-medium ${
+                        className={`rounded px-1.5 py-0.5 text-[12px] font-medium ${
                           ESCRIBEN.has(u)
                             ? "bg-emerald-50 text-emerald-700"
                             : "bg-[color:var(--acento)]/10 text-[color:var(--acento)]"
@@ -388,7 +388,7 @@ export default function Chat({
               {t.rol === "user" ? (
                 <>
                   {t.autor && (
-                    <p className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-white/60">{t.autor}</p>
+                    <p className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-white/60">{t.autor}</p>
                   )}
                   {t.imagenes && t.imagenes.length > 0 && (
                     <div className="mb-2 flex flex-wrap gap-1.5">
@@ -411,10 +411,10 @@ export default function Chat({
                 <div className="group/resp text-sm leading-relaxed text-[color:var(--tinta)]">
                   {t.pensamiento && (
                     <details className="mb-2">
-                      <summary className="cursor-pointer list-none text-[11px] text-[color:var(--tinta-suave)] transition hover:text-[color:var(--tinta)]">
+                      <summary className="cursor-pointer list-none text-[12px] text-[color:var(--tinta-suave)] transition hover:text-[color:var(--tinta)]">
                         Cómo lo razonó ▸
                       </summary>
-                      <p className="mt-1 max-h-48 overflow-y-auto whitespace-pre-wrap border-l-2 border-[color:var(--linea-fuerte)] pl-3 text-[12px] leading-relaxed text-[color:var(--tinta-media)]">
+                      <p className="mt-1 max-h-48 overflow-y-auto whitespace-pre-wrap border-l-2 border-[color:var(--linea-fuerte)] pl-3 text-[13px] leading-relaxed text-[color:var(--tinta-media)]">
                         {t.pensamiento}
                       </p>
                     </details>
@@ -424,7 +424,7 @@ export default function Chat({
                     <span className="text-[color:var(--tinta-suave)]">…</span>
                   )}
                   {t.contenido && !(ocupado && i === turnos.length - 1) && (
-                    <div className="mt-1.5 flex items-center gap-3 text-[11px] text-[color:var(--tinta-suave)] opacity-0 transition focus-within:opacity-100 group-hover/resp:opacity-100">
+                    <div className="mt-1.5 flex items-center gap-3 text-[12px] text-[color:var(--tinta-suave)] opacity-0 transition focus-within:opacity-100 group-hover/resp:opacity-100">
                       <button type="button" onClick={() => copiar(i, t.contenido)} className="hover:text-[color:var(--tinta)]">
                         {copiado === i ? "Copiado" : "Copiar"}
                       </button>
@@ -442,14 +442,14 @@ export default function Chat({
         ))}
 
         {pensando && (
-          <div className="flex items-start gap-2 text-xs text-[color:var(--tinta-suave)]" aria-live="polite">
+          <div className="flex items-start gap-2 text-[13px] text-[color:var(--tinta-suave)]" aria-live="polite">
             <span className="mt-1.5 h-1.5 w-1.5 shrink-0 animate-pulse rounded-full bg-[color:var(--acento)]" />
             <p className="line-clamp-3 italic leading-relaxed">Pensando… {pensando}</p>
           </div>
         )}
 
         {actividad && (
-          <p className="flex items-center gap-2 text-xs text-[color:var(--tinta-media)]" aria-live="polite">
+          <p className="flex items-center gap-2 text-[13px] text-[color:var(--tinta-media)]" aria-live="polite">
             <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-[color:var(--acento)]" />
             {actividad}…
           </p>
@@ -512,11 +512,11 @@ export default function Chat({
                   onClick={() => setAdjuntas((prev) => prev.filter((_, j) => j !== k))}
                   title="Quitar"
                   aria-label={`Quitar ${a.nombre}`}
-                  className="absolute -right-1.5 -top-1.5 grid h-5 w-5 place-items-center rounded-full bg-[color:var(--tinta)] text-xs text-white opacity-0 transition group-hover:opacity-100"
+                  className="absolute -right-1.5 -top-1.5 grid h-5 w-5 place-items-center rounded-full bg-[color:var(--tinta)] text-[13px] text-white opacity-0 transition group-hover:opacity-100"
                 >
                   ×
                 </button>
-                <span className="mt-0.5 block text-center text-[10px] tabular-nums text-[color:var(--tinta-suave)]">
+                <span className="mt-0.5 block text-center text-[11px] tabular-nums text-[color:var(--tinta-suave)]">
                   {pesoLegible(a.bytes)}
                 </span>
               </div>
@@ -586,7 +586,7 @@ export default function Chat({
           )}
         </div>
 
-        <p className="mt-2 flex items-center justify-between text-xs text-[color:var(--tinta-suave)]">
+        <p className="mt-2 flex items-center justify-between text-[13px] text-[color:var(--tinta-suave)]">
           <span>
             {puedeEscribir ? "Puede escribir en el sitio." : "Solo lectura: no modificará nada."}
             <span className="ml-1.5 text-[color:var(--tinta-suave)]">· pega o arrastra imágenes, CSV o texto</span>

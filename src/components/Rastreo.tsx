@@ -251,7 +251,7 @@ export default function Rastreo({
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h2 className="text-[17px] font-semibold">Rastreo técnico</h2>
-          <p className="mt-0.5 max-w-2xl text-[13px] text-[color:var(--tinta-media)]">
+          <p className="mt-0.5 max-w-2xl text-[14px] text-[color:var(--tinta-media)]">
             Pide cada URL del sitemap y anota cómo respondió. No cuesta dinero, solo tiempo: va
             despacio a propósito para no ahogar el hosting del cliente.
           </p>
@@ -264,12 +264,12 @@ export default function Rastreo({
         )}
       </div>
 
-      {error && <p className="mt-3 text-[13px] font-medium text-red-600">{error}</p>}
+      {error && <p className="mt-3 text-[14px] font-medium text-red-600">{error}</p>}
 
       {!tanda && (
-        <div className="mt-6 rounded-2xl border border-dashed border-[color:var(--linea-fuerte)] px-6 py-16 text-center">
+        <div className="mt-6 rounded-2xl border border-[color:var(--linea)] bg-[color:var(--panel)] px-6 py-16 text-center">
           <p className="text-[15px] font-medium">Este sitio no se ha rastreado nunca.</p>
-          <p className="mx-auto mt-2 max-w-sm text-[13px] text-[color:var(--tinta-media)]">
+          <p className="mx-auto mt-2 max-w-sm text-[14px] text-[color:var(--tinta-media)]">
             La primera pasada tarda unos minutos, según cuántas páginas tenga.
           </p>
         </div>
@@ -289,14 +289,14 @@ export default function Rastreo({
               />
             </div>
           )}
-          <p className="mt-3 text-[12px] text-[color:var(--tinta-suave)]">
+          <p className="mt-3 text-[13px] text-[color:var(--tinta-suave)]">
             Puedes irte a otra pestaña: sigue por su cuenta.
           </p>
         </div>
       )}
 
       {tanda && tanda.estado !== "corriendo" && (
-        <p className="mt-4 text-[13px] text-[color:var(--tinta-media)]">
+        <p className="mt-4 text-[14px] text-[color:var(--tinta-media)]">
           {tanda.estado === "terminado"
             ? `${miles(tanda.hechas)} páginas revisadas ${fecha(tanda.creado)}`
             : tanda.estado === "interrumpido"
@@ -308,7 +308,7 @@ export default function Rastreo({
 
       {sitio && (
         <div
-          className={`mt-4 rounded-2xl border px-5 py-3 text-[13px] ${
+          className={`mt-4 rounded-2xl border px-5 py-3 text-[14px] ${
             sitio.cierraTodo || !sitio.robots
               ? "border-red-200 bg-red-50 text-red-700"
               : "border-[color:var(--linea)] bg-white text-[color:var(--tinta-media)]"
@@ -381,7 +381,7 @@ export default function Rastreo({
                 }`}
               >
                 <p
-                  className={`text-[22px] font-semibold tabular-nums ${
+                  className={`text-[22px] cifra font-semibold tabular-nums ${
                     n === 0
                       ? "text-[color:var(--tinta-suave)]"
                       : i.grave
@@ -391,10 +391,10 @@ export default function Rastreo({
                 >
                   {miles(n)}
                 </p>
-                <p className="mt-0.5 text-[12px] text-[color:var(--tinta-media)]">{i.etiqueta}</p>
+                <p className="mt-0.5 text-[13px] text-[color:var(--tinta-media)]">{i.etiqueta}</p>
                 {anterior && anterior.problemas[i.id] !== undefined && anterior.problemas[i.id] !== n && (
                   <p
-                    className={`mt-0.5 text-[11px] tabular-nums ${n < anterior.problemas[i.id] ? "text-emerald-700" : "text-red-600"}`}
+                    className={`mt-0.5 text-[12px] tabular-nums ${n < anterior.problemas[i.id] ? "text-emerald-700" : "text-red-600"}`}
                     title={`Rastreo anterior: ${anterior.problemas[i.id]}`}
                   >
                     {n < anterior.problemas[i.id] ? "▼" : "▲"} {Math.abs(n - anterior.problemas[i.id])} desde {fecha(anterior.creado)}
@@ -416,7 +416,7 @@ export default function Rastreo({
             }`}
           >
             <p
-              className={`text-[22px] font-semibold tabular-nums ${
+              className={`text-[22px] cifra font-semibold tabular-nums ${
                 canibales == null
                   ? "text-[color:var(--tinta-suave)]"
                   : canibales === 0
@@ -426,7 +426,7 @@ export default function Rastreo({
             >
               {canibales == null ? "—" : miles(canibales)}
             </p>
-            <p className="mt-0.5 text-[12px] text-[color:var(--tinta-media)]">
+            <p className="mt-0.5 text-[13px] text-[color:var(--tinta-media)]">
               {APARTE.canibal.etiqueta}
             </p>
           </button>
@@ -441,7 +441,7 @@ export default function Rastreo({
             }`}
           >
             <p
-              className={`text-[22px] font-semibold tabular-nums ${
+              className={`text-[22px] cifra font-semibold tabular-nums ${
                 velocidad?.nota == null
                   ? "text-[color:var(--tinta-suave)]"
                   : velocidad.nota >= 90
@@ -453,7 +453,7 @@ export default function Rastreo({
             >
               {velocidad?.nota ?? "—"}
             </p>
-            <p className="mt-0.5 text-[12px] text-[color:var(--tinta-media)]">
+            <p className="mt-0.5 text-[13px] text-[color:var(--tinta-media)]">
               {APARTE.velocidad.etiqueta}
             </p>
           </button>
@@ -464,7 +464,7 @@ export default function Rastreo({
 
       {abierto && (
         <div className="mt-5">
-          <p className="text-[13px] text-[color:var(--tinta-media)]">
+          <p className="text-[14px] text-[color:var(--tinta-media)]">
             {APARTE[abierto]?.porque ?? INFORMES.find((i) => i.id === abierto)?.porque}
           </p>
           {onPedir && !APARTE[abierto] && (problemas?.[abierto] ?? 0) > 0 && (
@@ -496,10 +496,10 @@ export default function Rastreo({
           )}
 
           {APARTE[abierto] ? null : paginas.length === 0 ? (
-            <p className="mt-3 text-[13px] text-[color:var(--tinta-suave)]">Nada por aquí.</p>
+            <p className="mt-3 text-[14px] text-[color:var(--tinta-suave)]">Nada por aquí.</p>
           ) : (
             <div className="tarjeta mt-3 overflow-x-auto">
-              <table className="w-full text-[13px]">
+              <table className="w-full text-[14px]">
                 <Cabecera columnas={COLUMNAS} orden={orden} ordenar={ordenar} />
                 <tbody className="divide-y divide-[color:var(--linea)]">
                   {filas.map((p) => (
@@ -514,12 +514,12 @@ export default function Rastreo({
                           {p.url}
                         </a>
                         {p.destino && (
-                          <span className="block truncate text-[12px] text-[color:var(--tinta-suave)]">
+                          <span className="block truncate text-[13px] text-[color:var(--tinta-suave)]">
                             → {p.destino}
                           </span>
                         )}
                         {p.error && (
-                          <span className="block text-[12px] text-red-600">{p.error}</span>
+                          <span className="block text-[13px] text-red-600">{p.error}</span>
                         )}
                       </td>
                       <td

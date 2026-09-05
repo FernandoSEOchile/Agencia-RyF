@@ -314,21 +314,21 @@ export default function Arquitectura({
         )}
 
         {subiendo && (
-          <span className="text-[13px] text-[color:var(--tinta-suave)]">
+          <span className="text-[14px] text-[color:var(--tinta-suave)]">
             Leyendo el sitemap y cotejando con la IA; puede tardar un par de minutos.
           </span>
         )}
       </div>
 
-      {error && <p className="mt-4 rounded-2xl bg-red-50 px-4 py-3 text-[13px] text-red-700">{error}</p>}
-      {aviso && <p className="mt-4 rounded-2xl bg-emerald-50 px-4 py-3 text-[13px] text-emerald-700">{aviso}</p>}
+      {error && <p className="mt-4 rounded-2xl bg-red-50 px-4 py-3 text-[14px] text-red-700">{error}</p>}
+      {aviso && <p className="mt-4 rounded-2xl bg-emerald-50 px-4 py-3 text-[14px] text-emerald-700">{aviso}</p>}
 
       {!actual ? (
-        <div className="mt-5 rounded-2xl border border-dashed border-[color:var(--linea-fuerte)] px-6 py-20 text-center">
+        <div className="mt-5 rounded-2xl border border-[color:var(--linea)] bg-[color:var(--panel)] px-6 py-20 text-center">
           <p className="text-[15px] font-medium">
             No hay ninguna arquitectura cargada para este cliente.
           </p>
-          <p className="mx-auto mt-2 max-w-md text-[13px] text-[color:var(--tinta-media)]">
+          <p className="mx-auto mt-2 max-w-md text-[14px] text-[color:var(--tinta-media)]">
             Sube el Excel con la hoja «AST». Se leerán las secciones previstas y se cruzarán con el
             sitemap del sitio para ver qué está creado, con qué URL, y qué falta.
           </p>
@@ -344,7 +344,7 @@ export default function Arquitectura({
             ].map(([k, v, color]) => (
               <div key={k} className="px-5 py-4">
                 <dt className="rotulo">{k}</dt>
-                <dd className={`mt-1 text-[26px] font-semibold tabular-nums ${color || ""}`}>
+                <dd className={`mt-1 text-[26px] cifra font-semibold tabular-nums ${color || ""}`}>
                   {v}
                 </dd>
               </div>
@@ -352,7 +352,7 @@ export default function Arquitectura({
           </dl>
 
           {volumenPerdido > 0 && (
-            <p className="mt-3 text-[13px] text-[color:var(--tinta-media)]">
+            <p className="mt-3 text-[14px] text-[color:var(--tinta-media)]">
               Las secciones por crear suman{" "}
               <strong className="font-semibold tabular-nums text-[color:var(--tinta)]">
                 {volumenPerdido.toLocaleString("es-CL")}
@@ -385,7 +385,7 @@ export default function Arquitectura({
                 </>
               )}
             </div>
-            <span className="ml-auto text-[12px] text-[color:var(--tinta-suave)]">
+            <span className="ml-auto text-[13px] text-[color:var(--tinta-suave)]">
               {actual.archivo}
               {actual.cotejado && ` · cotejado ${actual.cotejado.slice(0, 16).replace("T", " ")}`}
             </span>
@@ -395,7 +395,7 @@ export default function Arquitectura({
             <ChatArquitectura arquitecturaId={actual.id} />
           ) : (
           <div className="tarjeta mt-3 overflow-x-auto">
-            <table className="w-full min-w-[860px] border-collapse text-[13px]">
+            <table className="w-full min-w-[860px] border-collapse text-[14px]">
               <Cabecera columnas={COLUMNAS} orden={orden} ordenar={ordenar} />
               <tbody className="divide-y divide-[color:var(--linea)]">
                 {visibles.map((n) => (
@@ -405,7 +405,7 @@ export default function Arquitectura({
                       {/* La sangría hace visible la jerarquía sin una columna extra. */}
                       <div style={{ paddingLeft: (n.nivel - 1) * 14 }}>
                         <p className="truncate font-medium">{n.nombre}</p>
-                        <p className="truncate font-mono text-[11px] text-[color:var(--tinta-suave)]">
+                        <p className="truncate font-mono text-[12px] text-[color:var(--tinta-suave)]">
                           {n.slug}
                         </p>
                       </div>
@@ -416,7 +416,7 @@ export default function Arquitectura({
                           <p className="max-w-[240px] truncate" title={n.principal}>
                             {n.principal}
                           </p>
-                          <p className="mt-0.5 text-[11px] tabular-nums text-[color:var(--tinta-suave)]">
+                          <p className="mt-0.5 text-[12px] tabular-nums text-[color:var(--tinta-suave)]">
                             {n.volumenPrincipal.toLocaleString("es-CL")} búsquedas
                             {n.keywords > 1 && ` · +${n.keywords - 1} más`}
                           </p>
@@ -433,7 +433,7 @@ export default function Arquitectura({
                         {etiqueta(n.estado)}
                       </span>
                       {n.estado === "dudosa" && n.confianza !== null && (
-                        <span className="ml-1.5 text-[11px] tabular-nums text-[color:var(--tinta-suave)]">
+                        <span className="ml-1.5 text-[12px] tabular-nums text-[color:var(--tinta-suave)]">
                           {n.confianza}%
                         </span>
                       )}
@@ -450,7 +450,7 @@ export default function Arquitectura({
                           >
                             {n.urlDestino.replace(/^https?:\/\/[^/]+/, "")}
                           </a>
-                          <p className="mt-0.5 text-[11px] text-[color:var(--tinta-suave)]">
+                          <p className="mt-0.5 text-[12px] text-[color:var(--tinta-suave)]">
                             {origen(n.comoSeCotejo) && (
                               <span className="mr-1 text-[color:var(--tinta-media)]">
                                 {origen(n.comoSeCotejo)}
@@ -467,7 +467,7 @@ export default function Arquitectura({
                         <div className="mt-1.5 flex flex-wrap items-center gap-3">
                           <button
                             onClick={() => abrir(n)}
-                            className="text-[12px] font-medium text-[color:var(--tinta-media)] transition hover:text-[color:var(--acento)]"
+                            className="text-[13px] font-medium text-[color:var(--tinta-media)] transition hover:text-[color:var(--acento)]"
                           >
                             {abierta?.id === n.id ? "Cerrar" : n.urlDestino ? "Cambiar URL" : "Asignar URL"}
                           </button>
@@ -475,7 +475,7 @@ export default function Arquitectura({
                           {n.estado !== "creada" && onCrear && (
                             <button
                               onClick={() => onCrear(ordenDeCrear(n))}
-                              className="text-[12px] font-semibold text-[color:var(--acento)] underline-offset-2 hover:underline"
+                              className="text-[13px] font-semibold text-[color:var(--acento)] underline-offset-2 hover:underline"
                               title="Lleva la orden al chat, con su keyword y su volumen, para revisarla antes de enviar"
                             >
                               Crear con la IA
@@ -496,25 +496,25 @@ export default function Arquitectura({
                           value={busca}
                           onChange={(e) => setBusca(e.target.value)}
                           placeholder="Filtrar las URLs del sitio, o pegar una entera"
-                          className="w-full rounded-xl border border-[color:var(--linea-fuerte)] bg-white px-3.5 py-2 text-[13px] outline-none transition focus:border-[color:var(--acento)]"
+                          className="w-full rounded-xl border border-[color:var(--linea-fuerte)] bg-white px-3.5 py-2 text-[14px] outline-none transition focus:border-[color:var(--acento)]"
                         />
 
                         {cargandoUrls && (
-                          <p className="mt-2 text-[12px] text-[color:var(--tinta-suave)]">
+                          <p className="mt-2 text-[13px] text-[color:var(--tinta-suave)]">
                             Leyendo el sitemap del sitio…
                           </p>
                         )}
 
                         {urls && (
                           <>
-                            <p className="mt-3 text-[12px] text-[color:var(--tinta-suave)]">
+                            <p className="mt-3 text-[13px] text-[color:var(--tinta-suave)]">
                               {listadas.length === urls.length
                                 ? `${urls.length} URLs del sitio, las más parecidas a «${n.nombre}» arriba`
                                 : `${listadas.length} de ${urls.length} URLs`}
                             </p>
                             <div className="scroll-fino mt-1.5 max-h-72 overflow-y-auto rounded-xl border border-[color:var(--linea)] bg-white">
                               {listadas.length === 0 ? (
-                                <p className="px-4 py-5 text-[12px] text-[color:var(--tinta-suave)]">
+                                <p className="px-4 py-5 text-[13px] text-[color:var(--tinta-suave)]">
                                   Ninguna URL del sitio coincide con ese filtro. Borra el texto para ver
                                   el sitemap completo.
                                 </p>
@@ -527,10 +527,10 @@ export default function Arquitectura({
                                     className="flex w-full items-baseline gap-3 border-b border-[color:var(--linea)] px-4 py-2.5 text-left transition last:border-0 hover:bg-[color:var(--acento)]/5 disabled:opacity-40"
                                   >
                                     <span className="min-w-0 flex-1">
-                                      <span className="block truncate text-[13px] font-medium">
+                                      <span className="block truncate text-[14px] font-medium">
                                         {u.nombre}
                                       </span>
-                                      <span className="block truncate font-mono text-[11px] text-[color:var(--tinta-suave)]">
+                                      <span className="block truncate font-mono text-[12px] text-[color:var(--tinta-suave)]">
                                         {u.url.replace(/^https?:\/\/[^/]+/, "")}
                                       </span>
                                     </span>
@@ -580,7 +580,7 @@ export default function Arquitectura({
           </div>
           )}
 
-          <p className="mt-4 max-w-3xl text-[12px] leading-relaxed text-[color:var(--tinta-suave)]">
+          <p className="mt-4 max-w-3xl text-[13px] leading-relaxed text-[color:var(--tinta-suave)]">
             El cruce va en tres pasos: coincidencia exacta de slug, parecido por nombre, y lo que quede
             sin resolver lo decide la IA sobre las URLs del sitemap. Lo que ni así queda claro se marca
             como dudoso en vez de decidirlo por ti, y siempre puedes asignar la URL a mano.

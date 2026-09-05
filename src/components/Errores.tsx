@@ -115,9 +115,9 @@ export default function Errores({ fallos }: { fallos: Fallo[] }) {
 
   if (fallos.length === 0) {
     return (
-      <div className="mt-6 rounded-2xl border border-dashed border-[color:var(--linea-fuerte)] px-6 py-16 text-center">
+      <div className="mt-6 rounded-2xl border border-[color:var(--linea)] bg-[color:var(--panel)] px-6 py-16 text-center">
         <p className="text-[15px] font-medium">Nada roto por aquí.</p>
-        <p className="mx-auto mt-2 max-w-sm text-[13px] text-[color:var(--tinta-media)]">
+        <p className="mx-auto mt-2 max-w-sm text-[14px] text-[color:var(--tinta-media)]">
           Ni caídas ni herramientas que fallaran en los últimos siete días.
         </p>
       </div>
@@ -133,23 +133,23 @@ export default function Errores({ fallos }: { fallos: Fallo[] }) {
             onChange={(e) => setBusca(e.target.value)}
             placeholder="Buscar por sitio, herramienta o mensaje…"
             aria-label="Buscar fallos"
-            className="w-full max-w-sm rounded-xl border border-[color:var(--linea-fuerte)] bg-white px-3.5 py-2 text-[13px] outline-none transition focus:border-[color:var(--acento)]"
+            className="w-full max-w-sm rounded-xl border border-[color:var(--linea-fuerte)] bg-white px-3.5 py-2 text-[14px] outline-none transition focus:border-[color:var(--acento)]"
           />
         )}
-        <p className="text-[13px] text-[color:var(--tinta-suave)]">
+        <p className="text-[14px] text-[color:var(--tinta-suave)]">
           {grupos.length} {grupos.length === 1 ? "fallo distinto" : "fallos distintos"} · {fallos.length}{" "}
           {fallos.length === 1 ? "anotación" : "anotaciones"}
         </p>
       </div>
 
       <div className="tarjeta mt-4 overflow-x-auto">
-        <table className="w-full text-[13px]">
+        <table className="w-full text-[14px]">
           <Cabecera columnas={COLUMNAS} orden={orden} ordenar={ordenar} />
           <tbody className="divide-y divide-[color:var(--linea)]">
             {filas.map((g) => (
               <tr key={g.clave}>
                 <td
-                  className="whitespace-nowrap px-5 py-3 tabular-nums text-[12px] text-[color:var(--tinta-suave)]"
+                  className="whitespace-nowrap px-5 py-3 tabular-nums text-[13px] text-[color:var(--tinta-suave)]"
                   title={fechaLarga(g.ultima)}
                 >
                   {fecha(g.ultima, { hora: true })}
@@ -167,7 +167,7 @@ export default function Errores({ fallos }: { fallos: Fallo[] }) {
                 <td className="px-3 py-3 text-[color:var(--tinta-media)]">
                   {g.detalle}
                   {g.veces > 1 && (
-                    <span className="mt-0.5 block text-[11px] text-[color:var(--tinta-suave)]">
+                    <span className="mt-0.5 block text-[12px] text-[color:var(--tinta-suave)]">
                       desde {fecha(g.primera, { hora: true })}
                     </span>
                   )}
@@ -186,7 +186,7 @@ export default function Errores({ fallos }: { fallos: Fallo[] }) {
       </div>
 
       {texto && filas.length === 0 && (
-        <p className="mt-3 text-[13px] text-[color:var(--tinta-media)]">
+        <p className="mt-3 text-[14px] text-[color:var(--tinta-media)]">
           Ningún fallo coincide con «{busca}».
         </p>
       )}

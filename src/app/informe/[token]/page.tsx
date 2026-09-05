@@ -62,7 +62,7 @@ export default async function Informe({ params }: { params: Promise<{ token: str
   return (
     <main className="mx-auto max-w-2xl px-6 py-12">
       <p className="rotulo">Informe de trabajo SEO</p>
-      <h1 className="mt-1 text-[30px] font-semibold leading-tight">{cliente.nombre}</h1>
+      <h1 className="mt-1 text-[30px] font-bold leading-tight">{cliente.nombre}</h1>
       <p className="mt-1 text-[14px] text-[color:var(--tinta-media)]">
         {cliente.dominio} · actualizado {fecha(ahora)}
       </p>
@@ -71,22 +71,22 @@ export default async function Informe({ params }: { params: Promise<{ token: str
         <dl className="tarjeta mt-8 grid grid-cols-3 divide-x divide-[color:var(--linea)] overflow-hidden">
           <div className="px-5 py-4">
             <dt className="rotulo">Clics desde Google</dt>
-            <dd className="mt-1 text-[26px] font-semibold tabular-nums">{miles(trafico.clics)}</dd>
+            <dd className="mt-1 text-[26px] cifra font-semibold tabular-nums">{miles(trafico.clics)}</dd>
             {trafico.anterior !== null && trafico.anterior > 0 && (
-              <p className={`text-[12px] tabular-nums ${trafico.clics >= trafico.anterior ? "text-emerald-700" : "text-red-600"}`}>
+              <p className={`text-[13px] tabular-nums ${trafico.clics >= trafico.anterior ? "text-emerald-700" : "text-red-600"}`}>
                 {trafico.clics >= trafico.anterior ? "▲" : "▼"} {Math.abs(Math.round(((trafico.clics - trafico.anterior) / trafico.anterior) * 100))}% vs. 28 días antes
               </p>
             )}
           </div>
           <div className="px-5 py-4">
             <dt className="rotulo">Veces que apareció</dt>
-            <dd className="mt-1 text-[26px] font-semibold tabular-nums">{miles(trafico.impresiones)}</dd>
-            <p className="text-[12px] text-[color:var(--tinta-suave)]">últimos 28 días</p>
+            <dd className="mt-1 text-[26px] cifra font-semibold tabular-nums">{miles(trafico.impresiones)}</dd>
+            <p className="text-[13px] text-[color:var(--tinta-suave)]">últimos 28 días</p>
           </div>
           <div className="px-5 py-4">
             <dt className="rotulo">Posición media</dt>
-            <dd className="mt-1 text-[26px] font-semibold tabular-nums">{trafico.posicion ?? "—"}</dd>
-            <p className="text-[12px] text-[color:var(--tinta-suave)]">en Google</p>
+            <dd className="mt-1 text-[26px] cifra font-semibold tabular-nums">{trafico.posicion ?? "—"}</dd>
+            <p className="text-[13px] text-[color:var(--tinta-suave)]">en Google</p>
           </div>
         </dl>
       )}
@@ -106,7 +106,7 @@ export default async function Informe({ params }: { params: Promise<{ token: str
                       {e.titulo}
                       <span className="ml-2 pastilla bg-black/[0.05] text-[color:var(--tinta-media)]">{categoria(e.categoria)}</span>
                     </p>
-                    {e.detalle && <p className="mt-0.5 text-[13px] leading-relaxed text-[color:var(--tinta-media)]">{e.detalle}</p>}
+                    {e.detalle && <p className="mt-0.5 text-[14px] leading-relaxed text-[color:var(--tinta-media)]">{e.detalle}</p>}
                   </li>
                 ))}
             </ul>
@@ -114,7 +114,7 @@ export default async function Informe({ params }: { params: Promise<{ token: str
         ))
       )}
 
-      <p className="mt-14 border-t border-[color:var(--linea)] pt-4 text-[12px] text-[color:var(--tinta-suave)]">
+      <p className="mt-14 border-t border-[color:var(--linea)] pt-4 text-[13px] text-[color:var(--tinta-suave)]">
         Preparado por Agencia RYF con AppSEO. Este enlace es privado: no lo compartas fuera de tu empresa.
       </p>
     </main>

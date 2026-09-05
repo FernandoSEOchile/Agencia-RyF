@@ -36,12 +36,12 @@ export default async function PaginaPalabras() {
           ← Clientes
         </Link>
 
-        <h1 className="mt-4 text-[32px] font-semibold leading-tight">Palabras clave</h1>
+        <h1 className="mt-4 text-[32px] font-bold leading-tight">Palabras clave</h1>
         <p className="mt-1 max-w-2xl text-[15px] text-[color:var(--tinta-media)]">
           Escribe una palabra: sale al instante todo lo que ya tenemos guardado sobre ella, gratis
           porque ya está pagado. Si falta algo, el botón trae lo que no está y se queda aquí.
         </p>
-        <p className="mt-2 max-w-2xl text-[13px] text-[color:var(--tinta-suave)]">
+        <p className="mt-2 max-w-2xl text-[14px] text-[color:var(--tinta-suave)]">
           Cada fila lleva la fecha de su dato. En rojo las que llevan más de seis meses sin
           refrescarse: esas ya no sirven para decidir nada.
         </p>

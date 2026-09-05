@@ -116,7 +116,7 @@ export default function GastoGeneral() {
           permitidos={[7, 28, 90, 365]}
         />
 
-        <label className="flex items-center gap-2 text-[12px] text-[color:var(--tinta-media)]">
+        <label className="flex items-center gap-2 text-[13px] text-[color:var(--tinta-media)]">
           desde
           <input
             type="date"
@@ -126,7 +126,7 @@ export default function GastoGeneral() {
               setDias(null);
               setDesde(e.target.value);
             }}
-            className="rounded-full border border-[color:var(--linea-fuerte)] bg-white px-3 py-1 text-[12px] outline-none focus:border-[color:var(--acento)]"
+            className="rounded-full border border-[color:var(--linea-fuerte)] bg-white px-3 py-1 text-[13px] outline-none focus:border-[color:var(--acento)]"
           />
           hasta
           <input
@@ -138,14 +138,14 @@ export default function GastoGeneral() {
               setDias(null);
               setHasta(e.target.value);
             }}
-            className="rounded-full border border-[color:var(--linea-fuerte)] bg-white px-3 py-1 text-[12px] outline-none focus:border-[color:var(--acento)]"
+            className="rounded-full border border-[color:var(--linea-fuerte)] bg-white px-3 py-1 text-[13px] outline-none focus:border-[color:var(--acento)]"
           />
         </label>
 
-        {cargando && <span className="text-[12px] text-[color:var(--tinta-suave)]">cargando…</span>}
+        {cargando && <span className="text-[13px] text-[color:var(--tinta-suave)]">cargando…</span>}
       </div>
 
-      {error && <p className="mt-4 rounded-2xl bg-red-50 px-4 py-3 text-[13px] text-red-700">{error}</p>}
+      {error && <p className="mt-4 rounded-2xl bg-red-50 px-4 py-3 text-[14px] text-red-700">{error}</p>}
 
       {datos && (
         <>
@@ -157,7 +157,7 @@ export default function GastoGeneral() {
             ].map(([k, v]) => (
               <div key={String(k)} className="px-5 py-4">
                 <dt className="rotulo">{String(k)}</dt>
-                <dd className="mt-1 text-[26px] font-semibold tabular-nums">{dolares(Number(v))}</dd>
+                <dd className="mt-1 text-[26px] cifra font-semibold tabular-nums">{dolares(Number(v))}</dd>
               </div>
             ))}
           </dl>
@@ -167,7 +167,7 @@ export default function GastoGeneral() {
               <div className="flex flex-wrap items-baseline gap-2">
                 <p className="rotulo">Por día</p>
                 {pico.monto > 0 && (
-                  <p className="text-[12px] text-[color:var(--tinta-suave)]">
+                  <p className="text-[13px] text-[color:var(--tinta-suave)]">
                     día más caro: {pico.dia} con {dolares(pico.monto)}
                   </p>
                 )}
@@ -190,7 +190,7 @@ export default function GastoGeneral() {
                   </div>
                 ))}
               </div>
-              <p className="mt-3 flex flex-wrap gap-4 text-[11px] text-[color:var(--tinta-suave)]">
+              <p className="mt-3 flex flex-wrap gap-4 text-[12px] text-[color:var(--tinta-suave)]">
                 <span className="flex items-center gap-1.5">
                   <span className="inline-block h-2 w-2 bg-[color:var(--tinta)]/80" /> Claude
                 </span>
@@ -218,7 +218,7 @@ export default function GastoGeneral() {
 
           <div className="tarjeta mt-3 overflow-x-auto">
             {vista === "clientes" && (
-              <table className="w-full min-w-[620px] border-collapse text-[13px]">
+              <table className="w-full min-w-[620px] border-collapse text-[14px]">
                 <Cabecera columnas={COL_CLI} orden={oCli.orden} ordenar={oCli.ordenar} />
                 <tbody className="divide-y divide-[color:var(--linea)]">
                   {clientes.length === 0 ? (
@@ -241,7 +241,7 @@ export default function GastoGeneral() {
                           ) : (
                             <span className="font-medium">{c.nombre}</span>
                           )}
-                          <span className="ml-2 text-[11px] text-[color:var(--tinta-suave)]">
+                          <span className="ml-2 text-[12px] text-[color:var(--tinta-suave)]">
                             {c.dominio ?? "dominios explorados, aún no son clientes"}
                           </span>
                         </td>
@@ -262,7 +262,7 @@ export default function GastoGeneral() {
             )}
 
             {vista === "conceptos" && (
-              <table className="w-full min-w-[520px] border-collapse text-[13px]">
+              <table className="w-full min-w-[520px] border-collapse text-[14px]">
                 <Cabecera columnas={COL_CON} orden={oCon.orden} ordenar={oCon.ordenar} />
                 <tbody className="divide-y divide-[color:var(--linea)]">
                   {conceptos.map((c) => (
@@ -290,7 +290,7 @@ export default function GastoGeneral() {
             )}
 
             {vista === "personas" && (
-              <table className="w-full min-w-[660px] border-collapse text-[13px]">
+              <table className="w-full min-w-[660px] border-collapse text-[14px]">
                 <Cabecera columnas={COL_USR} orden={oUsr.orden} ordenar={oUsr.ordenar} />
                 <tbody className="divide-y divide-[color:var(--linea)]">
                   {personas.map((u) => (
@@ -313,7 +313,7 @@ export default function GastoGeneral() {
             )}
           </div>
 
-          <p className="mt-4 max-w-3xl text-[12px] leading-relaxed text-[color:var(--tinta-suave)]">
+          <p className="mt-4 max-w-3xl text-[13px] leading-relaxed text-[color:var(--tinta-suave)]">
             «Prospección» agrupa lo gastado explorando dominios que todavía no son clientes: es coste
             comercial, no de operación, y mezclarlo con una cuenta la haría parecer menos rentable de lo
             que es. El reparto por persona no es para vigilar a nadie — sirve para detectar que alguien

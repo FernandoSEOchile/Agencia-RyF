@@ -341,8 +341,8 @@ export default async function Ficha({
 
       <header className="mt-4 flex flex-wrap items-center justify-between gap-3">
         <div className="min-w-0">
-          <h1 className="truncate text-[28px] font-semibold leading-tight">{cliente.nombre}</h1>
-          <p className="mt-0.5 flex flex-wrap items-center gap-2 text-[13px] text-[color:var(--tinta-media)]">
+          <h1 className="truncate text-[28px] font-bold leading-tight">{cliente.nombre}</h1>
+          <p className="mt-0.5 flex flex-wrap items-center gap-2 text-[14px] text-[color:var(--tinta-media)]">
             <Plataforma cual={cliente.plataforma} tam={14} />
             <a
               href={`https://${cliente.dominio}`}
@@ -379,14 +379,14 @@ export default async function Ficha({
           llegan por la URL. Sin pintarlos, un fallo se ve como si no hubiera
           pasado nada, que es peor que un error. */}
       {aviso && (
-        <p className="mt-5 rounded-2xl bg-red-50 px-4 py-3 text-[13px] text-red-700">{aviso}</p>
+        <p className="mt-5 rounded-2xl bg-red-50 px-4 py-3 text-[14px] text-red-700">{aviso}</p>
       )}
       {exito && (
-        <p className="mt-5 rounded-2xl bg-emerald-50 px-4 py-3 text-[13px] text-emerald-700">{exito}</p>
+        <p className="mt-5 rounded-2xl bg-emerald-50 px-4 py-3 text-[14px] text-emerald-700">{exito}</p>
       )}
 
       {caido && (
-        <p className="mt-5 rounded-2xl bg-red-50 px-4 py-3 text-[13px] text-red-700">
+        <p className="mt-5 rounded-2xl bg-red-50 px-4 py-3 text-[14px] text-red-700">
           La última comprobación falló: {cliente.estadoSonda}
         </p>
       )}

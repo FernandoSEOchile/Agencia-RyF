@@ -81,7 +81,7 @@ export function Cabecera<T extends string>({
                 }`}
               >
                 {c.texto}
-                <span className="ml-1 inline-block w-2 text-[9px]">
+                <span className="ml-1 inline-block w-2 text-[10px]">
                   {orden.col === c.id ? (orden.asc ? "▲" : "▼") : ""}
                 </span>
               </button>

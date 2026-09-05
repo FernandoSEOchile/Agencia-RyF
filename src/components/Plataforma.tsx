@@ -63,7 +63,7 @@ export default function Plataforma({
     >
       {esShopify ? <IconoShopify tam={tam} /> : <IconoWordPress tam={tam} />}
       {conNombre && (
-        <span className="text-[12px] font-medium text-[color:var(--tinta-media)]">{nombre}</span>
+        <span className="text-[13px] font-medium text-[color:var(--tinta-media)]">{nombre}</span>
       )}
     </span>
   );

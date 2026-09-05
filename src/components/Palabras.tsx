@@ -206,7 +206,7 @@ export default function Palabras({ puedePagar }: { puedePagar: boolean }) {
             value={minimo || ""}
             onChange={(e) => setMinimo(Number(e.target.value) || 0)}
             placeholder="0"
-            className="w-28 rounded-lg border border-[color:var(--linea-fuerte)] bg-white px-3 py-1.5 text-[13px] tabular-nums outline-none focus:border-[color:var(--acento)]"
+            className="w-28 rounded-lg border border-[color:var(--linea-fuerte)] bg-white px-3 py-1.5 text-[14px] tabular-nums outline-none focus:border-[color:var(--acento)]"
           />
         </label>
 
@@ -218,7 +218,7 @@ export default function Palabras({ puedePagar }: { puedePagar: boolean }) {
             value={maxPalabras || ""}
             onChange={(e) => setMaxPalabras(Number(e.target.value) || 0)}
             placeholder="todas"
-            className="w-28 rounded-lg border border-[color:var(--linea-fuerte)] bg-white px-3 py-1.5 text-[13px] tabular-nums outline-none focus:border-[color:var(--acento)]"
+            className="w-28 rounded-lg border border-[color:var(--linea-fuerte)] bg-white px-3 py-1.5 text-[14px] tabular-nums outline-none focus:border-[color:var(--acento)]"
           />
         </label>
 
@@ -227,7 +227,7 @@ export default function Palabras({ puedePagar }: { puedePagar: boolean }) {
           <select
             value={viejasDe}
             onChange={(e) => setViejasDe(Number(e.target.value))}
-            className="rounded-lg border border-[color:var(--linea-fuerte)] bg-white px-3 py-1.5 text-[13px] outline-none focus:border-[color:var(--acento)]"
+            className="rounded-lg border border-[color:var(--linea-fuerte)] bg-white px-3 py-1.5 text-[14px] outline-none focus:border-[color:var(--acento)]"
           >
             <option value={0}>cualquiera</option>
             <option value={30}>más de 1 mes</option>
@@ -242,12 +242,12 @@ export default function Palabras({ puedePagar }: { puedePagar: boolean }) {
           <button
             type="button"
             onClick={() => descargarCsv("palabras-clave", filas.map((t) => ({ ...t })))}
-            className="text-[12px] text-[color:var(--tinta-suave)] transition hover:text-[color:var(--acento)]"
+            className="text-[13px] text-[color:var(--tinta-suave)] transition hover:text-[color:var(--acento)]"
           >
             Descargar CSV
           </button>
         )}
-        <p className="text-[13px] text-[color:var(--tinta-media)]">
+        <p className="text-[14px] text-[color:var(--tinta-media)]">
           {cargando
             ? hayBusqueda
               ? "Buscando…"
@@ -272,17 +272,17 @@ export default function Palabras({ puedePagar }: { puedePagar: boolean }) {
         )}
       </div>
 
-      {error && <p className="mt-3 text-[13px] font-medium text-red-600">{error}</p>}
-      {aviso && <p className="mt-3 text-[13px] text-emerald-700">{aviso}</p>}
+      {error && <p className="mt-3 text-[14px] font-medium text-red-600">{error}</p>}
+      {aviso && <p className="mt-3 text-[14px] text-emerald-700">{aviso}</p>}
 
       {!cargando && terminos.length === 0 ? (
-        <div className="mt-6 rounded-2xl border border-dashed border-[color:var(--linea-fuerte)] px-6 py-16 text-center">
+        <div className="mt-6 rounded-2xl border border-[color:var(--linea)] bg-[color:var(--panel)] px-6 py-16 text-center">
           <p className="text-[15px] font-medium">
             {hayBusqueda
               ? `No tenemos nada guardado para «${busca.trim()}».`
               : "El almacén todavía está vacío."}
           </p>
-          <p className="mx-auto mt-2 max-w-md text-[13px] text-[color:var(--tinta-media)]">
+          <p className="mx-auto mt-2 max-w-md text-[14px] text-[color:var(--tinta-media)]">
             {hayBusqueda && puedePagar
               ? "Pulsa «Buscar palabras nuevas» y lo que traiga se queda aquí para siempre."
               : "Se llena solo: cada palabra que investigues y cada dominio que explores dejan aquí lo que trajeron."}
@@ -290,7 +290,7 @@ export default function Palabras({ puedePagar }: { puedePagar: boolean }) {
         </div>
       ) : (
         <div className="tarjeta mt-4 overflow-x-auto">
-          <table className="w-full text-[13px]">
+          <table className="w-full text-[14px]">
             <Cabecera columnas={COLUMNAS} orden={orden} ordenar={ordenar} />
             <tbody className="divide-y divide-[color:var(--linea)]">
               {filas.map((t) => {

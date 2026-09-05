@@ -86,7 +86,7 @@ export default async function Panel() {
       <main className="contenedor py-14">
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
-            <h1 className="text-[32px] font-semibold leading-tight">Clientes</h1>
+            <h1 className="text-[32px] font-bold leading-tight">Clientes</h1>
             <p className="mt-1 text-[15px] text-[color:var(--tinta-media)]">
               {clientes.length} {clientes.length === 1 ? "sitio conectado" : "sitios conectados"}
               {conEscritura > 0 && ` · ${conEscritura} con escritura`}
@@ -124,7 +124,7 @@ export default async function Panel() {
                   v{versionConector}
                 </span>
               </p>
-              <p className="mt-0.5 text-[13px] text-[color:var(--tinta-media)]">
+              <p className="mt-0.5 text-[14px] text-[color:var(--tinta-media)]">
                 El plugin que conecta un WordPress o WooCommerce con este panel. Esta es siempre la
                 última versión.
               </p>
@@ -142,9 +142,9 @@ export default async function Panel() {
         )}
 
         {clientes.length === 0 ? (
-          <div className="mt-10 rounded-2xl border border-dashed border-[color:var(--linea-fuerte)] px-6 py-20 text-center">
+          <div className="mt-10 rounded-2xl border border-[color:var(--linea)] bg-[color:var(--panel)] px-6 py-20 text-center">
             <p className="text-[15px] font-medium">Todavía no hay clientes aquí.</p>
-            <p className="mx-auto mt-2 max-w-sm text-[13px] text-[color:var(--tinta-media)]">
+            <p className="mx-auto mt-2 max-w-sm text-[14px] text-[color:var(--tinta-media)]">
               {rol === "ADMIN"
                 ? "Instala el plugin AppSEO RyF en el WordPress del cliente y pega su cadena de conexión."
                 : "Pide a un administrador que te asigne los clientes con los que vas a trabajar."}
@@ -167,7 +167,7 @@ export default async function Panel() {
                   >
                     <div className="flex items-start gap-3">
                       <span
-                        className={`grid h-10 w-10 shrink-0 place-items-center rounded-full text-[12px] font-semibold tracking-tight transition ${
+                        className={`grid h-10 w-10 shrink-0 place-items-center rounded-full text-[13px] font-semibold tracking-tight transition ${
                           caido
                             ? "bg-red-50 text-red-600"
                             : "bg-black/[0.05] text-[color:var(--tinta-media)] group-hover:bg-[color:var(--acento)]/10 group-hover:text-[color:var(--acento)]"
@@ -178,7 +178,7 @@ export default async function Panel() {
 
                       <div className="min-w-0 flex-1">
                         <p className="truncate text-[15px] font-semibold">{c.nombre}</p>
-                        <p className="flex items-center gap-1.5 text-[13px] text-[color:var(--tinta-suave)]">
+                        <p className="flex items-center gap-1.5 text-[14px] text-[color:var(--tinta-suave)]">
                           <Plataforma cual={c.plataforma} tam={14} />
                           <span className="truncate">{c.dominio}</span>
                         </p>
@@ -212,7 +212,7 @@ export default async function Panel() {
                           </span>
                         </>
                       )}
-                      <span className="ml-auto text-[11px] text-[color:var(--tinta-suave)]">
+                      <span className="ml-auto text-[12px] text-[color:var(--tinta-suave)]">
                         {haceCuanto(c.ultimaSonda)}
                       </span>
                     </div>
@@ -229,8 +229,8 @@ export default async function Panel() {
             <h2 className="rotulo">Actividad del equipo</h2>
             <ul className="tarjeta mt-3 divide-y divide-[color:var(--linea)] overflow-hidden">
               {registro.map((r) => (
-                <li key={r.id} className="flex flex-wrap items-baseline gap-x-3 gap-y-1 px-5 py-3 text-[13px]">
-                  <span className="w-20 shrink-0 tabular-nums text-[11px] text-[color:var(--tinta-suave)]">
+                <li key={r.id} className="flex flex-wrap items-baseline gap-x-3 gap-y-1 px-5 py-3 text-[14px]">
+                  <span className="w-20 shrink-0 tabular-nums text-[12px] text-[color:var(--tinta-suave)]">
                     {fecha(r.creado, { hora: true })}
                   </span>
                   <span className="pastilla bg-[color:var(--acento)]/10 text-[color:var(--acento)]">
@@ -239,7 +239,7 @@ export default async function Panel() {
                   <span className={r.resultado === "ok" ? "text-[color:var(--tinta)]" : "font-medium text-red-600"}>
                     {r.resumen}
                   </span>
-                  <span className="ml-auto text-[11px] text-[color:var(--tinta-suave)]">
+                  <span className="ml-auto text-[12px] text-[color:var(--tinta-suave)]">
                     {r.usuario?.nombre ?? "—"}
                     {r.cliente ? ` · ${r.cliente.nombre}` : ""}
                   </span>

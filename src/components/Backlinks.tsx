@@ -162,27 +162,27 @@ export default function Backlinks({
           </button>
         )}
         {datos?.medido && (
-          <span className="text-[12px] text-[color:var(--tinta-suave)]">
+          <span className="text-[13px] text-[color:var(--tinta-suave)]">
             medido {fecha(datos.medido)}
             {datos.coste ? ` · costó ${dinero(datos.coste)}` : ""}
           </span>
         )}
         {ocupado && (
-          <span className="text-[13px] text-[color:var(--tinta-suave)]">
+          <span className="text-[14px] text-[color:var(--tinta-suave)]">
             Consultando el proveedor… puede tardar un minuto.
           </span>
         )}
       </div>
 
-      {error && <p className="mt-4 rounded-2xl bg-red-50 px-4 py-3 text-[13px] text-red-700">{error}</p>}
+      {error && <p className="mt-4 rounded-2xl bg-red-50 px-4 py-3 text-[14px] text-red-700">{error}</p>}
       {aviso && (
-        <p className="mt-4 rounded-2xl bg-emerald-50 px-4 py-3 text-[13px] text-emerald-700">{aviso}</p>
+        <p className="mt-4 rounded-2xl bg-emerald-50 px-4 py-3 text-[14px] text-emerald-700">{aviso}</p>
       )}
 
       {!p ? (
-        <div className="mt-5 rounded-2xl border border-dashed border-[color:var(--linea-fuerte)] px-6 py-16 text-center">
+        <div className="mt-5 rounded-2xl border border-[color:var(--linea)] bg-[color:var(--panel)] px-6 py-16 text-center">
           <p className="text-[15px] font-medium">Todavía no se ha consultado el perfil de enlaces.</p>
-          <p className="mx-auto mt-2 max-w-md text-[13px] text-[color:var(--tinta-media)]">
+          <p className="mx-auto mt-2 max-w-md text-[14px] text-[color:var(--tinta-media)]">
             Se guarda como una foto y consultarla después no cuesta nada. Actualízala cuando quieras
             ver si cambió: los enlaces no se mueven de un día para otro, así que una vez al mes suele
             bastar.
@@ -193,18 +193,18 @@ export default function Backlinks({
           {p.cambios && (p.cambios.nuevos.length > 0 || p.cambios.perdidos.length > 0) && (
             <div className="mt-4 grid gap-3 sm:grid-cols-2">
               <div className="rounded-2xl border border-emerald-200 bg-emerald-50/60 p-4">
-                <p className="text-[13px] font-semibold text-emerald-900">
+                <p className="text-[14px] font-semibold text-emerald-900">
                   {p.cambios.nuevos.length} {p.cambios.nuevos.length === 1 ? "dominio nuevo" : "dominios nuevos"} desde {fecha(p.cambios.desde)}
                 </p>
-                <p className="mt-1 break-words text-[12px] leading-relaxed text-emerald-900/80">
+                <p className="mt-1 break-words text-[13px] leading-relaxed text-emerald-900/80">
                   {p.cambios.nuevos.slice(0, 15).join(" · ")}{p.cambios.nuevos.length > 15 ? " …" : ""}
                 </p>
               </div>
               <div className="rounded-2xl border border-red-200 bg-red-50/60 p-4">
-                <p className="text-[13px] font-semibold text-red-900">
+                <p className="text-[14px] font-semibold text-red-900">
                   {p.cambios.perdidos.length} {p.cambios.perdidos.length === 1 ? "dominio perdido" : "dominios perdidos"}
                 </p>
-                <p className="mt-1 break-words text-[12px] leading-relaxed text-red-900/80">
+                <p className="mt-1 break-words text-[13px] leading-relaxed text-red-900/80">
                   {p.cambios.perdidos.slice(0, 15).join(" · ")}{p.cambios.perdidos.length > 15 ? " …" : ""}
                 </p>
               </div>
@@ -231,7 +231,7 @@ export default function Backlinks({
             ].map(([k, v, color]) => (
               <div key={String(k)} className="px-5 py-4">
                 <dt className="rotulo">{String(k)}</dt>
-                <dd className={`mt-1 text-[22px] font-semibold tabular-nums ${color}`}>{v}</dd>
+                <dd className={`mt-1 text-[22px] cifra font-semibold tabular-nums ${color}`}>{v}</dd>
               </div>
             ))}
           </dl>
@@ -256,7 +256,7 @@ export default function Backlinks({
             </div>
           )}
 
-          <p className="mt-3 text-[13px] text-[color:var(--tinta-media)]">
+          <p className="mt-3 text-[14px] text-[color:var(--tinta-media)]">
             Lo que pesa es la columna de la izquierda. Mil enlaces desde cinco dominios valen mucho
             menos que cien desde cien sitios distintos, y el número grande de «enlaces totales» es el
             que más engaña en los informes.
@@ -278,13 +278,13 @@ export default function Backlinks({
               value={busca}
               onChange={(e) => setBusca(e.target.value)}
               placeholder="Filtrar…"
-              className="ml-auto w-56 rounded-full border border-[color:var(--linea-fuerte)] bg-white px-4 py-1.5 text-[13px] outline-none transition focus:border-[color:var(--acento)]"
+              className="ml-auto w-56 rounded-full border border-[color:var(--linea-fuerte)] bg-white px-4 py-1.5 text-[14px] outline-none transition focus:border-[color:var(--acento)]"
             />
           </div>
 
           <div className="tarjeta mt-3 overflow-x-auto">
             {vista === "dominios" && (
-              <table className="w-full min-w-[600px] border-collapse text-[13px]">
+              <table className="w-full min-w-[600px] border-collapse text-[14px]">
                 <Cabecera columnas={COL_DOMINIOS} orden={oDom.orden} ordenar={oDom.ordenar} />
                 <tbody className="divide-y divide-[color:var(--linea)]">
                   {dominios.map((d) => (
@@ -314,7 +314,7 @@ export default function Backlinks({
             )}
 
             {vista === "enlaces" && (
-              <table className="w-full min-w-[760px] border-collapse text-[13px]">
+              <table className="w-full min-w-[760px] border-collapse text-[14px]">
                 <Cabecera columnas={COL_ENLACES} orden={oEnl.orden} ordenar={oEnl.ordenar} />
                 <tbody className="divide-y divide-[color:var(--linea)]">
                   {listaEnlaces.map((e, i) => (
@@ -356,7 +356,7 @@ export default function Backlinks({
             )}
 
             {vista === "anclas" && (
-              <table className="w-full min-w-[520px] border-collapse text-[13px]">
+              <table className="w-full min-w-[520px] border-collapse text-[14px]">
                 <Cabecera columnas={COL_ANCLAS} orden={oAnc.orden} ordenar={oAnc.ordenar} />
                 <tbody className="divide-y divide-[color:var(--linea)]">
                   {anclas.map((a, i) => (
@@ -375,7 +375,7 @@ export default function Backlinks({
             )}
           </div>
 
-          <p className="mt-4 max-w-3xl text-[12px] leading-relaxed text-[color:var(--tinta-suave)]">
+          <p className="mt-4 max-w-3xl text-[13px] leading-relaxed text-[color:var(--tinta-suave)]">
             De los enlaces se trae uno por dominio: cien enlaces del mismo sitio son un dato, no cien.
             Los textos de enlace dicen si el perfil parece natural — si la mayoría repite la misma
             frase comercial exacta, no lo parece.

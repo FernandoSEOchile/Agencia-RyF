@@ -87,7 +87,7 @@ export default async function PaginaErrores() {
 
         <div className="mt-4 flex flex-wrap items-end justify-between gap-4">
           <div>
-            <h1 className="text-[32px] font-semibold leading-tight">Fallos</h1>
+            <h1 className="text-[32px] font-bold leading-tight">Fallos</h1>
             <p className="mt-1 text-[15px] text-[color:var(--tinta-media)]">
               Los últimos {DIAS} días
               {fallos.length > 0 && ` · ${fallos.length} anotados`}
