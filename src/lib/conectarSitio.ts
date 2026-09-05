@@ -49,6 +49,8 @@ export async function conectarSitio(datos: FormData) {
   const cliente = await db.cliente.upsert({
     where: { dominio },
     update: {
+      // Un cliente dado de alta solo por dominio pasa a WordPress al pegar la cadena.
+      plataforma: "wordpress",
       urlRest: cfg.rest,
       keyId: cfg.key_id,
       secreto: cifrar(cfg.secret),
@@ -77,6 +79,56 @@ export async function conectarSitio(datos: FormData) {
     clienteId: cliente.id,
     accion: "cliente_conectar",
     resumen: `${dominio} conectado · conector v${prueba.datos?.conector}`,
+  });
+
+  redirect(`/panel/clientes/${cliente.id}`);
+}
+
+/**
+ * Dar de alta un cliente solo por su dominio, sin plugin ni Shopify.
+ *
+ * La mitad del panel no necesita conector: posiciones, Search Console, IA,
+ * rastreo técnico, backlinks, SEO local, bitácora. Hasta ahora nada de eso se
+ * podía usar sin instalar algo en el sitio del cliente, y eso dejaba fuera a
+ * los prospectos y a los sitios que no son WordPress ni Shopify. El asistente
+ * queda en solo lectura de lo público; pegar una cadena más adelante lo
+ * convierte en un cliente completo sin perder nada.
+ */
+export async function crearSoloDominio(datos: FormData) {
+  const s = await auth();
+  const rolAccion = (s?.user as { rol?: string } | undefined)?.rol;
+  if (!s?.user?.id || (rolAccion !== "ADMIN" && rolAccion !== "GESTOR")) redirect("/entrar");
+
+  const nombre = String(datos.get("nombre") || "").trim().slice(0, 80);
+  const dominio = String(datos.get("dominio") || "")
+    .trim()
+    .toLowerCase()
+    .replace(/^https?:\/\//, "")
+    .replace(/^www\./, "")
+    .replace(/[/?#].*$/, "");
+
+  if (!/^[a-z0-9.-]+\.[a-z]{2,}$/.test(dominio)) {
+    redirect("/panel/clientes/nuevo?error=" + encodeURIComponent("Escribe un dominio válido, como ejemplo.cl."));
+  }
+
+  const existente = await db.cliente.findUnique({ where: { dominio }, select: { id: true } });
+  if (existente) redirect(`/panel/clientes/${existente.id}`);
+
+  const cliente = await db.cliente.create({
+    data: {
+      nombre: nombre || dominio,
+      dominio,
+      plataforma: "dominio",
+      secreto: "",
+      soloLectura: true,
+    },
+  });
+
+  await anotar({
+    usuarioId: s.user.id,
+    clienteId: cliente.id,
+    accion: "cliente_dominio",
+    resumen: `${dominio} dado de alta solo por dominio`,
   });
 
   redirect(`/panel/clientes/${cliente.id}`);

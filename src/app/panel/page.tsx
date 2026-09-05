@@ -190,6 +190,10 @@ export default async function Panel() {
                         <span className="pastilla bg-red-50 text-red-700">
                           {c.estadoSonda}
                         </span>
+                      ) : c.plataforma === "dominio" ? (
+                        <span className="pastilla bg-black/[0.05] text-[color:var(--tinta-media)]" title="Sin plugin ni Shopify: se mide todo, no se escribe nada">
+                          Solo medición
+                        </span>
                       ) : (
                         <>
                           <span

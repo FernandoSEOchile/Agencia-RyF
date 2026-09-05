@@ -53,6 +53,23 @@ export async function sondear(clienteId: string) {
     return sondearShopify(clienteId, ficha);
   }
 
+  // Sin conector no hay nada que sondear más allá de que el sitio responda.
+  if (ficha?.plataforma === "dominio") {
+    const dominio = (await db.cliente.findUnique({ where: { id: clienteId }, select: { dominio: true } }))?.dominio ?? "";
+    let mensaje: string | null = null;
+    try {
+      const r = await fetch(`https://${dominio}/`, { method: "GET", redirect: "follow", signal: AbortSignal.timeout(15000), cache: "no-store" });
+      if (!r.ok) mensaje = `La portada devolvió ${r.status}.`;
+    } catch (e) {
+      mensaje = e instanceof Error ? e.message : "no responde";
+    }
+    await db.cliente.update({
+      where: { id: clienteId },
+      data: { ultimaSonda: new Date(), estadoSonda: mensaje ? mensaje.slice(0, 120) : "ok" },
+    });
+    return mensaje ? { ok: false as const, mensaje } : { ok: true as const, salud: null };
+  }
+
   let r;
   try {
     r = await salud(await credencialDe(clienteId));

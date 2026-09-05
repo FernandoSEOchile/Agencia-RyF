@@ -1022,6 +1022,12 @@ export function herramientasDe(ctx: Contexto) {
     return conRegistro([...herramientasShopify(ctx), ...transversales, verRastreo], ctx);
   }
 
+  // Solo dominio: nada que lea o escriba dentro del sitio. Queda lo público y
+  // lo medido: páginas en vivo, posiciones, Search Console, rastreo, enlaces.
+  if (ctx.plataforma === "dominio") {
+    return conRegistro([...transversales, verRastreo], ctx);
+  }
+
   return conRegistro([
       verRastreo,
     salud,

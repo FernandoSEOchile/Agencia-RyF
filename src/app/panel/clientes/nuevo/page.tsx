@@ -6,8 +6,8 @@ import { cifrar, cifradoListo } from "@/lib/cifrado";
 import { leerCadena, dominioDe, salud } from "@/lib/conector";
 import { anotar } from "@/lib/clientes";
 import Barra from "@/components/Barra";
-import { IconoWordPress, IconoShopify } from "@/components/Plataforma";
-import { conectarSitio } from "@/lib/conectarSitio";
+import { IconoWordPress, IconoShopify, IconoDominio } from "@/components/Plataforma";
+import { conectarSitio, crearSoloDominio } from "@/lib/conectarSitio";
 
 export const metadata = { title: "Conectar sitio · AppSEO" };
 
@@ -35,9 +35,9 @@ export default async function NuevoCliente({
 
       <h1 className="mt-4 text-[30px] font-bold leading-tight">Conectar un sitio</h1>
       <p className="mt-2 max-w-xl text-[14px] leading-relaxed text-[color:var(--tinta-media)]">
-        WordPress y Shopify se conectan distinto porque funcionan distinto: en WordPress se instala un
-        plugin que genera una cadena, y en Shopify no se instala nada dentro de la tienda —se autoriza
-        una app desde fuera.
+        Hay tres formas. Con el plugin de WordPress o con la app de Shopify el asistente puede leer y
+        escribir en el sitio. Solo con el dominio no se instala nada y se puede medir todo lo demás:
+        posiciones, Search Console, IA, rastreo técnico, backlinks, SEO local y bitácora.
       </p>
 
       <h2 className="mt-8 flex items-center gap-2 text-[17px] font-semibold">
@@ -61,6 +61,41 @@ export default async function NuevoCliente({
       )}
 
       {error && <p className="mt-6 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p>}
+
+      <h2 className="mt-8 flex items-center gap-2 text-[17px] font-semibold">
+        <IconoDominio tam={20} />
+        Solo el dominio
+      </h2>
+      <p className="mt-2 text-[14px] leading-relaxed text-[color:var(--tinta-media)]">
+        Para un prospecto, un sitio que no es WordPress ni Shopify, o un cliente al que todavía no se
+        le va a tocar nada. No se instala nada y no cuesta nada dar de alta. Si más adelante se conecta
+        el plugin o Shopify, el cliente se convierte sin perder el histórico.
+      </p>
+      <form action={crearSoloDominio} className="mt-4 flex flex-wrap items-end gap-3">
+        <label className="flex min-w-[200px] flex-1 flex-col gap-1.5">
+          <span className="rotulo">Nombre <span className="normal-case tracking-normal text-[color:var(--tinta-suave)]">(opcional)</span></span>
+          <input
+            name="nombre"
+            placeholder="Aguas del Sur"
+            className="rounded-xl border border-[color:var(--linea-fuerte)] bg-white px-3.5 py-2.5 text-[14px] outline-none transition focus:border-[color:var(--acento)]"
+          />
+        </label>
+        <label className="flex min-w-[220px] flex-1 flex-col gap-1.5">
+          <span className="rotulo">Dominio</span>
+          <input
+            name="dominio"
+            required
+            spellCheck={false}
+            placeholder="aguasdelsur.cl"
+            className="rounded-xl border border-[color:var(--linea-fuerte)] bg-white px-3.5 py-2.5 font-mono text-[13px] outline-none transition focus:border-[color:var(--acento)]"
+          />
+        </label>
+        <button type="submit" className="boton-fuerte">
+          Dar de alta
+        </button>
+      </form>
+
+      <hr className="my-10 border-[color:var(--linea)]" />
 
       <form action={conectarSitio} className="mt-8 flex flex-col gap-4">
         <label className="flex flex-col gap-1.5">

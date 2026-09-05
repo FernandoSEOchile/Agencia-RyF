@@ -24,6 +24,16 @@ export function IconoWordPress({ tam = 16 }: { tam?: number }) {
   );
 }
 
+/** Un cliente seguido solo por su dominio: un globo, sin marca de nadie. */
+export function IconoDominio({ tam = 16 }: { tam?: number }) {
+  return (
+    <svg width={tam} height={tam} viewBox="0 0 24 24" aria-hidden="true">
+      <circle cx="12" cy="12" r="10.5" fill="none" stroke="#6e6e73" strokeWidth="1.6" />
+      <path d="M1.5 12h21M12 1.5c3 3.2 3 17.8 0 21M12 1.5c-3 3.2-3 17.8 0 21" fill="none" stroke="#6e6e73" strokeWidth="1.4" />
+    </svg>
+  );
+}
+
 export function IconoShopify({ tam = 16 }: { tam?: number }) {
   return (
     <svg width={tam} height={tam} viewBox="0 0 24 24" aria-hidden="true">
@@ -53,7 +63,8 @@ export default function Plataforma({
   tam?: number;
 }) {
   const esShopify = cual === "shopify";
-  const nombre = esShopify ? "Shopify" : "WordPress";
+  const esDominio = cual === "dominio";
+  const nombre = esShopify ? "Shopify" : esDominio ? "Solo dominio" : "WordPress";
 
   return (
     <span
@@ -61,7 +72,7 @@ export default function Plataforma({
       title={nombre}
       aria-label={nombre}
     >
-      {esShopify ? <IconoShopify tam={tam} /> : <IconoWordPress tam={tam} />}
+      {esShopify ? <IconoShopify tam={tam} /> : esDominio ? <IconoDominio tam={tam} /> : <IconoWordPress tam={tam} />}
       {conNombre && (
         <span className="text-[13px] font-medium text-[color:var(--tinta-media)]">{nombre}</span>
       )}

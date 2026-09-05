@@ -73,9 +73,11 @@ export default async function Ficha({
   // versión instalada del conector no tiene no debe vaciar la ficha entera.
   const [log, productos, terminos, registroPanel, totalConversaciones, memorias, rastreosHechos, fichasHechas, enlacesMedidos, bitacorasHechas, promptsIa, conversaciones] =
     await Promise.all([
-    api<{ entradas: EntradaLog[]; total: number }>(id, "GET", "/log?por_pagina=50").catch(() => null),
-    api<{ total: number }>(id, "GET", "/products?pagina=1").catch(() => null),
-    api<{ terminos: { seo_bytes: number }[] }>(id, "GET", "/terms?taxonomia=product_cat").catch(() => null),
+    // Sin conector no hay a quién preguntar: se pasa de largo en vez de esperar
+    // tres tiempos de espera para nada.
+    cliente.plataforma === "dominio" ? Promise.resolve(null) : api<{ entradas: EntradaLog[]; total: number }>(id, "GET", "/log?por_pagina=50").catch(() => null),
+    cliente.plataforma === "dominio" ? Promise.resolve(null) : api<{ total: number }>(id, "GET", "/products?pagina=1").catch(() => null),
+    cliente.plataforma === "dominio" ? Promise.resolve(null) : api<{ terminos: { seo_bytes: number }[] }>(id, "GET", "/terms?taxonomia=product_cat").catch(() => null),
     db.registro.findMany({
       where: { clienteId: id },
       orderBy: { creado: "desc" },
@@ -164,8 +166,8 @@ export default async function Ficha({
   const conTexto = cats?.filter((c) => c.seo_bytes).length ?? 0;
 
   const datos = [
-    { etiqueta: "Conector", valor: cliente.version ? `v${cliente.version}` : "—" },
-    { etiqueta: "Escritura", valor: cliente.soloLectura === false ? "Activada" : "Bloqueada" },
+    { etiqueta: "Conector", valor: cliente.plataforma === "dominio" ? "Sin conector" : cliente.version ? `v${cliente.version}` : "—" },
+    { etiqueta: "Escritura", valor: cliente.plataforma === "dominio" ? "No disponible" : cliente.soloLectura === false ? "Activada" : "Bloqueada" },
     { etiqueta: "Productos", valor: productos?.datos?.total?.toLocaleString("es-CL") ?? "—" },
     { etiqueta: "Categorías", valor: cats ? String(cats.length) : "—" },
     {
@@ -196,7 +198,7 @@ export default async function Ficha({
       usuarioId: s.user.id,
       clienteId: id,
       accion: "sondeo",
-      resumen: r.ok ? `Conector v${r.salud?.conector}` : `Sin respuesta: ${r.mensaje}`,
+      resumen: r.ok ? (r.salud?.conector ? `Conector v${r.salud.conector}` : "El sitio responde") : `Sin respuesta: ${r.mensaje}`,
       resultado: r.ok ? "ok" : "error",
     });
     redirect(`/panel/clientes/${id}`);
@@ -354,11 +356,17 @@ export default async function Ficha({
               {cliente.dominio}
             </a>
             <span className="text-black/20">·</span>
-            <span className="tabular-nums">v{cliente.version ?? "?"}</span>
-            <span className="text-black/20">·</span>
-            <span className={puedeEscribir ? "text-emerald-600" : ""}>
-              {puedeEscribir ? "escritura" : "solo lectura"}
-            </span>
+            {cliente.plataforma === "dominio" ? (
+              <span title="Sin plugin ni Shopify: se mide todo, no se escribe nada">solo medición</span>
+            ) : (
+              <>
+                <span className="tabular-nums">v{cliente.version ?? "?"}</span>
+                <span className="text-black/20">·</span>
+                <span className={puedeEscribir ? "text-emerald-600" : ""}>
+                  {puedeEscribir ? "escritura" : "solo lectura"}
+                </span>
+              </>
+            )}
           </p>
         </div>
 
@@ -478,7 +486,7 @@ export default async function Ficha({
         crearEnlace={crearEnlaceInforme}
         revocarEnlace={revocarEnlaceInforme}
         pasos={[
-          { texto: "Sitio conectado", hecho: Boolean(cliente.version) || cliente.plataforma === "shopify", pestaña: "datos" },
+          { texto: cliente.plataforma === "dominio" ? "Conectar el sitio para poder escribir (opcional)" : "Sitio conectado", hecho: Boolean(cliente.version) || cliente.plataforma === "shopify", pestaña: "datos" },
           { texto: "Escritura activada", hecho: cliente.soloLectura === false && !cliente.escrituraBloqueada, pestaña: "datos" },
           { texto: "Search Console conectado", hecho: Boolean(cliente.gscPropiedad), pestaña: "posiciones" },
           { texto: "Palabras en seguimiento", hecho: keywords.length > 0, pestaña: "posiciones" },
@@ -491,6 +499,7 @@ export default async function Ficha({
         ]}
         reconectar={conectarSitio}
         esWordPress={cliente.plataforma !== "shopify"}
+        sinConector={cliente.plataforma === "dominio"}
         totalConversaciones={totalConversaciones}
         sucesos={sucesos}
         datos={datos}

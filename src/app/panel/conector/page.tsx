@@ -70,7 +70,7 @@ export default async function PaginaConector() {
   // Solo los sitios a los que llega quien mira: un LECTOR con dos clientes
   // asignados no debe enterarse aquí de cuántos tiene la agencia.
   const sitios = (await clientesDe(sesion.user.id, rol))
-    .filter((c) => c.plataforma !== "shopify")
+    .filter((c) => c.plataforma !== "shopify" && c.plataforma !== "dominio")
     .map((c) => ({ id: c.id, nombre: c.nombre, dominio: c.dominio, version: c.version }));
 
 

@@ -99,13 +99,16 @@ export async function revisar(clienteId: string): Promise<Resultado | null> {
   let conectorOk: boolean | null = null;
   let fallaConector: string | null = null;
 
-  try {
-    const s = await sondear(cliente.id);
-    conectorOk = s.ok;
-    if (!s.ok) fallaConector = s.mensaje;
-  } catch (e) {
-    conectorOk = false;
-    fallaConector = e instanceof Error ? e.message : "error al sondear";
+  // Un cliente seguido solo por dominio no tiene conector: se mira la web y ya.
+  if (cliente.plataforma !== "dominio") {
+    try {
+      const s = await sondear(cliente.id);
+      conectorOk = s.ok;
+      if (!s.ok) fallaConector = s.mensaje;
+    } catch (e) {
+      conectorOk = false;
+      fallaConector = e instanceof Error ? e.message : "error al sondear";
+    }
   }
 
   const detalle =

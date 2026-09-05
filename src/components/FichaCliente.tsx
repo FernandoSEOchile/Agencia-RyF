@@ -156,6 +156,7 @@ export default function FichaCliente({
   pasos,
   reconectar,
   esWordPress,
+  sinConector,
   totalConversaciones,
   arquitectura,
   keywords,
@@ -187,6 +188,8 @@ export default function FichaCliente({
   pasos: { texto: string; hecho: boolean; pestaña: string }[];
   reconectar: (datos: FormData) => Promise<void>;
   esWordPress: boolean;
+  /** Dado de alta solo por dominio: se mide todo, no se escribe nada. */
+  sinConector: boolean;
   totalConversaciones: number;
   arquitectura: ArquitecturaVista | null;
   keywords: KeywordVista[];
@@ -768,14 +771,22 @@ export default function FichaCliente({
           {puedeSubir && (
             <div className="tarjeta mt-4 flex flex-wrap items-center justify-between gap-4 p-5">
               <div className="max-w-xl">
-                <p className="text-[14px] font-medium">Volver a conectar el sitio</p>
+                <p className="text-[14px] font-medium">{sinConector ? "Conectar el sitio" : "Volver a conectar el sitio"}</p>
                 <p className="mt-1 text-[14px] leading-relaxed text-[color:var(--tinta-media)]">
-                  Si regeneraste la cadena de conexión en el WordPress, o el panel dejó de tener
-                  acceso, pega la nueva aquí. Se actualiza este mismo cliente:{" "}
-                  <span className="font-medium text-[color:var(--tinta)]">
-                    no se pierde nada
-                  </span>{" "}
-                  —conversaciones, bitácora, posiciones y gasto siguen donde están.
+                  {sinConector ? (
+                    <>
+                      Este cliente se sigue solo por su dominio: se mide todo, pero el asistente no puede
+                      escribir. Para que pueda, instala el plugin AppSEO en su WordPress y pega aquí la
+                      cadena, o autoriza la app en Shopify. El histórico se conserva.
+                    </>
+                  ) : (
+                    <>
+                      Si regeneraste la cadena de conexión en el WordPress, o el panel dejó de tener
+                      acceso, pega la nueva aquí. Se actualiza este mismo cliente:{" "}
+                      <span className="font-medium text-[color:var(--tinta)]">no se pierde nada</span>{" "}
+                      —conversaciones, bitácora, posiciones y gasto siguen donde están.
+                    </>
+                  )}
                 </p>
               </div>
 
@@ -790,12 +801,17 @@ export default function FichaCliente({
                     className="min-w-[260px] flex-1 rounded-xl border border-[color:var(--linea-fuerte)] bg-white px-3.5 py-2 font-mono text-[13px] outline-none transition focus:border-[color:var(--acento)]"
                   />
                   <button type="submit" className="boton shrink-0">
-                    Reconectar
+                    {sinConector ? "Conectar WordPress" : "Reconectar"}
                   </button>
+                  {sinConector && (
+                    <a href="/panel/clientes/nuevo" className="text-[13px] text-[color:var(--tinta-suave)] underline-offset-4 hover:underline">
+                      ¿Es Shopify? Autorízala desde aquí
+                    </a>
+                  )}
                 </form>
               ) : (
                 <a href="/panel/clientes/nuevo" className="boton shrink-0">
-                  Volver a autorizar en Shopify
+                  {sinConector ? "Autorizar en Shopify" : "Volver a autorizar en Shopify"}
                 </a>
               )}
             </div>
