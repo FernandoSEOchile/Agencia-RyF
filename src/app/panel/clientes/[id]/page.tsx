@@ -413,7 +413,7 @@ export default async function Ficha({
           puesto: k.posiciones[0]?.puesto ?? null,
           urlPosicionada: k.posiciones[0]?.url ?? null,
           bloquesArriba: k.posiciones[0]?.bloquesArriba ?? null,
-          medido: k.posiciones[0] ? k.posiciones[0].medido.toISOString().slice(5, 10) : null,
+          medido: k.posiciones[0]?.medido.toISOString() ?? null,
           anterior: k.posiciones[1]?.puesto ?? null,
           mediciones: k._count.posiciones,
           // Las últimas doce, en orden cronológico, para el mini-gráfico.

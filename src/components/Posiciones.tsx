@@ -2,11 +2,22 @@
 
 import { useConfirmar } from "@/components/Confirmar";
 import { useState } from "react";
-import SearchConsole from "@/components/SearchConsole";
-import { dinero } from "@/lib/formato";
-import Chispa from "@/components/Chispa";
-import { descargarCsv } from "@/lib/csv";
 import { useRouter } from "next/navigation";
+import SearchConsole, { type ResumenGsc } from "@/components/SearchConsole";
+import Chispa from "@/components/Chispa";
+import { dinero, fecha, miles } from "@/lib/formato";
+import { descargarCsv } from "@/lib/csv";
+
+/**
+ * Posiciones: lo que Google dice que pasa y lo que medimos a propósito.
+ *
+ * Son dos fuentes distintas y conviene no confundirlas: Search Console es la
+ * verdad de Google —gratis, con dos días de retraso, promedios— y la medición
+ * directa es una foto exacta de un puesto, que se paga por consulta. Antes
+ * había que elegir una fuente con un interruptor y cada una traía sus propias
+ * cifras; ahora las dos se leen en la misma cabecera y debajo van apiladas,
+ * con lo accionable —qué medir, qué oportunidades, qué canibaliza— arriba.
+ */
 
 export interface KeywordVista {
   id: string;
@@ -22,7 +33,6 @@ export interface KeywordVista {
   historial: (number | null)[];
 }
 
-
 const UBICACIONES = [
   [2152, "Chile"],
   [2484, "México"],
@@ -31,11 +41,6 @@ const UBICACIONES = [
   [2604, "Perú"],
   [2724, "España"],
   [2840, "Estados Unidos"],
-] as const;
-
-const FUENTES = [
-  ["gsc", "Search Console"],
-  ["api", "Medición directa"],
 ] as const;
 
 const COLUMNAS = [
@@ -50,7 +55,6 @@ type Columna = (typeof COLUMNAS)[number]["id"];
 /** El salto entre dos mediciones, con el signo que entiende un humano. */
 function delta(k: KeywordVista): number | null {
   if (k.puesto === null || k.anterior === null) return null;
-  // Bajar de número es mejorar, así que se invierte para que positivo = subió.
   return k.anterior - k.puesto;
 }
 
@@ -60,6 +64,38 @@ function colorPuesto(p: number | null) {
   if (p <= 10) return "text-[color:var(--tinta)]";
   if (p <= 20) return "text-amber-600";
   return "text-[color:var(--tinta-media)]";
+}
+
+/**
+ * La distribución por tramos como una barra, no como cinco cifras sueltas.
+ *
+ * Cuatro tramos y cuatro tonos: cuánto del sitio está en la parte de la
+ * página que la gente ve, cuánto está a un empujón, y cuánto no. Se lee en
+ * medio segundo; los números van debajo para quien los quiera exactos.
+ */
+function Distribucion({ top3, top10, top20, total }: { top3: number; top10: number; top20: number; total: number }) {
+  if (total <= 0) return null;
+  const tramos: [number, string, string][] = [
+    [top3, "bg-emerald-600", "1–3"],
+    [top10 - top3, "bg-emerald-400", "4–10"],
+    [top20 - top10, "bg-amber-400", "11–20"],
+    [total - top20, "bg-black/[0.14]", "21+"],
+  ];
+  return (
+    <div>
+      <div className="flex h-2 overflow-hidden rounded-full bg-black/[0.05]" aria-hidden>
+        {tramos.map(([n, c, t]) => n > 0 && <div key={t} className={c} style={{ width: `${(100 * n) / total}%` }} />)}
+      </div>
+      <div className="mt-1.5 flex flex-wrap gap-x-3 gap-y-0.5 text-[12px] tabular-nums text-[color:var(--tinta-media)]">
+        {tramos.map(([n, c, t]) => (
+          <span key={t} className="flex items-center gap-1">
+            <span className={`inline-block h-2 w-2 rounded-full ${c}`} />
+            {t} <span className="font-medium text-[color:var(--tinta)]">{miles(n)}</span>
+          </span>
+        ))}
+      </div>
+    </div>
+  );
 }
 
 export default function Posiciones({
@@ -81,26 +117,19 @@ export default function Posiciones({
   /** Lo que costó de media la última consulta, para estimar cada pasada. */
   costePorMedicion: number;
 }) {
-  const [fuente, setFuente] = useState<(typeof FUENTES)[number][0]>(hayGsc ? "gsc" : "api");
   const { confirmar, dialogo } = useConfirmar();
   const router = useRouter();
   const [programada, setProgramada] = useState<number | null>(medirCada);
-
-  async function programar(dias: number | null) {
-    setError(null);
-    try {
-      await llamar("PUT", { clienteId, medirCada: dias });
-      setProgramada(dias);
-      setAviso(dias ? `Se medirá sola cada ${dias} días, ≈ ${dinero(keywords.length * costePorMedicion)} por pasada.` : "Medición automática desactivada.");
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "No se pudo programar.");
-    }
-  }
+  const [gsc, setGsc] = useState<ResumenGsc | null>(null);
   const [abierto, setAbierto] = useState(false);
   const [texto, setTexto] = useState("");
   const [ubicacion, setUbicacion] = useState(2152);
   const [dispositivo, setDispositivo] = useState("desktop");
   const [orden, setOrden] = useState<{ col: Columna; asc: boolean }>({ col: "puesto", asc: true });
+  const [ocupado, setOcupado] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [aviso, setAviso] = useState<string | null>(null);
+  const [buscaKw, setBuscaKw] = useState("");
 
   /** Al cambiar de columna se arranca por lo útil; volver a pulsar invierte. */
   function ordenar(col: Columna) {
@@ -108,9 +137,6 @@ export default function Posiciones({
       o.col === col ? { col, asc: !o.asc } : { col, asc: col === "puesto" || col === "termino" }
     );
   }
-  const [ocupado, setOcupado] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [aviso, setAviso] = useState<string | null>(null);
 
   async function llamar(metodo: string, cuerpo: unknown) {
     const r = await fetch("/api/posiciones", {
@@ -123,13 +149,29 @@ export default function Posiciones({
     return j;
   }
 
+  async function programar(dias: number | null) {
+    setError(null);
+    try {
+      await llamar("PUT", { clienteId, medirCada: dias });
+      setProgramada(dias);
+      setAviso(
+        dias
+          ? `Se medirá sola cada ${dias} días, ≈ ${dinero(keywords.length * costePorMedicion)} por pasada.`
+          : "Medición automática desactivada."
+      );
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "No se pudo programar.");
+    }
+  }
+
   /** Pasa una consulta de Search Console al seguimiento medido. */
   async function seguirDesdeGsc(consulta: string) {
     setError(null);
     setAviso(null);
     try {
       await llamar("POST", { clienteId, terminos: consulta, ubicacion: 2152, dispositivo: "desktop" });
-      setAviso(`«${consulta}» añadida al seguimiento. Cambia a «Medición directa» y pulsa medir.`);
+      setAviso(`«${consulta}» añadida al seguimiento. Pulsa «Medir las nuevas» arriba.`);
+      router.refresh();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Error inesperado.");
     }
@@ -142,14 +184,13 @@ export default function Posiciones({
     try {
       const j = await llamar("POST", { clienteId, terminos: texto, ubicacion, dispositivo });
       const repes = j.recibidas - j.añadidas;
-      setAviso(
-        `${j.añadidas} consultas añadidas${repes > 0 ? ` (${repes} ya estaban)` : ""}. Ahora pulsa «Medir».`
-      );
+      setAviso(`${j.añadidas} consultas añadidas${repes > 0 ? ` (${repes} ya estaban)` : ""}. Ahora pulsa «Medir las nuevas».`);
       setTexto("");
       setAbierto(false);
       router.refresh();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Error inesperado.");
+    } finally {
       setOcupado(false);
     }
   }
@@ -160,11 +201,9 @@ export default function Posiciones({
     setAviso(null);
     try {
       const j = await llamar("PATCH", { clienteId, soloNuevas });
-
       if (j.medidas === 0 && j.fallos > 0) {
         throw new Error(j.detalleFallos?.[0] ?? "Ninguna consulta se pudo medir.");
       }
-
       setAviso(
         `${j.medidas} consultas medidas por ${dinero(Number(j.coste))}` +
           (j.fallos ? ` · ${j.fallos} fallaron` : "") +
@@ -173,6 +212,7 @@ export default function Posiciones({
       router.refresh();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Error inesperado.");
+    } finally {
       setOcupado(false);
     }
   }
@@ -185,10 +225,12 @@ export default function Posiciones({
       router.refresh();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Error inesperado.");
+    } finally {
       setOcupado(false);
     }
   }
 
+  /* ---------------- Lo que se deduce del seguimiento ---------------- */
   const valorDe = (k: KeywordVista, col: Columna): string | number => {
     if (col === "termino") return k.termino;
     if (col === "url") return k.urlPosicionada ?? "";
@@ -200,13 +242,9 @@ export default function Posiciones({
   const ordenadas = [...keywords].sort((a, b) => {
     const x = valorDe(a, orden.col);
     const y = valorDe(b, orden.col);
-    const cmp =
-      typeof x === "number" && typeof y === "number"
-        ? x - y
-        : String(x).localeCompare(String(y), "es");
+    const cmp = typeof x === "number" && typeof y === "number" ? x - y : String(x).localeCompare(String(y), "es");
     return orden.asc ? cmp : -cmp;
   });
-  const [buscaKw, setBuscaKw] = useState("");
   const qKw = buscaKw.trim().toLowerCase();
   const visiblesKw = qKw
     ? ordenadas.filter((k) => `${k.termino} ${k.urlPosicionada ?? ""} ${k.urlObjetivo ?? ""}`.toLowerCase().includes(qKw))
@@ -218,78 +256,121 @@ export default function Posiciones({
   const media = medidas.length
     ? Math.round((medidas.reduce((s, k) => s + (k.puesto ?? 0), 0) / medidas.length) * 10) / 10
     : null;
-
-  /** Cuántas caen dentro de ese puesto. Acumulativo, como en Search Console. */
   const top = (n: number) => medidas.filter((k) => (k.puesto ?? 999) <= n).length;
+  const bajaron = keywords.filter((k) => (delta(k) ?? 0) <= -3).length;
+  const subieron = keywords.filter((k) => (delta(k) ?? 0) >= 3).length;
+  const ultimaMedicion = keywords.map((k) => k.medido).filter((m): m is string => Boolean(m)).sort().pop() ?? null;
+
+  const ir = (id: string) => document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
 
   return (
     <div className="mt-5">
       {dialogo}
-      {hayGsc && (
-      <div className="segmentos">
-        {FUENTES.map(([id, n]) => (
-          <button
-            key={id}
-            onClick={() => setFuente(id)}
-            className={`segmento ${fuente === id ? "segmento-activo" : ""}`}
-          >
-            {n}
-          </button>
-        ))}
-      </div>
-      )}
 
-      {error && <p className="mt-4 rounded-2xl bg-red-50 px-4 py-3 text-[14px] text-red-700">{error}</p>}
-      {aviso && (
-        <p className="mt-4 rounded-2xl bg-emerald-50 px-4 py-3 text-[14px] text-emerald-700">{aviso}</p>
-      )}
+      {error && <p className="mb-4 rounded-2xl bg-red-50 px-4 py-3 text-[14px] text-red-700">{error}</p>}
+      {aviso && <p className="mb-4 rounded-2xl bg-emerald-50 px-4 py-3 text-[14px] text-emerald-700">{aviso}</p>}
 
-      {fuente === "gsc" ? (
-        <SearchConsole clienteId={clienteId} puedeEditar={puedeEditar} onSeguir={seguirDesdeGsc} />
-      ) : (
-        <>
-      <div className="mt-5 flex flex-wrap items-center gap-2">
-        {puedeEditar && (
-          <button onClick={() => setAbierto(!abierto)} className="boton">
-            {abierto ? "Cerrar" : "Añadir consultas"}
-          </button>
-        )}
+      {/* ---------------- La cabecera: las dos fuentes y qué hacer ---------------- */}
+      <div className="tarjeta tarjeta-destacada grid gap-px overflow-hidden lg:grid-cols-3 [&>*]:ring-1 [&>*]:ring-[color:var(--linea)]">
+        <div className="bg-[color:var(--panel)] px-5 py-4">
+          <p className="rotulo">En Google{gsc ? ` · últimos ${gsc.dias} días` : ""}</p>
+          {!hayGsc ? (
+            <p className="mt-2 text-[14px] text-[color:var(--tinta-media)]">
+              Search Console no está habilitado en este panel.
+            </p>
+          ) : !gsc ? (
+            <p className="mt-2 text-[14px] text-[color:var(--tinta-media)]">
+              Sin conectar todavía: conecta Search Console más abajo para ver las búsquedas reales.
+            </p>
+          ) : (
+            <>
+              <p className="mt-1.5 cifra text-[28px] leading-none">
+                {miles(gsc.consultas)}
+                <span className="ml-1.5 text-[14px] font-normal text-[color:var(--tinta-media)]">búsquedas por las que apareces</span>
+              </p>
+              <div className="mt-3">
+                <Distribucion top3={gsc.top3} top10={gsc.top10} top20={gsc.top20} total={gsc.consultas} />
+              </div>
+              <p className="mt-2 text-[13px] text-[color:var(--tinta-suave)]">
+                posición media {gsc.media ?? "—"} · datos de Google, con dos o tres días de retraso
+              </p>
+            </>
+          )}
+        </div>
 
-        {puedeEditar && keywords.length > 0 && (
-          <>
-            <button onClick={() => medir(true)} disabled={ocupado || !sinMedir} className="boton">
-              Medir las nuevas{sinMedir > 0 && ` (${sinMedir})`}
-            </button>
-            <button onClick={() => medir(false)} disabled={ocupado} className="boton">
-              Medir todo
-            </button>
-            <label className="flex items-center gap-2 text-[13px] text-[color:var(--tinta-media)]">
-              Medir sola
-              <select
-                value={programada ?? ""}
-                onChange={(e) => programar(e.target.value ? Number(e.target.value) : null)}
-                aria-label="Medir automáticamente"
-                className="rounded-full border border-[color:var(--linea-fuerte)] bg-white px-3 py-1 text-[13px] outline-none focus:border-[color:var(--acento)]"
-              >
-                <option value="">no</option>
-                <option value="7">cada semana</option>
-                <option value="14">cada 15 días</option>
-                <option value="30">cada mes</option>
-              </select>
-              {programada && (
-                <span className="tabular-nums" title="Estimado con lo que costó la última medición">
-                  ≈ {dinero(keywords.length * costePorMedicion)} por pasada
-                </span>
-              )}
-            </label>
-          </>
-        )}
+        <div className="bg-[color:var(--panel)] px-5 py-4">
+          <p className="rotulo">Seguimiento medido</p>
+          <p className="mt-1.5 cifra text-[28px] leading-none">
+            {miles(keywords.length)}
+            <span className="ml-1.5 text-[14px] font-normal text-[color:var(--tinta-media)]">
+              {keywords.length === 1 ? "palabra seguida" : "palabras seguidas"}
+            </span>
+          </p>
+          {keywords.length > 0 ? (
+            <>
+              <div className="mt-3">
+                <Distribucion top3={top(3)} top10={top(10)} top20={top(20)} total={medidas.length} />
+              </div>
+              <p className="mt-2 text-[13px] text-[color:var(--tinta-suave)]">
+                {media !== null ? `puesto medio ${media}` : "sin medir"}
+                {fuera > 0 && ` · ${fuera} fuera del top 100`}
+                {ultimaMedicion && ` · última medición ${fecha(ultimaMedicion)}`}
+                {programada && ` · se mide sola cada ${programada} días`}
+              </p>
+            </>
+          ) : (
+            <p className="mt-2 text-[14px] text-[color:var(--tinta-media)]">
+              Puesto exacto en Google para las palabras que elijas. Se paga por consulta: unas milésimas de dólar cada una.
+            </p>
+          )}
+        </div>
 
-        {ocupado && (
-          <span className="text-[14px] text-[color:var(--tinta-suave)]">
-            Consultando Google… puede tardar un minuto.
-          </span>
-        )}
+        <div className="bg-[color:var(--panel)] px-5 py-4">
+          <p className="rotulo">Qué hacer</p>
+          <ul className="mt-1.5 flex flex-col gap-1 text-[14px]">
+            {sinMedir > 0 && puedeEditar && (
+              <li>
+                <button type="button" onClick={() => medir(true)} disabled={ocupado || !hayProveedor} className="text-left underline-offset-4 hover:text-[color:var(--acento)] hover:underline disabled:opacity-50">
+                  <span className="cifra mr-1.5 text-amber-700">{sinMedir}</span>
+                  {sinMedir === 1 ? "palabra sin medir" : "palabras sin medir"} · medir ahora
+                </button>
+              </li>
+            )}
+            {bajaron > 0 && (
+              <li>
+                <button type="button" onClick={() => { setOrden({ col: "cambio", asc: true }); ir("seguimiento"); }} className="text-left underline-offset-4 hover:text-[color:var(--acento)] hover:underline">
+                  <span className="cifra mr-1.5 text-red-600">{bajaron}</span>
+                  {bajaron === 1 ? "palabra bajó" : "palabras bajaron"} 3 puestos o más
+                </button>
+              </li>
+            )}
+            {subieron > 0 && (
+              <li className="text-[color:var(--tinta-media)]">
+                <span className="cifra mr-1.5 text-emerald-700">{subieron}</span>
+                {subieron === 1 ? "subió" : "subieron"} 3 puestos o más
+              </li>
+            )}
+            {gsc && gsc.oportunidades > 0 && (
+              <li>
+                <button type="button" onClick={() => ir("oportunidades")} className="text-left underline-offset-4 hover:text-[color:var(--acento)] hover:underline">
+                  <span className="cifra mr-1.5 text-[color:var(--tinta)]">{miles(gsc.oportunidades)}</span>
+                  oportunidades entre el puesto 4 y el 20
+                </button>
+              </li>
+            )}
+            {gsc && gsc.canibales > 0 && (
+              <li>
+                <button type="button" onClick={() => ir("canibalizaciones")} className="text-left underline-offset-4 hover:text-[color:var(--acento)] hover:underline">
+                  <span className="cifra mr-1.5 text-amber-700">{miles(gsc.canibales)}</span>
+                  {gsc.canibales === 1 ? "canibalización" : "canibalizaciones"}
+                </button>
+              </li>
+            )}
+            {sinMedir === 0 && bajaron === 0 && !(gsc && (gsc.oportunidades > 0 || gsc.canibales > 0)) && (
+              <li className="text-[color:var(--tinta-media)]">Nada urgente por aquí.</li>
+            )}
+          </ul>
+        </div>
       </div>
 
       {!hayProveedor && (
@@ -299,247 +380,256 @@ export default function Posiciones({
         </p>
       )}
 
-      {abierto && (
-        <div className="tarjeta mt-4 p-5">
-          <textarea
-            value={texto}
-            onChange={(e) => setTexto(e.target.value)}
-            rows={6}
-            placeholder={"Una consulta por línea:\nregalos corporativos\ntermos personalizados\nmochilas para notebook"}
-            className="w-full rounded-xl border border-[color:var(--linea-fuerte)] bg-white px-3.5 py-2.5 text-[14px] outline-none transition focus:border-[color:var(--acento)]"
-          />
+      {/* ---------------- Seguimiento medido ---------------- */}
+      <section id="seguimiento" className="mt-8 scroll-mt-20">
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <h3 className="text-[17px] font-semibold">Seguimiento medido</h3>
+            <p className="mt-0.5 max-w-2xl text-[14px] text-[color:var(--tinta-media)]">
+              Puesto exacto entre los resultados orgánicos, medido cuando tú lo pides o cuando lo programas.
+            </p>
+          </div>
+          {puedeEditar && (
+            <div className="flex flex-wrap items-center gap-2">
+              {keywords.length > 0 && (
+                <>
+                  <button onClick={() => medir(true)} disabled={ocupado || !sinMedir || !hayProveedor} className="boton">
+                    Medir las nuevas{sinMedir > 0 && ` (${sinMedir})`}
+                  </button>
+                  <button onClick={() => medir(false)} disabled={ocupado || !hayProveedor} className="boton">
+                    Medir todo
+                  </button>
+                  <label className="flex items-center gap-2 text-[13px] text-[color:var(--tinta-media)]">
+                    Medir sola
+                    <select
+                      value={programada ?? ""}
+                      onChange={(e) => programar(e.target.value ? Number(e.target.value) : null)}
+                      aria-label="Medir automáticamente"
+                      className="rounded-full border border-[color:var(--linea-fuerte)] bg-white px-3 py-1.5 text-[13px] outline-none focus:border-[color:var(--acento)]"
+                    >
+                      <option value="">no</option>
+                      <option value="7">cada semana</option>
+                      <option value="14">cada 15 días</option>
+                      <option value="30">cada mes</option>
+                    </select>
+                    {programada && (
+                      <span className="tabular-nums" title="Estimado con lo que costó la última medición">
+                        ≈ {dinero(keywords.length * costePorMedicion)} por pasada
+                      </span>
+                    )}
+                  </label>
+                </>
+              )}
+              <button onClick={() => setAbierto(!abierto)} className={abierto ? "boton" : "boton-fuerte"}>
+                {abierto ? "Cerrar" : "Añadir consultas"}
+              </button>
+            </div>
+          )}
+        </div>
 
-          <div className="mt-3 flex flex-wrap items-center gap-3">
-            <label className="flex items-center gap-2 text-[14px]">
-              <span className="text-[color:var(--tinta-media)]">País</span>
-              <select
-                value={ubicacion}
-                onChange={(e) => setUbicacion(Number(e.target.value))}
-                className="rounded-full border border-[color:var(--linea-fuerte)] bg-white px-3 py-1.5 text-[14px] outline-none"
-              >
-                {UBICACIONES.map(([id, n]) => (
-                  <option key={id} value={id}>
-                    {n}
-                  </option>
-                ))}
-              </select>
-            </label>
+        {ocupado && (
+          <p className="mt-3 text-[14px] text-[color:var(--tinta-suave)]">Consultando Google… puede tardar un minuto.</p>
+        )}
 
-            <div className="segmentos">
-              {[
-                ["desktop", "Escritorio"],
-                ["mobile", "Móvil"],
-              ].map(([id, n]) => (
-                <button
-                  key={id}
-                  onClick={() => setDispositivo(id)}
-                  className={`segmento ${dispositivo === id ? "segmento-activo" : ""}`}
+        {abierto && (
+          <div className="tarjeta mt-4 p-5">
+            <textarea
+              value={texto}
+              onChange={(e) => setTexto(e.target.value)}
+              rows={6}
+              placeholder={"Una consulta por línea:\nregalos corporativos\ntermos personalizados\nmochilas para notebook"}
+              className="w-full rounded-xl border border-[color:var(--linea-fuerte)] bg-white px-3.5 py-2.5 text-[14px] outline-none transition focus:border-[color:var(--acento)]"
+            />
+            <div className="mt-3 flex flex-wrap items-center gap-3">
+              <label className="flex items-center gap-2 text-[14px]">
+                <span className="text-[color:var(--tinta-media)]">País</span>
+                <select
+                  value={ubicacion}
+                  onChange={(e) => setUbicacion(Number(e.target.value))}
+                  className="rounded-full border border-[color:var(--linea-fuerte)] bg-white px-3 py-1.5 text-[14px] outline-none"
                 >
-                  {n}
-                </button>
-              ))}
+                  {UBICACIONES.map(([id, n]) => (
+                    <option key={id} value={id}>
+                      {n}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <div className="segmentos">
+                {[
+                  ["desktop", "Escritorio"],
+                  ["mobile", "Móvil"],
+                ].map(([id, n]) => (
+                  <button key={id} onClick={() => setDispositivo(id)} className={`segmento ${dispositivo === id ? "segmento-activo" : ""}`}>
+                    {n}
+                  </button>
+                ))}
+              </div>
+              <button onClick={añadir} disabled={ocupado || texto.trim().length === 0} className="boton-fuerte ml-auto">
+                Añadir
+              </button>
+            </div>
+            <p className="mt-3 text-[13px] text-[color:var(--tinta-suave)]">
+              La misma consulta en escritorio y en móvil son dos seguimientos distintos, porque Google
+              devuelve resultados distintos. En ecommerce suele importar más el móvil.
+            </p>
+          </div>
+        )}
+
+        {keywords.length === 0 ? (
+          <div className="mt-4 rounded-2xl border border-[color:var(--linea)] bg-[color:var(--panel)] px-6 py-12 text-center">
+            <p className="text-[15px] font-medium">Todavía no se sigue ninguna consulta.</p>
+            <p className="mx-auto mt-2 max-w-md text-[14px] text-[color:var(--tinta-media)]">
+              Añade las palabras por las que este cliente quiere posicionar, o pulsa «Seguir» en cualquier
+              búsqueda de Search Console más abajo.
+            </p>
+          </div>
+        ) : (
+          <>
+            <div className="mt-4 flex flex-wrap items-center gap-2">
+              <input
+                value={buscaKw}
+                onChange={(e) => setBuscaKw(e.target.value)}
+                placeholder="Buscar palabra o URL…"
+                aria-label="Buscar palabra o URL"
+                className="w-full max-w-xs rounded-full border border-[color:var(--linea-fuerte)] bg-white px-3.5 py-1.5 text-[14px] outline-none transition focus:border-[color:var(--acento)]"
+              />
+              {qKw && (
+                <span className="text-[13px] text-[color:var(--tinta-suave)]">
+                  {visiblesKw.length} de {keywords.length}
+                </span>
+              )}
+              <button
+                type="button"
+                onClick={() =>
+                  descargarCsv(
+                    "posiciones",
+                    visiblesKw.map((k) => ({
+                      palabra: k.termino,
+                      dispositivo: k.dispositivo,
+                      puesto: k.mediciones === 0 ? "" : (k.puesto ?? "+100"),
+                      anterior: k.anterior ?? "",
+                      url: k.urlPosicionada ?? "",
+                      url_objetivo: k.urlObjetivo ?? "",
+                      medido: k.medido ? fecha(k.medido) : "",
+                    }))
+                  )
+                }
+                className="ml-auto text-[13px] text-[color:var(--tinta-suave)] transition hover:text-[color:var(--acento)]"
+              >
+                Descargar CSV
+              </button>
             </div>
 
-            <button
-              onClick={añadir}
-              disabled={ocupado || texto.trim().length === 0}
-              className="boton-fuerte ml-auto"
-            >
-              Añadir
-            </button>
-          </div>
+            <div className="tarjeta mt-2 overflow-x-auto">
+              <table className="w-full min-w-[720px] border-collapse text-[14px]">
+                <thead>
+                  <tr className="border-b border-[color:var(--linea)] text-left">
+                    {COLUMNAS.map((c) => (
+                      <th key={c.id} className={`rotulo px-3 py-3 first:px-5 ${c.ancho}`}>
+                        <button
+                          onClick={() => ordenar(c.id)}
+                          className={`rotulo transition hover:text-[color:var(--tinta)] ${orden.col === c.id ? "!text-[color:var(--tinta)]" : ""}`}
+                        >
+                          {c.texto}
+                          <span className="ml-1 inline-block w-2 text-[10px]">{orden.col === c.id ? (orden.asc ? "▲" : "▼") : ""}</span>
+                        </button>
+                      </th>
+                    ))}
+                    <th className="rotulo px-3 py-3"></th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-[color:var(--linea)]">
+                  {visiblesKw.map((k) => {
+                    const d = delta(k);
+                    return (
+                      <tr key={k.id} className="align-top transition hover:bg-black/[0.015]">
+                        <td className="px-5 py-3">
+                          <p className="font-medium">{k.termino}</p>
+                          <p className="mt-0.5 text-[12px] text-[color:var(--tinta-suave)]">
+                            {k.dispositivo === "mobile" ? "móvil" : "escritorio"}
+                            {k.medido && ` · ${fecha(k.medido)}`}
+                            {k.mediciones === 0 && " · sin medir"}
+                          </p>
+                        </td>
 
-          <p className="mt-3 text-[13px] text-[color:var(--tinta-suave)]">
-            La misma consulta en escritorio y en móvil son dos seguimientos distintos, porque Google
-            devuelve resultados distintos. En ecommerce suele importar más el móvil.
-          </p>
-        </div>
-      )}
+                        <td className={`px-3 py-3 text-right text-[16px] font-semibold tabular-nums ${colorPuesto(k.puesto)}`}>
+                          {k.mediciones === 0 ? "—" : (k.puesto ?? "+100")}
+                          {k.historial.filter((x) => x !== null).length >= 2 && (
+                            <span className="ml-2 inline-block align-middle" title={`Últimas ${k.historial.length} mediciones`}>
+                              <Chispa valores={k.historial} invertido ancho={56} alto={16} />
+                            </span>
+                          )}
+                          {k.bloquesArriba !== null && k.bloquesArriba > 0 && (
+                            <span
+                              className="ml-1 text-[12px] font-normal text-[color:var(--tinta-suave)]"
+                              title={`${k.bloquesArriba} bloques de Google (anuncios, mapas, preguntas) por encima`}
+                            >
+                              +{k.bloquesArriba}
+                            </span>
+                          )}
+                        </td>
 
-      {keywords.length === 0 ? (
-        <div className="mt-5 rounded-2xl border border-[color:var(--linea)] bg-[color:var(--panel)] px-6 py-20 text-center">
-          <p className="text-[15px] font-medium">Todavía no se sigue ninguna consulta.</p>
-          <p className="mx-auto mt-2 max-w-md text-[14px] text-[color:var(--tinta-media)]">
-            Añade las palabras por las que este cliente quiere posicionar. Cada medición consulta
-            Google de verdad y cuesta unas milésimas de dólar, así que se hace cuando tú lo pides.
-          </p>
-        </div>
-      ) : (
-        <>
-          <dl className="tarjeta mt-5 grid grid-cols-2 divide-x divide-[color:var(--linea)] overflow-hidden sm:grid-cols-4">
-            {[
-              ["Palabras posicionadas", String(medidas.length), ""],
-              ["En seguimiento", String(keywords.length), ""],
-              ["Posición media", media !== null ? String(media) : "—", ""],
-              ["Sin medir", String(sinMedir), sinMedir ? "text-amber-600" : ""],
-            ].map(([k, v, color]) => (
-              <div key={k} className="px-5 py-4">
-                <dt className="rotulo">{k}</dt>
-                <dd className={`mt-1 text-[24px] cifra font-semibold tabular-nums ${color}`}>{v}</dd>
-              </div>
-            ))}
-          </dl>
+                        <td className="px-3 py-3 text-right tabular-nums">
+                          {d === null || d === 0 ? (
+                            <span className="text-[color:var(--tinta-suave)]">—</span>
+                          ) : (
+                            <span className={d > 0 ? "text-emerald-600" : "text-red-600"}>
+                              {d > 0 ? "▲" : "▼"} {Math.abs(d)}
+                            </span>
+                          )}
+                        </td>
 
-          <dl className="tarjeta mt-3 grid grid-cols-2 divide-x divide-[color:var(--linea)] overflow-hidden sm:grid-cols-5">
-            {[
-              ["Top 3", top(3), "text-emerald-600"],
-              ["Top 10", top(10), "text-emerald-600"],
-              ["Top 20", top(20), ""],
-              ["Top 100", top(100), ""],
-              ["Fuera del 100", fuera, fuera ? "text-[color:var(--tinta-media)]" : ""],
-            ].map(([k, v, color]) => (
-              <div key={String(k)} className="px-5 py-4">
-                <dt className="rotulo">{String(k)}</dt>
-                <dd className={`mt-1 text-[24px] cifra font-semibold tabular-nums ${color}`}>
-                  {Number(v).toLocaleString("es-CL")}
-                </dd>
-              </div>
-            ))}
-          </dl>
+                        <td className="px-5 py-3">
+                          {k.urlPosicionada ? (
+                            <a
+                              href={k.urlPosicionada}
+                              target="_blank"
+                              rel="noopener"
+                              className="block max-w-[320px] truncate underline-offset-2 transition hover:text-[color:var(--acento)] hover:underline"
+                              title={k.urlPosicionada}
+                            >
+                              {k.urlPosicionada.replace(/^https?:\/\/[^/]+/, "") || "/"}
+                            </a>
+                          ) : (
+                            <span className="text-[color:var(--tinta-suave)]">
+                              {k.mediciones === 0 ? "sin medir" : "no aparece en los 100 primeros"}
+                            </span>
+                          )}
+                        </td>
 
-          <div className="mt-3 flex flex-wrap items-center gap-2">
-            <input
-              value={buscaKw}
-              onChange={(e) => setBuscaKw(e.target.value)}
-              placeholder="Buscar palabra o URL…"
-              aria-label="Buscar palabra o URL"
-              className="w-full max-w-xs rounded-full border border-[color:var(--linea-fuerte)] bg-white px-3.5 py-1.5 text-[14px] outline-none transition focus:border-[color:var(--acento)]"
-            />
-            {qKw && (
-              <span className="text-[13px] text-[color:var(--tinta-suave)]">
-                {visiblesKw.length} de {keywords.length}
-              </span>
-            )}
-            <button
-              type="button"
-              onClick={() =>
-                descargarCsv(
-                  "posiciones",
-                  visiblesKw.map((k) => ({
-                    palabra: k.termino,
-                    dispositivo: k.dispositivo,
-                    puesto: k.mediciones === 0 ? "" : (k.puesto ?? "+100"),
-                    anterior: k.anterior ?? "",
-                    url: k.urlPosicionada ?? "",
-                    url_objetivo: k.urlObjetivo ?? "",
-                    medido: k.medido ?? "",
-                  }))
-                )
-              }
-              className="ml-auto text-[13px] text-[color:var(--tinta-suave)] transition hover:text-[color:var(--acento)]"
-            >
-              Descargar CSV
-            </button>
-          </div>
+                        <td className="px-3 py-3 text-right">
+                          {puedeEditar && (
+                            <button
+                              onClick={() => quitar(k.id, k.termino)}
+                              disabled={ocupado}
+                              className="text-[13px] text-[color:var(--tinta-suave)] transition hover:text-red-600"
+                            >
+                              Quitar
+                            </button>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
 
-          <div className="tarjeta mt-2 overflow-x-auto">
-            <table className="w-full min-w-[720px] border-collapse text-[14px]">
-              <thead>
-                <tr className="border-b border-[color:var(--linea)] text-left">
-                  {COLUMNAS.map((c) => (
-                    <th key={c.id} className={`rotulo px-3 py-3 first:px-5 ${c.ancho}`}>
-                      <button
-                        onClick={() => ordenar(c.id)}
-                        className={`rotulo transition hover:text-[color:var(--tinta)] ${
-                          orden.col === c.id ? "!text-[color:var(--tinta)]" : ""
-                        }`}
-                      >
-                        {c.texto}
-                        <span className="ml-1 inline-block w-2 text-[10px]">
-                          {orden.col === c.id ? (orden.asc ? "▲" : "▼") : ""}
-                        </span>
-                      </button>
-                    </th>
-                  ))}
-                  <th className="rotulo px-3 py-3"></th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-[color:var(--linea)]">
-                {visiblesKw.map((k) => {
-                  const d = delta(k);
-                  return (
-                    <tr key={k.id} className="align-top transition hover:bg-black/[0.015]">
-                      <td className="px-5 py-3">
-                        <p className="font-medium">{k.termino}</p>
-                        <p className="mt-0.5 text-[12px] text-[color:var(--tinta-suave)]">
-                          {k.dispositivo === "mobile" ? "móvil" : "escritorio"}
-                          {k.medido && ` · ${k.medido}`}
-                          {k.mediciones === 0 && " · sin medir"}
-                        </p>
-                      </td>
+            <p className="mt-3 max-w-3xl text-[13px] leading-relaxed text-[color:var(--tinta-suave)]">
+              El número pequeño junto al puesto cuenta los bloques de Google que van por encima —anuncios,
+              mapa local, «otras preguntas»—, porque ser tercero debajo de tres bloques no es lo mismo que
+              ser tercero. Cada pasada a mano mide como máximo 40 consultas para que el gasto sea previsible.
+            </p>
+          </>
+        )}
+      </section>
 
-                      <td className={`px-3 py-3 text-right text-[15px] font-semibold tabular-nums ${colorPuesto(k.puesto)}`}>
-                        {k.mediciones === 0 ? "—" : k.puesto ?? "+100"}
-                        {k.historial.filter((x) => x !== null).length >= 2 && (
-                          <span className="ml-2 inline-block align-middle" title={`Últimas ${k.historial.length} mediciones`}>
-                            <Chispa valores={k.historial} invertido ancho={56} alto={16} />
-                          </span>
-                        )}
-                        {k.bloquesArriba !== null && k.bloquesArriba > 0 && (
-                          <span
-                            className="ml-1 text-[12px] font-normal text-[color:var(--tinta-suave)]"
-                            title={`${k.bloquesArriba} bloques de Google (anuncios, mapas, preguntas) por encima`}
-                          >
-                            +{k.bloquesArriba}
-                          </span>
-                        )}
-                      </td>
-
-                      <td className="px-3 py-3 text-right tabular-nums">
-                        {d === null || d === 0 ? (
-                          <span className="text-[color:var(--tinta-suave)]">—</span>
-                        ) : (
-                          <span className={d > 0 ? "text-emerald-600" : "text-red-600"}>
-                            {d > 0 ? "▲" : "▼"} {Math.abs(d)}
-                          </span>
-                        )}
-                      </td>
-
-                      <td className="px-5 py-3">
-                        {k.urlPosicionada ? (
-                          <a
-                            href={k.urlPosicionada}
-                            target="_blank"
-                            rel="noopener"
-                            className="block max-w-[320px] truncate underline-offset-2 transition hover:text-[color:var(--acento)] hover:underline"
-                            title={k.urlPosicionada}
-                          >
-                            {k.urlPosicionada.replace(/^https?:\/\/[^/]+/, "") || "/"}
-                          </a>
-                        ) : (
-                          <span className="text-[color:var(--tinta-suave)]">
-                            {k.mediciones === 0 ? "sin medir" : "no aparece en los 100 primeros"}
-                          </span>
-                        )}
-                      </td>
-
-                      <td className="px-3 py-3 text-right">
-                        {puedeEditar && (
-                          <button
-                            onClick={() => quitar(k.id, k.termino)}
-                            disabled={ocupado}
-                            className="text-[13px] text-[color:var(--tinta-suave)] transition hover:text-red-600"
-                          >
-                            Quitar
-                          </button>
-                        )}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-
-          <p className="mt-4 max-w-3xl text-[13px] leading-relaxed text-[color:var(--tinta-suave)]">
-            El puesto es la posición entre los resultados orgánicos. El número pequeño al lado cuenta
-            los bloques de Google que van por encima —anuncios, mapa local, «otras preguntas»—, porque
-            ser tercero debajo de tres bloques no es lo mismo que ser tercero. Cada pasada mide como
-            máximo 40 consultas para que el gasto sea previsible.
-          </p>
-        </>
-      )}
-        </>
+      {/* ---------------- Search Console, apilado ---------------- */}
+      {hayGsc && (
+        <section className="mt-10">
+          <SearchConsole clienteId={clienteId} puedeEditar={puedeEditar} onSeguir={seguirDesdeGsc} apilado onResumen={setGsc} />
+        </section>
       )}
     </div>
   );

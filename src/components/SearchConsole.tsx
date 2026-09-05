@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Periodo, { usePeriodo } from "@/components/Periodo";
 import Esqueleto from "@/components/Esqueleto";
+import { miles } from "@/lib/formato";
 
 interface Fila {
   consulta: string;
@@ -45,6 +46,32 @@ const VISTAS = [
   ["todo", "Todas"],
 ] as const;
 
+/** Lo que la cabecera de Posiciones enseña de Search Console. */
+export interface ResumenGsc {
+  dias: number;
+  consultas: number;
+  top3: number;
+  top10: number;
+  top20: number;
+  media: number | null;
+  oportunidades: number;
+  canibales: number;
+}
+
+function resumir(filas: Fila[], dias: number): ResumenGsc {
+  const top = (n: number) => filas.filter((f) => f.posicion <= n).length;
+  return {
+    dias,
+    consultas: filas.length,
+    top3: top(3),
+    top10: top(10),
+    top20: top(20),
+    media: filas.length ? Math.round((filas.reduce((s, f) => s + f.posicion, 0) / filas.length) * 10) / 10 : null,
+    oportunidades: filas.filter(esOportunidad).length,
+    canibales: filas.filter(esCanibal).length,
+  };
+}
+
 /**
  * La franja donde una consulta ya tiene visibilidad pero casi ningún clic.
  *
@@ -78,6 +105,8 @@ export default function SearchConsole({
   puedeEditar,
   onSeguir,
   soloCanibal,
+  apilado,
+  onResumen,
 }: {
   clienteId: string;
   puedeEditar: boolean;
@@ -91,6 +120,10 @@ export default function SearchConsole({
    * entre sí» acabarían dando dos números distintos.
    */
   soloCanibal?: boolean;
+  /** Oportunidades, canibalizaciones y todas, una debajo de otra, sin cifras propias: las pone quien lo monta. */
+  apilado?: boolean;
+  /** Avisa con el resumen cada vez que llegan datos, para la cabecera de Posiciones. */
+  onResumen?: (r: ResumenGsc) => void;
 }) {
   const [datos, setDatos] = useState<Respuesta | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -101,6 +134,7 @@ export default function SearchConsole({
   );
   const [busca, setBusca] = useState("");
   const [buscaProp, setBuscaProp] = useState("");
+  const [ampliada, setAmpliada] = useState<Record<string, boolean>>({});
   const [orden, setOrden] = useState<{ col: Columna; asc: boolean }>({
     col: "impresiones",
     asc: false,
@@ -128,6 +162,7 @@ export default function SearchConsole({
       // de reconectar, que suele ser justo lo que hace falta.
       if (j?.configurado !== undefined) setDatos(j);
       if (!r.ok) throw new Error(j.error || "No se pudieron leer los datos.");
+      if (onResumen && Array.isArray(j?.filas)) onResumen(resumir(j.filas as Fila[], j.dias ?? d));
     } catch (e) {
       setError(e instanceof Error ? e.message : "Error inesperado.");
     } finally {
@@ -304,23 +339,16 @@ export default function SearchConsole({
   const conjunto =
     vista === "oportunidades" ? oportunidades : vista === "canibal" ? canibales : filas;
 
-  const visibles = conjunto
-    .filter(
-      (f) =>
-        !busca.trim() ||
-        f.consulta.includes(busca.trim().toLowerCase()) ||
-        (f.pagina ?? "").toLowerCase().includes(busca.trim().toLowerCase())
-    )
-    .sort((a, b) => {
+  const q = busca.trim().toLowerCase();
+  const coincide = (f: Fila) => !q || f.consulta.includes(q) || (f.pagina ?? "").toLowerCase().includes(q);
+  const ordenadasPor = (l: Fila[]) =>
+    [...l].sort((a, b) => {
       const x = a[orden.col] ?? "";
       const y = b[orden.col] ?? "";
-      const cmp =
-        typeof x === "number" && typeof y === "number"
-          ? x - y
-          : String(x).localeCompare(String(y), "es");
+      const cmp = typeof x === "number" && typeof y === "number" ? x - y : String(x).localeCompare(String(y), "es");
       return orden.asc ? cmp : -cmp;
-    })
-    .slice(0, 200);
+    });
+  const visibles = ordenadasPor(conjunto.filter(coincide)).slice(0, 200);
 
   const clics = filas.reduce((s, f) => s + f.clics, 0);
   const impresiones = filas.reduce((s, f) => s + f.impresiones, 0);
@@ -330,6 +358,278 @@ export default function SearchConsole({
 
   /** Cuántas consultas caen dentro de ese puesto. Acumulativo. */
   const top = (n: number) => filas.filter((f) => f.posicion <= n).length;
+
+  const tarjetasCanibal = (lista: Fila[]) => (
+        <div className="mt-3 space-y-3">
+          {lista.length === 0 ? (
+            <p className="tarjeta px-5 py-8 text-center text-[14px] text-[color:var(--tinta-suave)]">
+              Ninguna consulta con dos páginas repartiéndose las impresiones. Buena señal.
+            </p>
+          ) : (
+            lista.map((f) => (
+              <div key={f.consulta} className="tarjeta p-4">
+                <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+                  <p className="text-[14px] font-semibold">{f.consulta}</p>
+                  <span
+                    className={`pastilla ${
+                      dominio(f) < 60 ? "bg-red-50 text-red-700" : "bg-amber-50 text-amber-700"
+                    }`}
+                  >
+                    {f.paginas} páginas
+                  </span>
+                  <span className="text-[13px] text-[color:var(--tinta-suave)]">
+                    la principal se lleva el {dominio(f)}% · posición media {f.posicion} ·{" "}
+                    {f.impresiones.toLocaleString("es-CL")} impresiones
+                  </span>
+                  {puedeEditar && onSeguir && (
+                    <button
+                      onClick={() => onSeguir(f.consulta)}
+                      className="ml-auto text-[13px] text-[color:var(--tinta-suave)] transition hover:text-[color:var(--acento)]"
+                    >
+                      Seguir
+                    </button>
+                  )}
+                </div>
+
+                <ul className="mt-3 divide-y divide-[color:var(--linea)] border-t border-[color:var(--linea)]">
+                  {f.urls.map((u, i) => (
+                    <li key={u.url} className="flex flex-wrap items-baseline gap-x-3 py-2 text-[14px]">
+                      <span
+                        className={`pastilla shrink-0 ${
+                          i === 0 ? "bg-emerald-50 text-emerald-700" : "bg-black/[0.05] text-[color:var(--tinta-media)]"
+                        }`}
+                      >
+                        {i === 0 ? "principal" : "compite"}
+                      </span>
+                      <a
+                        href={u.url}
+                        target="_blank"
+                        rel="noopener"
+                        className="min-w-0 flex-1 truncate underline-offset-2 transition hover:text-[color:var(--acento)] hover:underline"
+                        title={u.url}
+                      >
+                        {u.url.replace(/^https?:\/\/[^/]+/, "") || "/"}
+                      </a>
+                      <span className="shrink-0 tabular-nums text-[color:var(--tinta-media)]">
+                        pos. {u.posicion}
+                      </span>
+                      <span className="w-24 shrink-0 text-right tabular-nums text-[color:var(--tinta-suave)]">
+                        {u.impresiones.toLocaleString("es-CL")} impr.
+                      </span>
+                      <span className="w-16 shrink-0 text-right tabular-nums text-[color:var(--tinta-suave)]">
+                        {u.clics} clics
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+
+                <p className="mt-2 text-[13px] leading-relaxed text-[color:var(--tinta-suave)]">
+                  Decide qué página debe quedarse con esta búsqueda y quítale la intención a las otras:
+                  cambia sus títulos y encabezados, o enlázalas hacia la elegida.
+                </p>
+              </div>
+            ))
+          )}
+        </div>
+  );
+
+  const tabla = (lista: Fila[], vacio: string) => (
+      <div className="tarjeta mt-3 overflow-x-auto">
+        <table className="w-full min-w-[840px] border-collapse text-[14px]">
+          <thead>
+            <tr className="border-b border-[color:var(--linea)] text-left">
+              {COLUMNAS.map((c) => (
+                <th key={c.id} className={`rotulo px-3 py-3 first:px-5 ${c.ancho}`}>
+                  <button
+                    onClick={() => ordenar(c.id)}
+                    className={`rotulo transition hover:text-[color:var(--tinta)] ${
+                      orden.col === c.id ? "!text-[color:var(--tinta)]" : ""
+                    }`}
+                  >
+                    {c.texto}
+                    <span className="ml-1 inline-block w-2 text-[10px]">
+                      {orden.col === c.id ? (orden.asc ? "▲" : "▼") : ""}
+                    </span>
+                  </button>
+                </th>
+              ))}
+              <th className="rotulo px-3 py-3"></th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-[color:var(--linea)]">
+            {lista.length === 0 ? (
+              <tr>
+                <td colSpan={7} className="px-5 py-8 text-center text-[14px] text-[color:var(--tinta-suave)]">
+                  {vacio}
+                </td>
+              </tr>
+            ) : (
+              lista.map((f) => (
+                <tr key={f.consulta} className="align-top transition hover:bg-black/[0.015]">
+                  <td className="px-5 py-2.5">
+                    {f.consulta}
+                    {f.paginas > 1 && (
+                      <span
+                        className="ml-2 pastilla bg-amber-50 text-amber-700"
+                        title={`${f.paginas} páginas del sitio compiten por esta consulta`}
+                      >
+                        {f.paginas} URLs
+                      </span>
+                    )}
+                  </td>
+                  <td className="px-3 py-2.5">
+                    {f.pagina ? (
+                      <a
+                        href={f.pagina}
+                        target="_blank"
+                        rel="noopener"
+                        className="block max-w-[260px] truncate underline-offset-2 transition hover:text-[color:var(--acento)] hover:underline"
+                        title={f.pagina}
+                      >
+                        {f.pagina.replace(/^https?:\/\/[^/]+/, "") || "/"}
+                      </a>
+                    ) : (
+                      <span className="text-[color:var(--tinta-suave)]">—</span>
+                    )}
+                  </td>
+                  <td
+                    className={`px-3 py-2.5 text-right font-semibold tabular-nums ${
+                      f.posicion <= 3
+                        ? "text-emerald-600"
+                        : f.posicion <= 10
+                        ? ""
+                        : "text-[color:var(--tinta-media)]"
+                    }`}
+                  >
+                    {f.posicion}
+                  </td>
+                  <td className="px-3 py-2.5 text-right tabular-nums">{f.clics}</td>
+                  <td className="px-3 py-2.5 text-right tabular-nums text-[color:var(--tinta-media)]">
+                    {f.impresiones.toLocaleString("es-CL")}
+                  </td>
+                  <td className="px-3 py-2.5 text-right tabular-nums text-[color:var(--tinta-media)]">
+                    {(f.ctr * 100).toFixed(1)}%
+                  </td>
+                  <td className="px-3 py-2.5 text-right">
+                    {puedeEditar && onSeguir && (
+                      <button
+                        onClick={() => onSeguir(f.consulta)}
+                        className="text-[13px] text-[color:var(--tinta-suave)] transition hover:text-[color:var(--acento)]"
+                        title="Añadir al seguimiento de posiciones"
+                      >
+                        Seguir
+                      </button>
+                    )}
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
+  );
+
+  if (apilado) {
+    const porImpresiones = (l: Fila[]) => [...l].sort((a, b) => b.impresiones - a.impresiones);
+    const listaOp = porImpresiones(oportunidades);
+    const listaCan = porImpresiones(canibales);
+    const todas = ordenadasPor(filas.filter(coincide)).slice(0, 200);
+    const TOPE_OP = 15;
+    const TOPE_CAN = 6;
+
+    return (
+      <div>
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+          <h3 className="text-[17px] font-semibold">Search Console</h3>
+          <Periodo dias={dias} setDias={setDias} permitidos={permitidos} />
+          <span className="font-mono text-[12px] text-[color:var(--tinta-suave)]">{datos.propiedad}</span>
+          {cargando && <span className="text-[13px] text-[color:var(--tinta-suave)]">actualizando…</span>}
+          {puedeEditar && (
+            <button
+              onClick={() => guardar({ propiedad: "" })}
+              className="ml-auto text-[13px] text-[color:var(--tinta-suave)] transition hover:text-[color:var(--acento)]"
+              title={`Conectado como ${datos.conexion.correo}`}
+            >
+              Cambiar propiedad
+            </button>
+          )}
+        </div>
+        {aviso}
+
+        <section id="oportunidades" className="mt-5 scroll-mt-20">
+          <div className="flex flex-wrap items-baseline gap-x-3">
+            <h4 className="text-[15px] font-semibold">
+              Oportunidades <span className="cifra ml-1 text-[color:var(--tinta-media)]">{oportunidades.length}</span>
+            </h4>
+            <p className="text-[13px] text-[color:var(--tinta-media)]">
+              Entre el puesto 4 y el 20 con impresiones reales: Google ya considera relevante la página y
+              mejorarla rinde más que atacar algo desde cero.
+            </p>
+          </div>
+          {tabla(ampliada.op ? listaOp : listaOp.slice(0, TOPE_OP), "No hay consultas entre los puestos 4 y 20 con impresiones suficientes.")}
+          {listaOp.length > TOPE_OP && (
+            <button
+              type="button"
+              onClick={() => setAmpliada((x) => ({ ...x, op: !x.op }))}
+              className="mt-2 text-[13px] text-[color:var(--tinta-suave)] transition hover:text-[color:var(--acento)]"
+            >
+              {ampliada.op ? "Ver menos" : `Ver las ${oportunidades.length}`}
+            </button>
+          )}
+        </section>
+
+        <section id="canibalizaciones" className="mt-8 scroll-mt-20">
+          <div className="flex flex-wrap items-baseline gap-x-3">
+            <h4 className="text-[15px] font-semibold">
+              Canibalizaciones <span className="cifra ml-1 text-[color:var(--tinta-media)]">{canibales.length}</span>
+            </h4>
+            <p className="text-[13px] text-[color:var(--tinta-media)]">
+              Búsquedas en las que dos o más páginas tuyas se reparten las impresiones y compiten entre ellas.
+            </p>
+          </div>
+          {tarjetasCanibal(ampliada.can ? listaCan : listaCan.slice(0, TOPE_CAN))}
+          {listaCan.length > TOPE_CAN && (
+            <button
+              type="button"
+              onClick={() => setAmpliada((x) => ({ ...x, can: !x.can }))}
+              className="mt-2 text-[13px] text-[color:var(--tinta-suave)] transition hover:text-[color:var(--acento)]"
+            >
+              {ampliada.can ? "Ver menos" : `Ver las ${canibales.length}`}
+            </button>
+          )}
+        </section>
+
+        <details className="mt-8 group/todas">
+          <summary className="flex cursor-pointer list-none flex-wrap items-baseline gap-x-3">
+            <h4 className="text-[15px] font-semibold">
+              Todas las búsquedas <span className="cifra ml-1 text-[color:var(--tinta-media)]">{miles(filas.length)}</span>
+              <span className="ml-2 inline-block text-[12px] text-[color:var(--tinta-suave)] transition group-open/todas:rotate-90">▸</span>
+            </h4>
+            <p className="text-[13px] text-[color:var(--tinta-media)]">Cada consulta por la que el sitio apareció, con su página y su posición media.</p>
+          </summary>
+          <div className="mt-3 flex flex-wrap items-center gap-3">
+            <input
+              value={busca}
+              onChange={(e) => setBusca(e.target.value)}
+              placeholder="Filtrar consultas…"
+              aria-label="Filtrar consultas"
+              className="w-60 rounded-full border border-[color:var(--linea-fuerte)] bg-white px-4 py-1.5 text-[14px] outline-none transition focus:border-[color:var(--acento)]"
+            />
+            {filas.length > 200 && (
+              <span className="text-[13px] text-[color:var(--tinta-suave)]">se muestran 200; filtra para llegar al resto</span>
+            )}
+          </div>
+          {tabla(todas, "Search Console no devolvió datos para este periodo.")}
+        </details>
+
+        <p className="mt-4 max-w-3xl text-[13px] leading-relaxed text-[color:var(--tinta-suave)]">
+          Datos reales de Google, sin coste. La posición es un promedio de todas las veces que el sitio
+          se mostró en el periodo, no la foto de un momento — por eso sale con decimales y no coincide
+          exactamente con lo que mide DataForSEO. Search Console va con dos o tres días de retraso.
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className="mt-4">
@@ -421,175 +721,14 @@ export default function SearchConsole({
         />
       </div>
 
-      {vista === "canibal" ? (
-        <div className="mt-3 space-y-3">
-          {visibles.length === 0 ? (
-            <p className="tarjeta px-5 py-8 text-center text-[14px] text-[color:var(--tinta-suave)]">
-              Ninguna consulta con dos páginas repartiéndose las impresiones. Buena señal.
-            </p>
-          ) : (
-            visibles.map((f) => (
-              <div key={f.consulta} className="tarjeta p-4">
-                <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-                  <p className="text-[14px] font-semibold">{f.consulta}</p>
-                  <span
-                    className={`pastilla ${
-                      dominio(f) < 60 ? "bg-red-50 text-red-700" : "bg-amber-50 text-amber-700"
-                    }`}
-                  >
-                    {f.paginas} páginas
-                  </span>
-                  <span className="text-[13px] text-[color:var(--tinta-suave)]">
-                    la principal se lleva el {dominio(f)}% · posición media {f.posicion} ·{" "}
-                    {f.impresiones.toLocaleString("es-CL")} impresiones
-                  </span>
-                  {puedeEditar && onSeguir && (
-                    <button
-                      onClick={() => onSeguir(f.consulta)}
-                      className="ml-auto text-[13px] text-[color:var(--tinta-suave)] transition hover:text-[color:var(--acento)]"
-                    >
-                      Seguir
-                    </button>
-                  )}
-                </div>
-
-                <ul className="mt-3 divide-y divide-[color:var(--linea)] border-t border-[color:var(--linea)]">
-                  {f.urls.map((u, i) => (
-                    <li key={u.url} className="flex flex-wrap items-baseline gap-x-3 py-2 text-[14px]">
-                      <span
-                        className={`pastilla shrink-0 ${
-                          i === 0 ? "bg-emerald-50 text-emerald-700" : "bg-black/[0.05] text-[color:var(--tinta-media)]"
-                        }`}
-                      >
-                        {i === 0 ? "principal" : "compite"}
-                      </span>
-                      <a
-                        href={u.url}
-                        target="_blank"
-                        rel="noopener"
-                        className="min-w-0 flex-1 truncate underline-offset-2 transition hover:text-[color:var(--acento)] hover:underline"
-                        title={u.url}
-                      >
-                        {u.url.replace(/^https?:\/\/[^/]+/, "") || "/"}
-                      </a>
-                      <span className="shrink-0 tabular-nums text-[color:var(--tinta-media)]">
-                        pos. {u.posicion}
-                      </span>
-                      <span className="w-24 shrink-0 text-right tabular-nums text-[color:var(--tinta-suave)]">
-                        {u.impresiones.toLocaleString("es-CL")} impr.
-                      </span>
-                      <span className="w-16 shrink-0 text-right tabular-nums text-[color:var(--tinta-suave)]">
-                        {u.clics} clics
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-
-                <p className="mt-2 text-[13px] leading-relaxed text-[color:var(--tinta-suave)]">
-                  Decide qué página debe quedarse con esta búsqueda y quítale la intención a las otras:
-                  cambia sus títulos y encabezados, o enlázalas hacia la elegida.
-                </p>
-              </div>
-            ))
+      {vista === "canibal"
+        ? tarjetasCanibal(visibles)
+        : tabla(
+            visibles,
+            vista === "oportunidades"
+              ? "No hay consultas entre los puestos 4 y 20 con impresiones suficientes."
+              : "Search Console no devolvió datos para este periodo."
           )}
-        </div>
-      ) : (
-      <div className="tarjeta mt-3 overflow-x-auto">
-        <table className="w-full min-w-[840px] border-collapse text-[14px]">
-          <thead>
-            <tr className="border-b border-[color:var(--linea)] text-left">
-              {COLUMNAS.map((c) => (
-                <th key={c.id} className={`rotulo px-3 py-3 first:px-5 ${c.ancho}`}>
-                  <button
-                    onClick={() => ordenar(c.id)}
-                    className={`rotulo transition hover:text-[color:var(--tinta)] ${
-                      orden.col === c.id ? "!text-[color:var(--tinta)]" : ""
-                    }`}
-                  >
-                    {c.texto}
-                    <span className="ml-1 inline-block w-2 text-[10px]">
-                      {orden.col === c.id ? (orden.asc ? "▲" : "▼") : ""}
-                    </span>
-                  </button>
-                </th>
-              ))}
-              <th className="rotulo px-3 py-3"></th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-[color:var(--linea)]">
-            {visibles.length === 0 ? (
-              <tr>
-                <td colSpan={7} className="px-5 py-8 text-center text-[14px] text-[color:var(--tinta-suave)]">
-                  {vista === "oportunidades"
-                    ? "No hay consultas entre los puestos 4 y 20 con impresiones suficientes."
-                    : "Search Console no devolvió datos para este periodo."}
-                </td>
-              </tr>
-            ) : (
-              visibles.map((f) => (
-                <tr key={f.consulta} className="align-top transition hover:bg-black/[0.015]">
-                  <td className="px-5 py-2.5">
-                    {f.consulta}
-                    {f.paginas > 1 && (
-                      <span
-                        className="ml-2 pastilla bg-amber-50 text-amber-700"
-                        title={`${f.paginas} páginas del sitio compiten por esta consulta`}
-                      >
-                        {f.paginas} URLs
-                      </span>
-                    )}
-                  </td>
-                  <td className="px-3 py-2.5">
-                    {f.pagina ? (
-                      <a
-                        href={f.pagina}
-                        target="_blank"
-                        rel="noopener"
-                        className="block max-w-[260px] truncate underline-offset-2 transition hover:text-[color:var(--acento)] hover:underline"
-                        title={f.pagina}
-                      >
-                        {f.pagina.replace(/^https?:\/\/[^/]+/, "") || "/"}
-                      </a>
-                    ) : (
-                      <span className="text-[color:var(--tinta-suave)]">—</span>
-                    )}
-                  </td>
-                  <td
-                    className={`px-3 py-2.5 text-right font-semibold tabular-nums ${
-                      f.posicion <= 3
-                        ? "text-emerald-600"
-                        : f.posicion <= 10
-                        ? ""
-                        : "text-[color:var(--tinta-media)]"
-                    }`}
-                  >
-                    {f.posicion}
-                  </td>
-                  <td className="px-3 py-2.5 text-right tabular-nums">{f.clics}</td>
-                  <td className="px-3 py-2.5 text-right tabular-nums text-[color:var(--tinta-media)]">
-                    {f.impresiones.toLocaleString("es-CL")}
-                  </td>
-                  <td className="px-3 py-2.5 text-right tabular-nums text-[color:var(--tinta-media)]">
-                    {(f.ctr * 100).toFixed(1)}%
-                  </td>
-                  <td className="px-3 py-2.5 text-right">
-                    {puedeEditar && onSeguir && (
-                      <button
-                        onClick={() => onSeguir(f.consulta)}
-                        className="text-[13px] text-[color:var(--tinta-suave)] transition hover:text-[color:var(--acento)]"
-                        title="Añadir al seguimiento de posiciones"
-                      >
-                        Seguir
-                      </button>
-                    )}
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </div>
-      )}
 
       <p className="mt-4 max-w-3xl text-[13px] leading-relaxed text-[color:var(--tinta-suave)]">
         Datos reales de Google, sin coste. La posición es un promedio de todas las veces que el sitio
