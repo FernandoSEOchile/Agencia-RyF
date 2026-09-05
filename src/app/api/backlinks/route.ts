@@ -64,12 +64,34 @@ export async function POST(req: NextRequest) {
     );
   }
 
+  // Cada consulta pisaba la anterior y no se veía qué cambió. Antes de pisar
+  // se comparan los dominios: los que entraron y los que ya no enlazan.
+  const previo = await db.backlinks.findUnique({
+    where: { clienteId: p.cliente.id },
+    select: { datos: true, medido: true },
+  });
+  let cambios: { desde: string; nuevos: string[]; perdidos: string[] } | null = null;
+  if (previo) {
+    try {
+      const antes = new Set(((JSON.parse(previo.datos) as { dominios?: { dominio: string }[] }).dominios ?? []).map((d) => d.dominio));
+      const ahora = new Set(perfil.dominios.map((d) => d.dominio));
+      cambios = {
+        desde: previo.medido.toISOString(),
+        nuevos: [...ahora].filter((d) => !antes.has(d)).slice(0, 200),
+        perdidos: [...antes].filter((d) => !ahora.has(d)).slice(0, 200),
+      };
+    } catch {
+      cambios = null;
+    }
+  }
+  const guardado = JSON.stringify({ ...perfil, cambios });
+
   await db.backlinks.upsert({
     where: { clienteId: p.cliente.id },
-    update: { datos: JSON.stringify(perfil), coste: perfil.coste, medido: new Date() },
+    update: { datos: guardado, coste: perfil.coste, medido: new Date() },
     create: {
       clienteId: p.cliente.id,
-      datos: JSON.stringify(perfil),
+      datos: guardado,
       coste: perfil.coste,
     },
   });

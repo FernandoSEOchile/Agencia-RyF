@@ -173,6 +173,17 @@ export async function GET(req: NextRequest) {
     porDiaTrabajo.set(dia, (porDiaTrabajo.get(dia) ?? 0) + 1);
   }
 
+  // Las anotaciones a mano cuentan como una marca más, con su texto.
+  const anotaciones = await db.anotacion.findMany({
+    where: { clienteId, fecha: { gte: desde } },
+    orderBy: { fecha: "asc" },
+    select: { id: true, fecha: true, texto: true },
+  });
+  for (const a of anotaciones) {
+    const dia = a.fecha.toISOString().slice(0, 10);
+    porDiaTrabajo.set(dia, (porDiaTrabajo.get(dia) ?? 0) + 1);
+  }
+
   const trabajo = [...porDiaTrabajo.entries()]
     .map(([fecha, cuantos]) => ({ fecha, cuantos }))
     .sort((a, b) => a.fecha.localeCompare(b.fecha));
@@ -256,6 +267,7 @@ export async function GET(req: NextRequest) {
     avisoGsc,
     posiciones,
     trabajo,
+    anotaciones: anotaciones.map((a) => ({ id: a.id, fecha: a.fecha.toISOString().slice(0, 10), texto: a.texto })),
     tecnico,
     keywords,
     reparto,

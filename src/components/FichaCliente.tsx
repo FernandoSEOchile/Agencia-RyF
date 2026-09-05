@@ -147,6 +147,9 @@ export default function FichaCliente({
   puedeDarDeBaja,
   memorias,
   olvidar,
+  enlaceInforme,
+  crearEnlace,
+  revocarEnlace,
   pasos,
   reconectar,
   esWordPress,
@@ -175,6 +178,9 @@ export default function FichaCliente({
   puedeDarDeBaja: boolean;
   memorias: { id: string; titulo: string; nota: string; fecha: string }[];
   olvidar: (datos: FormData) => Promise<void>;
+  enlaceInforme: string | null;
+  crearEnlace: () => Promise<void>;
+  revocarEnlace: () => Promise<void>;
   pasos: { texto: string; hecho: boolean; pestaña: string }[];
   reconectar: (datos: FormData) => Promise<void>;
   esWordPress: boolean;
@@ -399,7 +405,7 @@ export default function FichaCliente({
         />
       )}
 
-      {activa === "panorama" && <Panorama clienteId={clienteId} irA={(t) => setActiva(t as Pestaña)} />}
+      {activa === "panorama" && <Panorama clienteId={clienteId} irA={(t) => setActiva(t as Pestaña)} puedeEditar={puedeSubir} />}
 
       {activa === "local" && (
         <>
@@ -658,6 +664,55 @@ export default function FichaCliente({
               </div>
             )}
           </form>
+
+          {/* El informe para el cliente final: un enlace privado con lo hecho
+              este mes y el anterior, y cómo van los clics. Sin gasto ni
+              herramientas. */}
+          <div className="tarjeta mt-4 p-5">
+            <p className="text-[14px] font-medium">Informe para el cliente</p>
+            <p className="mt-0.5 text-[13px] text-[color:var(--tinta-media)]">
+              Un enlace privado que enseña la bitácora de este mes y del anterior, y los clics desde Google.
+              Se puede revocar cuando quieras; crear uno nuevo anula el anterior.
+            </p>
+            {enlaceInforme ? (
+              <div className="mt-3 flex flex-wrap items-center gap-2">
+                <input
+                  readOnly
+                  value={enlaceInforme}
+                  aria-label="Enlace del informe"
+                  onFocus={(e) => e.currentTarget.select()}
+                  className="min-w-[260px] flex-1 rounded-xl border border-[color:var(--linea-fuerte)] bg-black/[0.03] px-3.5 py-2 font-mono text-[12px]"
+                />
+                <a href={enlaceInforme} target="_blank" rel="noopener" className="boton">
+                  Abrir
+                </a>
+                <button
+                  type="button"
+                  onClick={() => navigator.clipboard?.writeText(enlaceInforme).catch(() => {})}
+                  className="boton"
+                >
+                  Copiar
+                </button>
+                {puedeSubir && (
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      if (await confirmar({ titulo: "¿Revocar el enlace del informe?", detalle: "Quien lo tenga dejará de ver el informe. Puedes crear otro después.", boton: "Revocar" })) await revocarEnlace();
+                    }}
+                    className="text-[12px] text-[color:var(--tinta-suave)] transition hover:text-red-600"
+                  >
+                    Revocar
+                  </button>
+                )}
+              </div>
+            ) : (
+              puedeSubir && (
+                <button type="button" onClick={() => crearEnlace()} className="boton mt-3">
+                  Crear enlace
+                </button>
+              )
+            )}
+          </div>
 
           {/* La memoria del asistente, que era invisible: lo que aprendió del
               sitio en hilos anteriores y lo que se le cuela en cada turno. */}

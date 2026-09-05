@@ -10,6 +10,7 @@ import Barra from "@/components/Barra";
 import Plataforma from "@/components/Plataforma";
 import { fecha } from "@/lib/formato";
 import { conectarSitio } from "@/lib/conectarSitio";
+import { randomBytes } from "node:crypto";
 
 export const dynamic = "force-dynamic";
 
@@ -281,6 +282,31 @@ export default async function Ficha({
     redirect("/panel");
   }
 
+  /**
+   * El enlace del informe para el cliente final. Crear uno nuevo revoca el
+   * anterior: si un enlace se filtró, con generar otro basta.
+   */
+  async function crearEnlaceInforme() {
+    "use server";
+    const s = await auth();
+    const rolAccion = (s?.user as { rol?: string } | undefined)?.rol;
+    if (!s?.user?.id || rolAccion === "LECTOR") redirect("/entrar");
+    const token = randomBytes(24).toString("hex");
+    await db.cliente.update({ where: { id }, data: { tokenInforme: token } });
+    await anotar({ usuarioId: s.user.id, clienteId: id, accion: "informe_enlace", resumen: "Enlace del informe creado" });
+    redirect(`/panel/clientes/${id}?t=datos`);
+  }
+
+  async function revocarEnlaceInforme() {
+    "use server";
+    const s = await auth();
+    const rolAccion = (s?.user as { rol?: string } | undefined)?.rol;
+    if (!s?.user?.id || rolAccion === "LECTOR") redirect("/entrar");
+    await db.cliente.update({ where: { id }, data: { tokenInforme: null } });
+    await anotar({ usuarioId: s.user.id, clienteId: id, accion: "informe_enlace", resumen: "Enlace del informe revocado" });
+    redirect(`/panel/clientes/${id}?t=datos`);
+  }
+
   async function olvidarMemoria(datos: FormData) {
     "use server";
     const s = await auth();
@@ -445,6 +471,9 @@ export default async function Ficha({
         puedeDarDeBaja={rol === "ADMIN" || rol === "GESTOR"}
         memorias={memorias.map((m) => ({ id: m.id, titulo: m.titulo, nota: m.nota, fecha: fecha(m.tocado) }))}
         olvidar={olvidarMemoria}
+        enlaceInforme={cliente.tokenInforme ? `https://panel.agenciaryf.com/informe/${cliente.tokenInforme}` : null}
+        crearEnlace={crearEnlaceInforme}
+        revocarEnlace={revocarEnlaceInforme}
         pasos={[
           { texto: "Sitio conectado", hecho: Boolean(cliente.version) || cliente.plataforma === "shopify", pestaña: "datos" },
           { texto: "Escritura activada", hecho: cliente.soloLectura === false && !cliente.escrituraBloqueada, pestaña: "datos" },

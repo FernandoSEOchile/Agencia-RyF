@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Cabecera, useOrden, type Columna } from "@/components/Tabla";
-import { dinero } from "@/lib/formato";
+import { dinero, fecha } from "@/lib/formato";
 import Esqueleto from "@/components/Esqueleto";
 
 interface Perfil {
@@ -26,6 +26,8 @@ interface Perfil {
   anclas: { texto: string; enlaces: number; dominios: number }[];
   coste: number;
   avisos: string[];
+  /** Qué cambió desde la foto anterior. Nulo en la primera consulta. */
+  cambios?: { desde: string; nuevos: string[]; perdidos: string[] } | null;
 }
 
 interface Datos {
@@ -161,7 +163,7 @@ export default function Backlinks({
         )}
         {datos?.medido && (
           <span className="text-[12px] text-[color:var(--tinta-suave)]">
-            medido el {datos.medido.slice(0, 10)}
+            medido {fecha(datos.medido)}
             {datos.coste ? ` · costó ${dinero(datos.coste)}` : ""}
           </span>
         )}
@@ -188,6 +190,27 @@ export default function Backlinks({
         </div>
       ) : (
         <>
+          {p.cambios && (p.cambios.nuevos.length > 0 || p.cambios.perdidos.length > 0) && (
+            <div className="mt-4 grid gap-3 sm:grid-cols-2">
+              <div className="rounded-2xl border border-emerald-200 bg-emerald-50/60 p-4">
+                <p className="text-[13px] font-semibold text-emerald-900">
+                  {p.cambios.nuevos.length} {p.cambios.nuevos.length === 1 ? "dominio nuevo" : "dominios nuevos"} desde {fecha(p.cambios.desde)}
+                </p>
+                <p className="mt-1 break-words text-[12px] leading-relaxed text-emerald-900/80">
+                  {p.cambios.nuevos.slice(0, 15).join(" · ")}{p.cambios.nuevos.length > 15 ? " …" : ""}
+                </p>
+              </div>
+              <div className="rounded-2xl border border-red-200 bg-red-50/60 p-4">
+                <p className="text-[13px] font-semibold text-red-900">
+                  {p.cambios.perdidos.length} {p.cambios.perdidos.length === 1 ? "dominio perdido" : "dominios perdidos"}
+                </p>
+                <p className="mt-1 break-words text-[12px] leading-relaxed text-red-900/80">
+                  {p.cambios.perdidos.slice(0, 15).join(" · ")}{p.cambios.perdidos.length > 15 ? " …" : ""}
+                </p>
+              </div>
+            </div>
+          )}
+
           <dl className="tarjeta mt-4 grid grid-cols-2 divide-x divide-[color:var(--linea)] overflow-hidden sm:grid-cols-4 lg:grid-cols-7">
             {[
               ["Fuerza del dominio", String(p.resumen.rank ?? 0), ""],

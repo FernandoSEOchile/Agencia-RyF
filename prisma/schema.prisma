@@ -84,6 +84,10 @@ model Cliente {
   /// activa una persona en la ficha, viendo lo que cuesta cada pasada.
   medirCada Int?
 
+  /// La ficha del informe público del cliente. Nula: sin enlace. Se crea y se
+  /// revoca desde Datos; quien tenga la ficha ve el informe, nadie más.
+  tokenInforme String? @unique
+
   /// Propiedad de Search Console que corresponde a este sitio. Puede ser de
   /// tipo dominio («sc-domain:ejemplo.cl») o de prefijo de URL.
   gscPropiedad String?
@@ -105,6 +109,7 @@ model Cliente {
   backlinks     Backlinks?
   revisiones    Revision[]
   rastreos      Rastreo[]
+  anotaciones   Anotacion[]
 }
 
 /// Una pasada del rastreador sobre un sitio.
@@ -951,4 +956,21 @@ model CorteBitacora {
   tocado    DateTime @updatedAt
 
   @@unique([clienteId, mes])
+}
+
+/// Una marca puesta a mano sobre los gráficos: una migración, un core update,
+/// un cambio hecho fuera del panel. Lo que explica un salto en la curva y el
+/// registro automático no sabe.
+model Anotacion {
+  id        String  @id @default(cuid())
+  clienteId String
+  cliente   Cliente @relation(fields: [clienteId], references: [id], onDelete: Cascade)
+
+  fecha DateTime
+  texto String
+
+  usuarioId String?
+  creado    DateTime @default(now())
+
+  @@index([clienteId, fecha])
 }

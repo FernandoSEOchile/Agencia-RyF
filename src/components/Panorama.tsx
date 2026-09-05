@@ -39,6 +39,7 @@ interface Datos {
   dias: number;
   trafico: Dia[];
   traficoAnterior: Dia[];
+  anotaciones: { id: string; fecha: string; texto: string }[];
   avisoGsc: string | null;
   posiciones: DiaPosiciones[];
   trabajo: { fecha: string; cuantos: number }[];
@@ -75,15 +76,44 @@ function variacionEntre(actual: number[], anterior: number[], promedio = false):
 export default function Panorama({
   clienteId,
   irA,
+  puedeEditar = false,
 }: {
   clienteId: string;
   /** Cambia de pestaña dentro de la ficha: «Medir velocidad» lleva a Técnico sin salir. */
   irA?: (pestaña: string) => void;
+  puedeEditar?: boolean;
 }) {
   const { dias, setDias, permitidos } = usePeriodo(180, [28, 90, 180, 365, 730]);
   const [d, setD] = useState<Datos | null>(null);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [anotFecha, setAnotFecha] = useState(new Date().toISOString().slice(0, 10));
+  const [anotTexto, setAnotTexto] = useState("");
+
+  async function anotarCambio() {
+    if (!anotTexto.trim()) return;
+    const r = await fetch("/api/anotaciones", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ clienteId, fecha: anotFecha, texto: anotTexto.trim() }),
+    });
+    if (r.ok) {
+      setAnotTexto("");
+      cargar();
+    } else {
+      const j = await r.json().catch(() => ({}));
+      setError(j.error ?? "No se pudo anotar.");
+    }
+  }
+
+  async function quitarAnotacion(id: string) {
+    await fetch("/api/anotaciones", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ clienteId, id }),
+    });
+    cargar();
+  }
 
   const cargar = useCallback(async () => {
     setCargando(true);
@@ -190,6 +220,62 @@ export default function Panorama({
           puntos={d.trafico.map((x) => ({ fecha: x.fecha, valor: x.clics }))}
           marcas={d.trabajo}
         />
+
+        {/* Lo que pasó fuera del panel y explica la curva: una migración, un
+            core update, un cambio de tema. Se apunta con fecha y queda como
+            marca en el gráfico. */}
+        <div className="tarjeta -mt-1 px-5 py-3">
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
+            {(d.anotaciones ?? []).map((a) => (
+              <span key={a.id} className="flex items-center gap-1.5 text-[12px]">
+                <span className="tabular-nums text-[color:var(--tinta-suave)]">{a.fecha.slice(5)}</span>
+                <span>{a.texto}</span>
+                {puedeEditar && (
+                  <button
+                    type="button"
+                    onClick={() => quitarAnotacion(a.id)}
+                    aria-label={`Quitar la anotación «${a.texto}»`}
+                    className="text-[color:var(--tinta-suave)] hover:text-red-600"
+                  >
+                    ×
+                  </button>
+                )}
+              </span>
+            ))}
+            {(d.anotaciones ?? []).length === 0 && !puedeEditar && (
+              <span className="text-[12px] text-[color:var(--tinta-suave)]">Sin anotaciones en este periodo.</span>
+            )}
+            {puedeEditar && (
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  anotarCambio();
+                }}
+                className="ml-auto flex flex-wrap items-center gap-1.5"
+              >
+                <input
+                  type="date"
+                  value={anotFecha}
+                  max={new Date().toISOString().slice(0, 10)}
+                  onChange={(e) => setAnotFecha(e.target.value)}
+                  aria-label="Fecha de la anotación"
+                  className="rounded-full border border-[color:var(--linea-fuerte)] bg-white px-2.5 py-1 text-[12px] outline-none focus:border-[color:var(--acento)]"
+                />
+                <input
+                  value={anotTexto}
+                  onChange={(e) => setAnotTexto(e.target.value)}
+                  maxLength={200}
+                  placeholder="Anotar un cambio: migración, core update, tema nuevo…"
+                  aria-label="Texto de la anotación"
+                  className="w-64 rounded-full border border-[color:var(--linea-fuerte)] bg-white px-3 py-1 text-[12px] outline-none focus:border-[color:var(--acento)]"
+                />
+                <button type="submit" disabled={!anotTexto.trim()} className="boton disabled:opacity-40">
+                  Anotar
+                </button>
+              </form>
+            )}
+          </div>
+        </div>
 
         <div className="grid gap-4 lg:grid-cols-2">
           <Linea
