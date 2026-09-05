@@ -6,6 +6,7 @@ import SearchConsole from "@/components/SearchConsole";
 import { dinero } from "@/lib/formato";
 import Chispa from "@/components/Chispa";
 import { descargarCsv } from "@/lib/csv";
+import { useRouter } from "next/navigation";
 
 export interface KeywordVista {
   id: string;
@@ -20,6 +21,7 @@ export interface KeywordVista {
   mediciones: number;
   historial: (number | null)[];
 }
+
 
 const UBICACIONES = [
   [2152, "Chile"],
@@ -66,15 +68,34 @@ export default function Posiciones({
   puedeEditar,
   hayProveedor,
   hayGsc,
+  medirCada,
+  costePorMedicion,
 }: {
   clienteId: string;
   keywords: KeywordVista[];
   puedeEditar: boolean;
   hayProveedor: boolean;
   hayGsc: boolean;
+  /** Cada cuántos días se mide sola; nulo, solo a mano. */
+  medirCada: number | null;
+  /** Lo que costó de media la última consulta, para estimar cada pasada. */
+  costePorMedicion: number;
 }) {
   const [fuente, setFuente] = useState<(typeof FUENTES)[number][0]>(hayGsc ? "gsc" : "api");
   const { confirmar, dialogo } = useConfirmar();
+  const router = useRouter();
+  const [programada, setProgramada] = useState<number | null>(medirCada);
+
+  async function programar(dias: number | null) {
+    setError(null);
+    try {
+      await llamar("PUT", { clienteId, medirCada: dias });
+      setProgramada(dias);
+      setAviso(dias ? `Se medirá sola cada ${dias} días, ≈ ${dinero(keywords.length * costePorMedicion)} por pasada.` : "Medición automática desactivada.");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "No se pudo programar.");
+    }
+  }
   const [abierto, setAbierto] = useState(false);
   const [texto, setTexto] = useState("");
   const [ubicacion, setUbicacion] = useState(2152);
@@ -126,7 +147,7 @@ export default function Posiciones({
       );
       setTexto("");
       setAbierto(false);
-      setTimeout(() => window.location.reload(), 800);
+      router.refresh();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Error inesperado.");
       setOcupado(false);
@@ -149,7 +170,7 @@ export default function Posiciones({
           (j.fallos ? ` · ${j.fallos} fallaron` : "") +
           (j.pendientes ? ` · quedan ${j.pendientes} para la próxima pasada` : "")
       );
-      setTimeout(() => window.location.reload(), 1200);
+      router.refresh();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Error inesperado.");
       setOcupado(false);
@@ -161,7 +182,7 @@ export default function Posiciones({
     setOcupado(true);
     try {
       await llamar("DELETE", { keywordId: id });
-      window.location.reload();
+      router.refresh();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Error inesperado.");
       setOcupado(false);
@@ -242,6 +263,25 @@ export default function Posiciones({
             <button onClick={() => medir(false)} disabled={ocupado} className="boton">
               Medir todo
             </button>
+            <label className="flex items-center gap-2 text-[12px] text-[color:var(--tinta-media)]">
+              Medir sola
+              <select
+                value={programada ?? ""}
+                onChange={(e) => programar(e.target.value ? Number(e.target.value) : null)}
+                aria-label="Medir automáticamente"
+                className="rounded-full border border-[color:var(--linea-fuerte)] bg-white px-3 py-1 text-[12px] outline-none focus:border-[color:var(--acento)]"
+              >
+                <option value="">no</option>
+                <option value="7">cada semana</option>
+                <option value="14">cada 15 días</option>
+                <option value="30">cada mes</option>
+              </select>
+              {programada && (
+                <span className="tabular-nums" title="Estimado con lo que costó la última medición">
+                  ≈ {dinero(keywords.length * costePorMedicion)} por pasada
+                </span>
+              )}
+            </label>
           </>
         )}
 

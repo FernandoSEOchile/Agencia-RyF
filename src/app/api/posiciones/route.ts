@@ -2,26 +2,9 @@ import { NextRequest } from "next/server";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { veTodo, anotar } from "@/lib/clientes";
-import { credenciales, medir } from "@/lib/dataforseo";
-import { apuntar } from "@/lib/gasto";
+
 import { tomar, soltar } from "@/lib/candado";
-
-/**
- * Seguimiento de posiciones.
- *
- * Medir va por petición del usuario y no en segundo plano porque cada consulta
- * cuesta dinero: que alguien pulse un botón deja claro quién lo gastó y por
- * qué. La medición programada llegará después, y esa sí irá por la cola barata
- * del proveedor.
- */
-export const runtime = "nodejs";
-export const maxDuration = 300;
-
-/** Cuántas consultas se miden como mucho en una sola pasada. */
-const TOPE = 40;
-
-/** Cuántas van en paralelo. Suficiente para no eternizarse, sin castigar al proveedor. */
-const A_LA_VEZ = 5;
+import { medirPosiciones } from "@/lib/medicion";
 
 async function permiso(clienteId: string) {
   const sesion = await auth();
@@ -95,14 +78,6 @@ export async function PATCH(req: NextRequest) {
     return Response.json({ error: "Los lectores no pueden medir." }, { status: 403 });
   }
 
-  const cred = await credenciales();
-  if (!cred) {
-    return Response.json(
-      { error: "Falta configurar DataForSEO. Un administrador puede hacerlo en Ajustes." },
-      { status: 400 }
-    );
-  }
-
   // Dos personas —o dos pestañas— pulsando «Medir» a la vez pagaban la
   // medición dos veces. Una a la vez por cliente.
   const candado = `posiciones:${String(clienteId)}`;
@@ -114,79 +89,14 @@ export async function PATCH(req: NextRequest) {
   }
 
   try {
-  let keywords = await db.keyword.findMany({
-    where: { clienteId: String(clienteId), activa: true },
-    include: { posiciones: { orderBy: { medido: "desc" }, take: 1 } },
-    orderBy: { creado: "asc" },
-  });
-
-  // Medir solo lo que nunca se midió es lo que se quiere justo después de
-  // pegar una lista nueva, y evita pagar dos veces por lo que ya está al día.
-  if (soloNuevas) keywords = keywords.filter((k) => k.posiciones.length === 0);
-
-  const recortada = keywords.slice(0, TOPE);
-  if (recortada.length === 0) {
-    return Response.json({ ok: true, medidas: 0, fallos: 0, coste: 0, pendientes: 0 });
-  }
-
-  let medidas = 0;
-  let coste = 0;
-  const fallos: string[] = [];
-
-  for (let i = 0; i < recortada.length; i += A_LA_VEZ) {
-    const tanda = recortada.slice(i, i + A_LA_VEZ);
-
-    await Promise.all(
-      tanda.map(async (k) => {
-        try {
-          const r = await medir(cred, p.dominio, {
-            termino: k.termino,
-            ubicacion: k.ubicacion,
-            idioma: k.idioma,
-            dispositivo: k.dispositivo,
-          });
-
-          await db.posicion.create({
-            data: {
-              keywordId: k.id,
-              puesto: r.puesto,
-              url: r.url,
-              bloquesArriba: r.bloquesArriba,
-              coste: r.coste,
-            },
-          });
-
-          medidas++;
-          coste += r.coste ?? 0;
-        } catch (e) {
-          fallos.push(`${k.termino}: ${e instanceof Error ? e.message : "error"}`);
-        }
-      })
-    );
-
-    // Si falla todo de golpe —saldo agotado, credenciales malas— no tiene
-    // sentido seguir quemando intentos contra el mismo muro.
-    if (fallos.length >= 8 && medidas === 0) break;
-  }
-
-  await apuntar({
+  const r = await medirPosiciones({
     clienteId: String(clienteId),
+    dominio: p.dominio,
     usuarioId: p.usuarioId,
-    servicio: "dataforseo",
-    concepto: "posiciones",
-    monto: coste,
-    detalle: `${medidas} consultas medidas`,
+    soloNuevas: Boolean(soloNuevas),
+    tope: 40,
   });
-
-  await anotar({
-    usuarioId: p.usuarioId,
-    clienteId: String(clienteId),
-    accion: "posiciones",
-    resumen: `${medidas} consultas medidas · US$${coste.toFixed(4)}${
-      fallos.length ? ` · ${fallos.length} con error` : ""
-    }`,
-    resultado: medidas > 0 ? "ok" : "error",
-  });
+  const { medidas, coste, fallos, pendientes } = r;
 
   return Response.json({
     ok: true,
@@ -194,7 +104,7 @@ export async function PATCH(req: NextRequest) {
     fallos: fallos.length,
     detalleFallos: fallos.slice(0, 3),
     coste,
-    pendientes: Math.max(0, keywords.length - recortada.length),
+    pendientes,
   });
   } finally {
     soltar(candado);
@@ -216,4 +126,36 @@ export async function DELETE(req: NextRequest) {
 
   await db.keyword.delete({ where: { id: k.id } });
   return Response.json({ ok: true });
+}
+
+/**
+ * Activar o quitar la medición automática.
+ *
+ * Es la única forma de que el panel gaste sin que alguien pulse en ese
+ * momento, así que la decisión la toma una persona desde la ficha, con el
+ * coste por pasada a la vista, y queda anotada con su nombre.
+ */
+export async function PUT(req: NextRequest) {
+  const { clienteId, medirCada } = await req.json();
+
+  const p = await permiso(String(clienteId || ""));
+  if ("error" in p) return Response.json({ error: p.error }, { status: p.codigo });
+  if (p.rol === "LECTOR") {
+    return Response.json({ error: "Los lectores no pueden programar mediciones." }, { status: 403 });
+  }
+
+  const dias = medirCada === null || medirCada === "" ? null : Number(medirCada);
+  if (dias !== null && ![7, 14, 30].includes(dias)) {
+    return Response.json({ error: "Cada 7, 14 o 30 días." }, { status: 400 });
+  }
+
+  await db.cliente.update({ where: { id: String(clienteId) }, data: { medirCada: dias } });
+  await anotar({
+    usuarioId: p.usuarioId,
+    clienteId: String(clienteId),
+    accion: "posiciones_programar",
+    resumen: dias ? `Medición automática cada ${dias} días` : "Medición automática desactivada",
+  });
+
+  return Response.json({ ok: true, medirCada: dias });
 }

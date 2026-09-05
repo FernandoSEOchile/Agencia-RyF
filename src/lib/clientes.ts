@@ -160,12 +160,14 @@ export async function anotar(datos: {
   accion: string;
   resumen: string;
   resultado?: string;
+  detalle?: string;
 }) {
   await db.registro.create({
     data: {
       accion: datos.accion,
       resumen: datos.resumen.slice(0, 500),
       resultado: datos.resultado ?? "ok",
+      detalle: datos.detalle?.slice(0, 20000),
       usuarioId: datos.usuarioId,
       clienteId: datos.clienteId,
     },

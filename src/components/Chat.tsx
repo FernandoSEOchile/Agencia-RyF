@@ -133,6 +133,23 @@ export default function Chat({
   async function anadir(lista: FileList | File[] | null) {
     if (!lista) return;
     const imagenes = [...lista].filter((f) => FORMATOS.includes(f.type));
+
+    // El trabajo llega en CSV, en briefs y en listados: un archivo de texto se
+    // pega entero en el mensaje, con su nombre, y el asistente lo lee tal cual.
+    const textos = [...lista].filter((f) => !FORMATOS.includes(f.type) && /^text\/|\.(csv|txt|md|tsv)$/i.test(f.type || f.name));
+    for (const archivo of textos) {
+      if (archivo.size > 200_000) {
+        setError(`${archivo.name} pesa más de 200 KB. Recórtalo o manda solo la parte que importa.`);
+        continue;
+      }
+      const texto = (await archivo.text()).slice(0, 100_000);
+      setEntrada((prev) => `${prev}${prev ? "\n\n" : ""}[Archivo: ${archivo.name}]\n${texto}`);
+    }
+
+    const ignorados = [...lista].length - imagenes.length - textos.length;
+    if (ignorados > 0) {
+      setError(`${ignorados} ${ignorados === 1 ? "archivo no se puede adjuntar" : "archivos no se pueden adjuntar"}: solo imágenes, CSV o texto.`);
+    }
     if (imagenes.length === 0) return;
 
     if (adjuntas.length + imagenes.length > 5) {
@@ -511,7 +528,7 @@ export default function Chat({
           <input
             ref={archivos}
             type="file"
-            accept={FORMATOS.join(",")}
+            accept={[...FORMATOS, ".csv", ".tsv", ".txt", ".md", "text/plain", "text/csv"].join(",")}
             multiple
             hidden
             onChange={(e) => {
@@ -523,8 +540,8 @@ export default function Chat({
             type="button"
             onClick={() => archivos.current?.click()}
             disabled={ocupado}
-            title="Adjuntar imagen"
-            aria-label="Adjuntar imagen"
+            title="Adjuntar imagen, CSV o texto"
+            aria-label="Adjuntar imagen, CSV o texto"
             className="grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-[color:var(--linea-fuerte)] text-[color:var(--tinta-media)] transition hover:border-[color:var(--acento)] hover:text-[color:var(--acento)] disabled:opacity-40"
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
@@ -572,7 +589,7 @@ export default function Chat({
         <p className="mt-2 flex items-center justify-between text-xs text-[color:var(--tinta-suave)]">
           <span>
             {puedeEscribir ? "Puede escribir en el sitio." : "Solo lectura: no modificará nada."}
-            <span className="ml-1.5 text-[color:var(--tinta-suave)]">· pega o arrastra imágenes</span>
+            <span className="ml-1.5 text-[color:var(--tinta-suave)]">· pega o arrastra imágenes, CSV o texto</span>
           </span>
           <span className="flex items-center gap-2">
             {modelo && <span title="Modelo que respondió">{NOMBRE_MODELO[modelo] ?? modelo}</span>}

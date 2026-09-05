@@ -51,22 +51,22 @@ export default async function Ficha({
 
   // Las consultas seguidas, cada una con sus dos últimas medidas: la actual y
   // la anterior, que es lo que permite mostrar si subió o bajó.
-  const [keywords, proveedor] = await Promise.all([
+  // Todo lo que no depende entre sí, a la vez. Antes iban en cadena —cinco
+  // esperas seguidas— y la ficha tardaba lo que sumaban todas.
+  const [keywords, proveedor, gscListo, arq] = await Promise.all([
     db.keyword.findMany({
       where: { clienteId: id, activa: true },
       include: { posiciones: { orderBy: { medido: "desc" }, take: 12 }, _count: { select: { posiciones: true } } },
       orderBy: { creado: "asc" },
     }),
     credenciales(),
+    aplicacion().then(Boolean),
+    db.arquitectura.findFirst({
+      where: { clienteId: id },
+      orderBy: { creado: "desc" },
+      include: { nodos: { orderBy: { orden: "asc" } } },
+    }),
   ]);
-
-  const gscListo = Boolean(await aplicacion());
-
-  const arq = await db.arquitectura.findFirst({
-        where: { clienteId: id },
-        orderBy: { creado: "desc" },
-        include: { nodos: { orderBy: { orden: "asc" } } },
-      });
 
   // Se piden en paralelo y ningún fallo bloquea al resto: un endpoint que la
   // versión instalada del conector no tiene no debe vaciar la ficha entera.
@@ -148,6 +148,7 @@ export default async function Ficha({
       origen: "sitio" as const,
     })),
     ...registroPanel.map((r) => ({
+      detalle: r.detalle ?? undefined,
       fecha: corto(r.creado),
       accion: r.accion,
       resumen: r.resumen,
@@ -372,6 +373,11 @@ export default async function Ficha({
         conversacionInicial={conversacion?.id ?? null}
         puedeSubir={rol !== "LECTOR"}
         hayProveedor={Boolean(proveedor)}
+        medirCada={cliente.medirCada}
+        costePorMedicion={(() => {
+          const costes = keywords.map((k) => k.posiciones[0]?.coste).filter((c): c is number => typeof c === "number" && c > 0);
+          return costes.length ? costes.reduce((t, c) => t + c, 0) / costes.length : 0.003;
+        })()}
         hayGsc={gscListo}
         keywords={keywords.map((k) => ({
           id: k.id,

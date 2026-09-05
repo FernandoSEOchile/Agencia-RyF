@@ -80,6 +80,10 @@ model Cliente {
   /// donde no hay plugin, y para frenar sin tocar el sitio del cliente.
   escrituraBloqueada Boolean @default(false)
 
+  /// Cada cuántos días se miden solas las posiciones. Nulo: solo a mano. Lo
+  /// activa una persona en la ficha, viendo lo que cuesta cada pasada.
+  medirCada Int?
+
   /// Propiedad de Search Console que corresponde a este sitio. Puede ser de
   /// tipo dominio («sc-domain:ejemplo.cl») o de prefijo de URL.
   gscPropiedad String?
@@ -449,6 +453,10 @@ model Registro {
   accion    String
   resumen   String
   resultado String   @default("ok")
+
+  /// Lo largo que no cabe en el resumen: el estado anterior de lo que el
+  /// asistente escribió, para poder verlo y, algún día, restaurarlo.
+  detalle String?
 
   usuario   Usuario? @relation(fields: [usuarioId], references: [id], onDelete: SetNull)
   usuarioId String?

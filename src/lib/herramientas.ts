@@ -22,6 +22,7 @@ import { consultas as consultasGsc } from "@/lib/gsc";
 import { apuntar } from "@/lib/gasto";
 import { herramientasShopify } from "@/lib/herramientasShopify";
 import { problemasDe, paginasDe } from "@/lib/rastreoInformes";
+import { ESCRIBEN } from "@/lib/nombresHerramientas";
 
 export interface Contexto {
   clienteId: string;
@@ -90,6 +91,19 @@ function conRegistro<T extends { name: string; run: (...a: any[]) => unknown }>(
 
         if (typeof salida === "string" && salida.startsWith("ERROR: ")) {
           await guardar(salida.slice(7));
+        }
+
+        // Lo que escribe deja su estado anterior en el registro. Hasta ahora
+        // ese estado solo vivía dentro del hilo y se perdía con él; con esto
+        // se puede ver qué había antes de cada cambio desde Registro.
+        if (ESCRIBEN.has(h.name) && typeof salida === "string" && !salida.startsWith("ERROR: ")) {
+          await anotar({
+            usuarioId: ctx.usuarioId,
+            clienteId: ctx.clienteId,
+            accion: "estado_anterior",
+            resumen: `${h.name}: se guardó cómo estaba antes del cambio`,
+            detalle: salida,
+          }).catch(() => {});
         }
 
         // Se recorta al final y se avisa de que está recortado. Devolverlo

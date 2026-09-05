@@ -23,6 +23,8 @@ export interface Suceso {
   /** `sitio` viene del registro del WordPress; `panel`, del nuestro. */
   origen: "sitio" | "panel";
   quien?: string;
+  /** Lo largo: el estado anterior de un cambio, para verlo plegado. */
+  detalle?: string;
 }
 
 interface Turno {
@@ -154,6 +156,8 @@ export default function FichaCliente({
   hayProveedor,
   hayGsc,
   puedeSubir,
+  medirCada,
+  costePorMedicion,
 }: {
   clienteId: string;
   nombre: string;
@@ -180,6 +184,8 @@ export default function FichaCliente({
   hayProveedor: boolean;
   hayGsc: boolean;
   puedeSubir: boolean;
+  medirCada: number | null;
+  costePorMedicion: number;
 }) {
   const [activa, setActivaEstado] = useState<Pestaña>("chat");
 
@@ -421,6 +427,8 @@ export default function FichaCliente({
           puedeEditar={puedeSubir}
           hayProveedor={hayProveedor}
           hayGsc={hayGsc}
+          medirCada={medirCada}
+          costePorMedicion={costePorMedicion}
         />
       )}
 
@@ -509,6 +517,16 @@ export default function FichaCliente({
                   <span className={s.resultado === "ok" ? "text-[color:var(--tinta)]" : "font-medium text-red-600"}>
                     {s.resumen}
                   </span>
+                  {s.detalle && (
+                    <details className="basis-full">
+                      <summary className="cursor-pointer text-[11px] text-[color:var(--tinta-suave)] hover:text-[color:var(--tinta)]">
+                        Ver cómo estaba antes
+                      </summary>
+                      <pre className="mt-1 max-h-64 overflow-auto whitespace-pre-wrap rounded-lg bg-black/[0.04] p-3 font-mono text-[11px] leading-relaxed">
+                        {s.detalle}
+                      </pre>
+                    </details>
+                  )}
 
                   {s.quien && <span className="ml-auto text-xs text-[color:var(--tinta-suave)]">{s.quien}</span>}
                 </li>
