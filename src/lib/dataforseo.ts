@@ -28,6 +28,8 @@ export interface Medicion {
   iaCitado: boolean;
   iaUrl: string | null;
   iaFuentes: string[];
+  /** Los veinte primeros orgánicos: dominio, URL y puesto. Para comparar con rivales. */
+  serp: { d: string; u: string; p: number }[];
 }
 
 export interface Credenciales {
@@ -199,6 +201,7 @@ export async function medir(
   const objetivo = raiz(dominio);
   let orgánicos = 0;
   let noOrgánicosArriba = 0;
+  const serp: { d: string; u: string; p: number }[] = [];
 
   // El bloque de IA: sus fuentes vienen arriba (`references`) y dentro de cada
   // trozo de texto (`items[].references`). Se juntan todas.
@@ -232,18 +235,36 @@ export async function medir(
 
     const suUrl = String(item.url ?? "");
     const suDominio = String(item.domain ?? "") || raiz(suUrl);
+    if (orgánicos <= 20) serp.push({ d: raiz(suDominio), u: suUrl, p: orgánicos });
+  }
 
+  const mio = serp.find((x) => x.d === objetivo);
+  if (mio) {
+    // Los bloques por encima son los que había antes de SU resultado, no los de
+    // toda la página: se recalculan hasta su posición.
+    let arriba = 0;
+    let vistos = 0;
+    for (const item of items) {
+      if (String(item.type ?? "") === "organic") {
+        vistos++;
+        if (vistos === mio.p) break;
+      } else arriba++;
+    }
+    return { puesto: mio.p, url: mio.u || null, bloquesArriba: arriba, coste, ...ia, serp };
+  }
+
+  // Fuera de los veinte guardados puede estar más abajo: se busca en el resto.
+  let vistos = 0;
+  for (const item of items) {
+    if (String(item.type ?? "") !== "organic") continue;
+    vistos++;
+    const suUrl = String(item.url ?? "");
+    const suDominio = String(item.domain ?? "") || raiz(suUrl);
     if (raiz(suDominio) === objetivo) {
-      return {
-        puesto: orgánicos,
-        url: suUrl || null,
-        bloquesArriba: noOrgánicosArriba,
-        coste,
-        ...ia,
-      };
+      return { puesto: vistos, url: suUrl || null, bloquesArriba: noOrgánicosArriba, coste, ...ia, serp };
     }
   }
 
   // No aparecer no es un error: es el dato.
-  return { puesto: null, url: null, bloquesArriba: null, coste, ...ia };
+  return { puesto: null, url: null, bloquesArriba: null, coste, ...ia, serp };
 }

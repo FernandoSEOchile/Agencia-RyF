@@ -77,6 +77,7 @@ export async function medirPosiciones(o: {
               iaCitado: r.iaCitado,
               iaUrl: r.iaUrl,
               iaFuentes: JSON.stringify(r.iaFuentes),
+              serp: JSON.stringify(r.serp),
             },
           });
 

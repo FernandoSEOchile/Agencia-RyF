@@ -15,6 +15,7 @@ import Local from "@/components/Local";
 import FichaLocal from "@/components/FichaLocal";
 import { descargarCsv } from "@/lib/csv";
 import VisibilidadIa from "@/components/VisibilidadIa";
+import Competidores from "@/components/Competidores";
 
 export interface Suceso {
   fecha: string;
@@ -58,6 +59,7 @@ type Pestaña =
   | "local"
   | "backlinks"
   | "ia"
+  | "competidores"
   | "tecnico"
   | "sitemap"
   | "arquitectura"
@@ -83,6 +85,7 @@ const ZONAS: readonly Zona[] = [
       { id: "local", etiqueta: "Local" },
       { id: "backlinks", etiqueta: "Backlinks" },
       { id: "ia", etiqueta: "IA" },
+      { id: "competidores", etiqueta: "Competidores" },
     ],
   },
   {
@@ -429,6 +432,22 @@ export default function FichaCliente({
       {activa === "backlinks" && <Backlinks clienteId={clienteId} puedeEditar={puedeSubir} />}
 
       {activa === "ia" && <VisibilidadIa clienteId={clienteId} puedeEditar={puedeSubir} hayProveedor={hayProveedor} />}
+
+      {activa === "competidores" && (
+        <Competidores
+          clienteId={clienteId}
+          puedeEditar={puedeSubir}
+          hayProveedor={hayProveedor}
+          onSeguir={async (termino) => {
+            const r = await fetch("/api/posiciones", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ clienteId, terminos: termino, ubicacion: 2152, dispositivo: "desktop" }),
+            });
+            if (!r.ok) throw new Error((await r.json().catch(() => ({}))).error ?? "No se pudo seguir.");
+          }}
+        />
+      )}
 
       {activa === "bitacora" && <Bitacora clienteId={clienteId} puedeEditar={puedeSubir} />}
 

@@ -71,7 +71,7 @@ export default async function Ficha({
 
   // Se piden en paralelo y ningún fallo bloquea al resto: un endpoint que la
   // versión instalada del conector no tiene no debe vaciar la ficha entera.
-  const [log, productos, terminos, registroPanel, totalConversaciones, memorias, rastreosHechos, fichasHechas, enlacesMedidos, bitacorasHechas, promptsIa, conversaciones] =
+  const [log, productos, terminos, registroPanel, totalConversaciones, memorias, rastreosHechos, fichasHechas, enlacesMedidos, bitacorasHechas, promptsIa, rivales, conversaciones] =
     await Promise.all([
     // Sin conector no hay a quién preguntar: se pasa de largo en vez de esperar
     // tres tiempos de espera para nada.
@@ -97,6 +97,7 @@ export default async function Ficha({
     db.backlinks.findUnique({ where: { clienteId: id }, select: { medido: true } }),
     db.bitacora.count({ where: { clienteId: id } }),
     db.promptIa.count({ where: { clienteId: id, activo: true } }),
+    db.competidor.count({ where: { clienteId: id } }),
     db.conversacion.findMany({
       where: { clienteId: id },
       orderBy: { tocado: "desc" },
@@ -496,6 +497,7 @@ export default async function Ficha({
           { texto: "Instrucciones fijas escritas", hecho: Boolean(cliente.instrucciones), pestaña: "datos" },
           { texto: "Primera bitácora", hecho: bitacorasHechas > 0, pestaña: "bitacora" },
           { texto: "Preguntas de IA definidas", hecho: promptsIa > 0, pestaña: "ia" },
+          { texto: "Rivales definidos", hecho: rivales > 0, pestaña: "competidores" },
         ]}
         reconectar={conectarSitio}
         esWordPress={cliente.plataforma !== "shopify"}

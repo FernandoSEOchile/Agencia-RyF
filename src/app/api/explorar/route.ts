@@ -1,10 +1,7 @@
 import { NextRequest } from "next/server";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { explorarDominio } from "@/lib/labs";
-import { apuntar } from "@/lib/gasto";
-import { anotar } from "@/lib/clientes";
-import { guardar } from "@/lib/terminos";
+import { explorarYGuardar } from "@/lib/exploracion";
 
 export const runtime = "nodejs";
 export const maxDuration = 300;
@@ -69,59 +66,15 @@ export async function POST(req: NextRequest) {
 
   let panorama;
   try {
-    panorama = await explorarDominio(objetivo, codigo);
+    // Sin cliente: esto se usa sobre todo con dominios que todavía no lo son,
+    // y el gasto de prospección es de la agencia, no de nadie en concreto.
+    panorama = await explorarYGuardar({ dominio: objetivo, pais: codigo, usuarioId: u.id });
   } catch (e) {
     return Response.json(
       { error: e instanceof Error ? e.message : "No se pudo explorar el dominio." },
       { status: 502 }
     );
   }
-
-  await db.exploracion.upsert({
-    where: { dominio_pais: { dominio: objetivo, pais: codigo } },
-    update: {
-      datos: JSON.stringify(panorama),
-      coste: panorama.coste,
-      usuarioId: u.id,
-      creado: new Date(),
-    },
-    create: {
-      dominio: objetivo,
-      pais: codigo,
-      datos: JSON.stringify(panorama),
-      coste: panorama.coste,
-      usuarioId: u.id,
-    },
-  });
-
-  // Las palabras por las que posiciona este dominio también son datos pagados:
-  // van al almacén igual que las de una investigación. Aquí no viene intención
-  // ni tendencia, y `guardar` sabe no pisar lo que ya supiera de antes.
-  await guardar(
-    panorama.keywords.map((k) => ({
-      keyword: k.keyword,
-      volumen: k.volumen,
-      cpc: k.cpc,
-    })),
-    `dominio:${objetivo}`,
-    codigo
-  );
-
-  // Sin cliente: esto se usa sobre todo con dominios que todavía no lo son, y
-  // el gasto de prospección es un gasto de la agencia, no de nadie en concreto.
-  await apuntar({
-    usuarioId: u.id,
-    servicio: "dataforseo",
-    concepto: "exploracion de dominio",
-    monto: panorama.coste,
-    detalle: objetivo,
-  });
-
-  await anotar({
-    usuarioId: u.id,
-    accion: "exploracion",
-    resumen: `${objetivo} explorado · ${panorama.resumen.keywords} keywords · US$${panorama.coste.toFixed(4)}`,
-  });
 
   return Response.json({ ok: true, coste: panorama.coste, avisos: panorama.avisos });
 }

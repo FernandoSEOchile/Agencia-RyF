@@ -115,6 +115,7 @@ model Cliente {
   rastreos      Rastreo[]
   anotaciones   Anotacion[]
   promptsIa     PromptIa[]
+  competidores  Competidor[]
 }
 
 /// Una pasada del rastreador sobre un sitio.
@@ -704,6 +705,11 @@ model Posicion {
   iaUrl      String?
   iaFuentes  String?
 
+  /// Los veinte primeros resultados orgánicos de esa medición —dominio, URL,
+  /// puesto— en JSON. Es lo que permite comparar con los rivales sin pagar
+  /// otra consulta: la SERP ya traía a todos y antes se tiraba.
+  serp String?
+
   /// Resultados totales y cuántos bloques no orgánicos había por encima:
   /// estar tercero bajo un bloque de anuncios y un mapa no es estar tercero.
   bloquesArriba Int?
@@ -1028,4 +1034,17 @@ model RespuestaIa {
   medido DateTime @default(now())
 
   @@index([promptId, medido])
+}
+
+/// Un rival de un cliente: un dominio contra el que se compara. Hasta seis;
+/// más no se comparan, se amontonan.
+model Competidor {
+  id        String  @id @default(cuid())
+  clienteId String
+  cliente   Cliente @relation(fields: [clienteId], references: [id], onDelete: Cascade)
+
+  dominio String
+  creado  DateTime @default(now())
+
+  @@unique([clienteId, dominio])
 }
