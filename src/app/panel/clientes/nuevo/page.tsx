@@ -8,6 +8,8 @@ import { anotar } from "@/lib/clientes";
 import Barra from "@/components/Barra";
 import { IconoWordPress, IconoShopify, IconoDominio } from "@/components/Plataforma";
 import { conectarSitio, crearSoloDominio } from "@/lib/conectarSitio";
+import { costeMedioExploracion } from "@/lib/exploracion";
+import { dinero } from "@/lib/formato";
 
 export const metadata = { title: "Conectar sitio · AppSEO" };
 
@@ -23,6 +25,7 @@ export default async function NuevoCliente({
 
   const { error } = await searchParams;
   const listo = cifradoListo();
+  const costeExploracion = await costeMedioExploracion();
 
 
   return (
@@ -68,8 +71,9 @@ export default async function NuevoCliente({
       </h2>
       <p className="mt-2 text-[14px] leading-relaxed text-[color:var(--tinta-media)]">
         Para un prospecto, un sitio que no es WordPress ni Shopify, o un cliente al que todavía no se
-        le va a tocar nada. No se instala nada y no cuesta nada dar de alta. Si más adelante se conecta
-        el plugin o Shopify, el cliente se convierte sin perder el histórico.
+        le va a tocar nada. No se instala nada y el alta es gratis; explorar el dominio es opcional y
+        cuesta unos centavos. Si más adelante se conecta el plugin o Shopify, el cliente se convierte
+        sin perder el histórico.
       </p>
       <form action={crearSoloDominio} className="mt-4 flex flex-wrap items-end gap-3">
         <label className="flex min-w-[200px] flex-1 flex-col gap-1.5">
@@ -89,6 +93,13 @@ export default async function NuevoCliente({
             placeholder="aguasdelsur.cl"
             className="rounded-xl border border-[color:var(--linea-fuerte)] bg-white px-3.5 py-2.5 font-mono text-[13px] outline-none transition focus:border-[color:var(--acento)]"
           />
+        </label>
+        <label className="flex w-full items-start gap-2 text-[13px] text-[color:var(--tinta-media)]">
+          <input type="checkbox" name="explorar" value="1" className="mt-0.5 accent-[color:var(--acento)]" />
+          <span>
+            Explorar el dominio al darlo de alta · ≈ {dinero(costeExploracion)}. Trae las palabras por las que ya
+            posiciona, su tráfico estimado y sus rivales, para empezar con datos en vez de en blanco.
+          </span>
         </label>
         <button type="submit" className="boton-fuerte">
           Dar de alta
@@ -124,6 +135,13 @@ export default async function NuevoCliente({
           </span>
         </label>
 
+        <label className="flex items-start gap-2 text-[13px] text-[color:var(--tinta-media)]">
+          <input type="checkbox" name="explorar" value="1" className="mt-0.5 accent-[color:var(--acento)]" />
+          <span>
+            Explorar el dominio si el cliente es nuevo · ≈ {dinero(costeExploracion)}. Al reconectar uno que ya existe no se explora ni se cobra. Trae las palabras por las que ya
+            posiciona, su tráfico estimado y sus rivales, para empezar con datos en vez de en blanco.
+          </span>
+        </label>
         <button type="submit" disabled={!listo} className="boton-fuerte mt-2">
           Comprobar y conectar
         </button>

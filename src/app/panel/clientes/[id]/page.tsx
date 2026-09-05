@@ -11,6 +11,7 @@ import Plataforma from "@/components/Plataforma";
 import { fecha } from "@/lib/formato";
 import { conectarSitio } from "@/lib/conectarSitio";
 import { randomBytes } from "node:crypto";
+import { fotoDe, costeMedioExploracion } from "@/lib/exploracion";
 
 export const dynamic = "force-dynamic";
 
@@ -71,7 +72,7 @@ export default async function Ficha({
 
   // Se piden en paralelo y ningún fallo bloquea al resto: un endpoint que la
   // versión instalada del conector no tiene no debe vaciar la ficha entera.
-  const [log, productos, terminos, registroPanel, totalConversaciones, memorias, rastreosHechos, fichasHechas, enlacesMedidos, bitacorasHechas, promptsIa, rivales, conversaciones] =
+  const [log, productos, terminos, registroPanel, totalConversaciones, memorias, rastreosHechos, fichasHechas, enlacesMedidos, bitacorasHechas, promptsIa, rivales, foto, costeExploracion, conversaciones] =
     await Promise.all([
     // Sin conector no hay a quién preguntar: se pasa de largo en vez de esperar
     // tres tiempos de espera para nada.
@@ -98,6 +99,8 @@ export default async function Ficha({
     db.bitacora.count({ where: { clienteId: id } }),
     db.promptIa.count({ where: { clienteId: id, activo: true } }),
     db.competidor.count({ where: { clienteId: id } }),
+    fotoDe(cliente.dominio),
+    costeMedioExploracion(),
     db.conversacion.findMany({
       where: { clienteId: id },
       orderBy: { tocado: "desc" },
@@ -410,6 +413,18 @@ export default async function Ficha({
         puedeSubir={rol !== "LECTOR"}
         hayProveedor={Boolean(proveedor)}
         medirCada={cliente.medirCada}
+        exploracion={
+          foto
+            ? {
+                creado: foto.creado.toISOString(),
+                resumen: foto.panorama.resumen,
+                // Las doscientas de más tráfico ya vienen ordenadas del proveedor.
+                keywords: foto.panorama.keywords.slice(0, 200),
+              }
+            : null
+        }
+        costeExploracion={costeExploracion}
+        gscConectado={gscListo && Boolean(cliente.gscPropiedad)}
         costePorMedicion={(() => {
           const costes = keywords.map((k) => k.posiciones[0]?.coste).filter((c): c is number => typeof c === "number" && c > 0);
           return costes.length ? costes.reduce((t, c) => t + c, 0) / costes.length : 0.003;

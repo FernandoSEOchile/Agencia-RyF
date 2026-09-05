@@ -6,6 +6,35 @@ import { db } from "@/lib/db";
 import { cifrar } from "@/lib/cifrado";
 import { leerCadena, dominioDe, salud } from "@/lib/conector";
 import { anotar } from "@/lib/clientes";
+import { explorarYGuardar, fotoDe, esFresca } from "@/lib/exploracion";
+import { tomar, soltar } from "@/lib/candado";
+import { dinero, miles, fecha } from "@/lib/formato";
+
+/**
+ * Explorar en el mismo paso del alta, si la persona lo marcó.
+ *
+ * Devuelve la cola de la URL de vuelta: éxito con lo que costó, aviso si ya
+ * había una foto fresca (no se paga dos veces), o el error. Con candado, igual
+ * que el botón de Competidores: dos envíos sobre el mismo dominio no pagan dos.
+ */
+async function explorarEnElAlta(dominio: string, usuarioId: string, clienteId: string): Promise<string> {
+  const foto = await fotoDe(dominio);
+  if (foto && esFresca(foto.creado)) {
+    return `?t=posiciones&ok=${encodeURIComponent(`El dominio ya estaba explorado (${fecha(foto.creado)}): no se volvió a pagar.`)}`;
+  }
+  const clave = `exploracion:${dominio}`;
+  if (!tomar(clave)) {
+    return `?t=posiciones&error=${encodeURIComponent("Ya se está explorando ese dominio. Espera un minuto y recarga.")}`;
+  }
+  try {
+    const p = await explorarYGuardar({ dominio, usuarioId, clienteId });
+    return `?t=posiciones&ok=${encodeURIComponent(`Dominio explorado: ${miles(p.resumen.keywords)} palabras por ${dinero(p.coste)}.`)}`;
+  } catch (e) {
+    return `?t=posiciones&error=${encodeURIComponent("Quedó dado de alta, pero no se pudo explorar el dominio: " + (e instanceof Error ? e.message : "error"))}`;
+  } finally {
+    soltar(clave);
+  }
+}
 
 /**
  * Conectar un WordPress con su cadena, o reconectarlo.
@@ -20,7 +49,7 @@ export async function conectarSitio(datos: FormData) {
   // Declarada como función y con `never` a la vista: así TypeScript entiende que
   // después de fallo() no se sigue, y no pide comprobar `cfg` otra vez.
   function fallo(msg: string): never {
-    redirect(volver ? `${volver}?aviso=${encodeURIComponent(msg)}` : "/panel/clientes/nuevo?error=" + encodeURIComponent(msg));
+    redirect(volver ? `${volver}?error=${encodeURIComponent(msg)}` : "/panel/clientes/nuevo?error=" + encodeURIComponent(msg));
   }
 
   const s = await auth();
@@ -45,6 +74,9 @@ export async function conectarSitio(datos: FormData) {
   }
 
   const dominio = dominioDe(cfg.site);
+  // Solo en altas nuevas se explora: reconectar no es dar de alta, y la foto
+  // que hubiera no se pisa ni se vuelve a pagar.
+  const existia = await db.cliente.findUnique({ where: { dominio }, select: { id: true } });
 
   const cliente = await db.cliente.upsert({
     where: { dominio },
@@ -81,7 +113,8 @@ export async function conectarSitio(datos: FormData) {
     resumen: `${dominio} conectado · conector v${prueba.datos?.conector}`,
   });
 
-  redirect(`/panel/clientes/${cliente.id}`);
+  const cola = !existia && datos.get("explorar") === "1" ? await explorarEnElAlta(dominio, s.user.id, cliente.id) : "";
+  redirect(`/panel/clientes/${cliente.id}${cola}`);
 }
 
 /**
@@ -131,5 +164,6 @@ export async function crearSoloDominio(datos: FormData) {
     resumen: `${dominio} dado de alta solo por dominio`,
   });
 
-  redirect(`/panel/clientes/${cliente.id}`);
+  const cola = datos.get("explorar") === "1" ? await explorarEnElAlta(dominio, s.user.id, cliente.id) : "?t=posiciones";
+  redirect(`/panel/clientes/${cliente.id}${cola}`);
 }

@@ -1,13 +1,10 @@
 import { NextRequest } from "next/server";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { explorarYGuardar } from "@/lib/exploracion";
+import { explorarYGuardar, esFresca } from "@/lib/exploracion";
 
 export const runtime = "nodejs";
 export const maxDuration = 300;
-
-/** Cuánto vale una foto antes de que convenga pagar otra. */
-const DIAS_FRESCA = 14;
 
 async function quien() {
   const sesion = await auth();
@@ -47,7 +44,7 @@ export async function GET(req: NextRequest) {
     pais,
     medido: foto?.creado.toISOString() ?? null,
     coste: foto?.coste ?? null,
-    fresca: foto ? Date.now() - foto.creado.getTime() < DIAS_FRESCA * 86_400_000 : false,
+    fresca: foto ? esFresca(foto.creado) : false,
     panorama: foto ? JSON.parse(foto.datos) : null,
   });
 }

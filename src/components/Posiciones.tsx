@@ -7,6 +7,7 @@ import SearchConsole, { type ResumenGsc } from "@/components/SearchConsole";
 import Chispa from "@/components/Chispa";
 import { dinero, fecha, miles } from "@/lib/formato";
 import { descargarCsv } from "@/lib/csv";
+import { Cabecera, useOrden, type Columna as ColumnaTabla } from "@/components/Tabla";
 
 /**
  * Posiciones: lo que Google dice que pasa y lo que medimos a propósito.
@@ -35,6 +36,28 @@ export interface KeywordVista {
   iaOverview: boolean | null;
   iaCitado: boolean | null;
 }
+
+/** La foto de DataForSEO del dominio: lo que ya posiciona, estimado. */
+export interface ExploracionVista {
+  creado: string;
+  resumen: {
+    keywords: number;
+    trafico: number;
+    valor: number;
+    tramos: { pos1: number; pos2a3: number; pos4a10: number; pos11a20: number; pos21a50: number; pos51a100: number };
+  };
+  keywords: { keyword: string; posicion: number; volumen: number; trafico: number; cpc: number; url: string | null }[];
+}
+
+type ColEx = "keyword" | "posicion" | "volumen" | "trafico" | "url" | "seguir";
+const COL_EX: readonly ColumnaTabla<ColEx>[] = [
+  { id: "keyword", texto: "Palabra" },
+  { id: "posicion", texto: "Posición", clase: "text-right", num: true },
+  { id: "volumen", texto: "Volumen", clase: "text-right", num: true },
+  { id: "trafico", texto: "Tráfico est.", clase: "text-right", num: true },
+  { id: "url", texto: "URL" },
+  { id: "seguir", texto: "", fija: true },
+];
 
 const UBICACIONES = [
   [2152, "Chile"],
@@ -109,6 +132,9 @@ export default function Posiciones({
   hayGsc,
   medirCada,
   costePorMedicion,
+  exploracion,
+  costeExploracion,
+  gscConectado,
 }: {
   clienteId: string;
   keywords: KeywordVista[];
@@ -119,6 +145,11 @@ export default function Posiciones({
   medirCada: number | null;
   /** Lo que costó de media la última consulta, para estimar cada pasada. */
   costePorMedicion: number;
+  /** La exploración del dominio, si se hizo. */
+  exploracion: ExploracionVista | null;
+  costeExploracion: number;
+  /** Este cliente tiene propiedad de Search Console elegida: el dato real existe aunque tarde en llegar. */
+  gscConectado: boolean;
 }) {
   const { confirmar, dialogo } = useConfirmar();
   const router = useRouter();
@@ -133,6 +164,12 @@ export default function Posiciones({
   const [error, setError] = useState<string | null>(null);
   const [aviso, setAviso] = useState<string | null>(null);
   const [buscaKw, setBuscaKw] = useState("");
+  const [buscaEx, setBuscaEx] = useState("");
+  const [verEx, setVerEx] = useState(25);
+  const [seguidas, setSeguidas] = useState<Set<string>>(new Set());
+  const [siguiendo, setSiguiendo] = useState<string | null>(null);
+  const [explorando, setExplorando] = useState(false);
+  const oEx = useOrden<ColEx>("trafico", false);
 
   /** Al cambiar de columna se arranca por lo útil; volver a pulsar invierte. */
   function ordenar(col: Columna) {
@@ -167,16 +204,40 @@ export default function Posiciones({
     }
   }
 
+  async function explorarDominio() {
+    if (!(await confirmar({ titulo: `¿${exploracion ? "Volver a explorar" : "Explorar"} el dominio?`, detalle: `Trae las palabras por las que ya posiciona, su tráfico estimado y sus rivales, de DataForSEO. Ha costado ≈ ${dinero(costeExploracion)} las últimas veces; verlo después no cuesta nada.`, boton: "Explorar", peligroso: false }))) return;
+    setExplorando(true);
+    setError(null);
+    setAviso(null);
+    try {
+      const r = await fetch("/api/competidores", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ clienteId, dominio: "propio" }),
+      });
+      const j = await r.json();
+      if (!r.ok) throw new Error(j.error || "No se pudo explorar.");
+      setAviso(`Dominio explorado: ${miles(j.keywords)} palabras por ${dinero(Number(j.coste))}.`);
+      router.refresh();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Error inesperado.");
+    } finally {
+      setExplorando(false);
+    }
+  }
+
   /** Pasa una consulta de Search Console al seguimiento medido. */
-  async function seguirDesdeGsc(consulta: string) {
+  async function seguirDesdeGsc(consulta: string): Promise<boolean> {
     setError(null);
     setAviso(null);
     try {
       await llamar("POST", { clienteId, terminos: consulta, ubicacion: 2152, dispositivo: "desktop" });
       setAviso(`«${consulta}» añadida al seguimiento. Pulsa «Medir las nuevas» arriba.`);
       router.refresh();
+      return true;
     } catch (e) {
       setError(e instanceof Error ? e.message : "Error inesperado.");
+      return false;
     }
   }
 
@@ -277,15 +338,7 @@ export default function Posiciones({
       <div className="tarjeta tarjeta-destacada grid gap-px overflow-hidden lg:grid-cols-3 [&>*]:ring-1 [&>*]:ring-[color:var(--linea)]">
         <div className="bg-[color:var(--panel)] px-5 py-4">
           <p className="rotulo">En Google{gsc ? ` · últimos ${gsc.dias} días` : ""}</p>
-          {!hayGsc ? (
-            <p className="mt-2 text-[14px] text-[color:var(--tinta-media)]">
-              Search Console no está habilitado en este panel.
-            </p>
-          ) : !gsc ? (
-            <p className="mt-2 text-[14px] text-[color:var(--tinta-media)]">
-              Sin conectar todavía: conecta Search Console más abajo para ver las búsquedas reales.
-            </p>
-          ) : (
+          {gscConectado && gsc ? (
             <>
               <p className="mt-1.5 cifra text-[28px] leading-none">
                 {miles(gsc.consultas)}
@@ -298,6 +351,35 @@ export default function Posiciones({
                 posición media {gsc.media ?? "—"} · datos de Google, con dos o tres días de retraso
               </p>
             </>
+          ) : gscConectado ? (
+            <p className="mt-2 text-[14px] text-[color:var(--tinta-suave)]">Leyendo Search Console…</p>
+          ) : exploracion ? (
+            <>
+              <p className="mt-1.5 cifra text-[28px] leading-none">
+                {miles(exploracion.resumen.keywords)}
+                <span className="ml-1.5 text-[14px] font-normal text-[color:var(--tinta-media)]">palabras por las que apareces, estimadas</span>
+              </p>
+              <div className="mt-3">
+                <Distribucion
+                  top3={exploracion.resumen.tramos.pos1 + exploracion.resumen.tramos.pos2a3}
+                  top10={exploracion.resumen.tramos.pos1 + exploracion.resumen.tramos.pos2a3 + exploracion.resumen.tramos.pos4a10}
+                  top20={exploracion.resumen.tramos.pos1 + exploracion.resumen.tramos.pos2a3 + exploracion.resumen.tramos.pos4a10 + exploracion.resumen.tramos.pos11a20}
+                  total={exploracion.resumen.keywords}
+                />
+              </div>
+              <p className="mt-2 text-[13px] text-[color:var(--tinta-suave)]">
+                ≈ {miles(exploracion.resumen.trafico)} visitas al mes · estimación de DataForSEO · explorado {fecha(exploracion.creado)}
+                {hayGsc ? " · conecta Search Console para el dato real" : " · Search Console no está habilitado en este panel"}
+              </p>
+            </>
+          ) : !hayGsc ? (
+            <p className="mt-2 text-[14px] text-[color:var(--tinta-media)]">
+              Search Console no está habilitado en este panel.
+            </p>
+          ) : (
+            <p className="mt-2 text-[14px] text-[color:var(--tinta-media)]">
+              Sin conectar todavía: conecta Search Console más abajo para ver las búsquedas reales.
+            </p>
           )}
         </div>
 
@@ -640,6 +722,140 @@ export default function Posiciones({
             </p>
           </>
         )}
+      </section>
+
+      {/* ---------------- Lo que ya posiciona, según DataForSEO ---------------- */}
+      <section id="exploracion" className="mt-10 scroll-mt-20">
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <h3 className="text-[17px] font-semibold">
+              Palabras por las que ya posicionas
+              {exploracion && <span className="cifra ml-2 text-[color:var(--tinta-media)]">{miles(exploracion.resumen.keywords)}</span>}
+            </h3>
+            <p className="mt-0.5 max-w-2xl text-[14px] text-[color:var(--tinta-media)]">
+              La foto de DataForSEO del dominio: por qué búsquedas sale, en qué puesto y cuánto se busca. Es una estimación,
+              no una medición; sirve para elegir qué seguir y qué atacar. La misma que ves en Explorar dominio.
+            </p>
+          </div>
+          {puedeEditar && hayProveedor && (
+            <button onClick={explorarDominio} disabled={explorando || ocupado} className={exploracion ? "boton" : "boton-fuerte"}>
+              {explorando ? "Explorando…" : exploracion ? `Actualizar · explorado ${fecha(exploracion.creado)}` : `Explorar el dominio · ≈ ${dinero(costeExploracion)}`}
+            </button>
+          )}
+        </div>
+
+        {explorando && (
+          <p className="mt-3 text-[14px] text-[color:var(--tinta-suave)]">Explorando el dominio en DataForSEO… puede tardar un minuto.</p>
+        )}
+
+        {!exploracion ? (
+          <div className="mt-4 rounded-2xl border border-[color:var(--linea)] bg-[color:var(--panel)] px-6 py-12 text-center">
+            <p className="text-[15px] font-medium">Este dominio no se ha explorado.</p>
+            <p className="mx-auto mt-2 max-w-md text-[14px] text-[color:var(--tinta-media)]">
+              Explorarlo trae en un minuto las palabras por las que ya posiciona, con volumen y puesto, para empezar el
+              seguimiento con datos en vez de en blanco.
+            </p>
+          </div>
+        ) : exploracion.keywords.length === 0 ? (
+          <div className="mt-4 rounded-2xl border border-[color:var(--linea)] bg-[color:var(--panel)] px-6 py-12 text-center">
+            <p className="text-[15px] font-medium">DataForSEO no tiene palabras para este dominio en Chile.</p>
+            <p className="mx-auto mt-2 max-w-md text-[14px] text-[color:var(--tinta-media)]">
+              Explorado {fecha(exploracion.creado)}. Suele pasar con sitios nuevos o con muy poco tráfico; Search Console sí las verá.
+            </p>
+          </div>
+        ) : (() => {
+            const q = buscaEx.trim().toLowerCase();
+            const lista = oEx.ordenarPor(
+              exploracion.keywords.filter((k) => !q || k.keyword.toLowerCase().includes(q) || (k.url ?? "").toLowerCase().includes(q)),
+              (k, c) => (c === "seguir" ? "" : c === "url" ? (k.url ?? "") : k[c])
+            );
+            const yaSeguidas = new Set(keywords.map((k) => k.termino.toLowerCase()));
+            return (
+              <>
+                <div className="mt-4 flex flex-wrap items-center gap-2">
+                  <input
+                    value={buscaEx}
+                    onChange={(e) => setBuscaEx(e.target.value)}
+                    placeholder="Buscar palabra o URL…"
+                    aria-label="Buscar en las palabras exploradas"
+                    className="w-full max-w-xs rounded-full border border-[color:var(--linea-fuerte)] bg-white px-3.5 py-1.5 text-[14px] outline-none transition focus:border-[color:var(--acento)]"
+                  />
+                  <span className="text-[13px] text-[color:var(--tinta-suave)]">
+                    {q ? `${lista.length} de ${exploracion.keywords.length}` : `las ${exploracion.keywords.length} de más tráfico`}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => descargarCsv("palabras-posicionadas", lista.map((k) => ({ palabra: k.keyword, puesto: k.posicion, volumen: k.volumen, trafico_estimado: k.trafico, cpc: k.cpc, url: k.url ?? "" })))}
+                    className="ml-auto text-[13px] text-[color:var(--tinta-suave)] transition hover:text-[color:var(--acento)]"
+                  >
+                    Descargar CSV
+                  </button>
+                </div>
+                <div className="tarjeta mt-2 overflow-x-auto">
+                  <table className="w-full min-w-[760px] border-collapse text-[14px]">
+                    <Cabecera columnas={COL_EX} orden={oEx.orden} ordenar={oEx.ordenar} />
+                    <tbody className="divide-y divide-[color:var(--linea)]">
+                      {lista.length === 0 && (
+                        <tr>
+                          <td colSpan={6} className="px-5 py-8 text-center text-[14px] text-[color:var(--tinta-suave)]">
+                            Nada coincide con «{buscaEx}».
+                          </td>
+                        </tr>
+                      )}
+                      {lista.slice(0, verEx).map((k, i) => {
+                        const seguida = yaSeguidas.has(k.keyword.toLowerCase()) || seguidas.has(k.keyword);
+                        return (
+                          <tr key={`${k.keyword}-${k.url ?? ""}-${i}`} className="transition hover:bg-black/[0.015]">
+                            <td className="px-5 py-2.5">{k.keyword}</td>
+                            <td className={`px-3 py-2.5 text-right tabular-nums ${colorPuesto(k.posicion)}`}>{k.posicion}</td>
+                            <td className="px-3 py-2.5 text-right tabular-nums">{miles(k.volumen)}</td>
+                            <td className="px-3 py-2.5 text-right tabular-nums text-[color:var(--tinta-media)]">{miles(k.trafico)}</td>
+                            <td className="px-3 py-2.5">
+                              {k.url ? (
+                                <a href={k.url} target="_blank" rel="noopener" className="block max-w-[260px] truncate underline-offset-2 transition hover:text-[color:var(--acento)] hover:underline" title={k.url}>
+                                  {k.url.replace(/^https?:\/\/[^/]+/, "") || "/"}
+                                </a>
+                              ) : (
+                                <span className="text-[color:var(--tinta-suave)]">—</span>
+                              )}
+                            </td>
+                            <td className="px-3 py-2.5 text-right">
+                              {puedeEditar && (
+                                seguida ? (
+                                  <span className="text-[13px] text-emerald-700">seguida</span>
+                                ) : (
+                                  <button
+                                    onClick={async () => {
+                                      setSiguiendo(k.keyword);
+                                      try {
+                                        if (await seguirDesdeGsc(k.keyword)) setSeguidas((x) => new Set(x).add(k.keyword));
+                                      } finally {
+                                        setSiguiendo(null);
+                                      }
+                                    }}
+                                    disabled={siguiendo !== null}
+                                    className="text-[13px] text-[color:var(--tinta-suave)] transition hover:text-[color:var(--acento)] disabled:opacity-50"
+                                    title="Añadir al seguimiento medido"
+                                  >
+                                    {siguiendo === k.keyword ? "Añadiendo…" : "Seguir"}
+                                  </button>
+                                )
+                              )}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+                {lista.length > verEx && (
+                  <button onClick={() => setVerEx(lista.length)} className="mt-2 text-[13px] text-[color:var(--tinta-suave)] transition hover:text-[color:var(--acento)]">
+                    Ver las {lista.length}
+                  </button>
+                )}
+              </>
+            );
+          })()}
       </section>
 
       {/* ---------------- Search Console, apilado ---------------- */}

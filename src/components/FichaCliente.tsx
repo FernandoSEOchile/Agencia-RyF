@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import Chat from "@/components/Chat";
 import Sitemap from "@/components/Sitemap";
 import Arquitectura, { type ArquitecturaVista } from "@/components/Arquitectura";
-import Posiciones, { type KeywordVista } from "@/components/Posiciones";
+import Posiciones, { type KeywordVista, type ExploracionVista } from "@/components/Posiciones";
 import Gasto from "@/components/Gasto";
 import Bitacora from "@/components/Bitacora";
 import Backlinks from "@/components/Backlinks";
@@ -168,6 +168,9 @@ export default function FichaCliente({
   puedeSubir,
   medirCada,
   costePorMedicion,
+  exploracion,
+  costeExploracion,
+  gscConectado,
 }: {
   clienteId: string;
   nombre: string;
@@ -201,6 +204,9 @@ export default function FichaCliente({
   puedeSubir: boolean;
   medirCada: number | null;
   costePorMedicion: number;
+  exploracion: ExploracionVista | null;
+  costeExploracion: number;
+  gscConectado: boolean;
 }) {
   const [activa, setActivaEstado] = useState<Pestaña>("chat");
 
@@ -462,6 +468,9 @@ export default function FichaCliente({
           hayGsc={hayGsc}
           medirCada={medirCada}
           costePorMedicion={costePorMedicion}
+          exploracion={exploracion}
+          costeExploracion={costeExploracion}
+          gscConectado={gscConectado}
         />
       )}
 

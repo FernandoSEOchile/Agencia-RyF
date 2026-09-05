@@ -28,20 +28,8 @@ export async function explorarYGuardar(o: {
 
   const panorama = await explorarDominio(objetivo, pais);
 
-  await db.exploracion.upsert({
-    where: { dominio_pais: { dominio: objetivo, pais } },
-    update: { datos: JSON.stringify(panorama), coste: panorama.coste, usuarioId: o.usuarioId, creado: new Date() },
-    create: { dominio: objetivo, pais, datos: JSON.stringify(panorama), coste: panorama.coste, usuarioId: o.usuarioId },
-  });
-
-  // Las palabras por las que posiciona el dominio son datos pagados: van al
-  // almacén igual que las de una investigación.
-  await guardar(
-    panorama.keywords.map((k) => ({ keyword: k.keyword, volumen: k.volumen, cpc: k.cpc })),
-    `dominio:${objetivo}`,
-    pais
-  );
-
+  // El gasto se apunta ANTES de guardar nada: el proveedor ya cobró, y si
+  // fallara el guardado el importe real no puede desaparecer del registro.
   await apuntar({
     usuarioId: o.usuarioId,
     clienteId: o.clienteId,
@@ -51,6 +39,26 @@ export async function explorarYGuardar(o: {
     detalle: objetivo,
   });
 
+  await db.exploracion.upsert({
+    where: { dominio_pais: { dominio: objetivo, pais } },
+    update: { datos: JSON.stringify(panorama), coste: panorama.coste, usuarioId: o.usuarioId, creado: new Date() },
+    create: { dominio: objetivo, pais, datos: JSON.stringify(panorama), coste: panorama.coste, usuarioId: o.usuarioId },
+  });
+
+  // Las palabras por las que posiciona el dominio son datos pagados: van al
+  // almacén igual que las de una investigación.
+  try {
+    await guardar(
+      panorama.keywords.map((k) => ({ keyword: k.keyword, volumen: k.volumen, cpc: k.cpc })),
+      `dominio:${objetivo}`,
+      pais
+    );
+  } catch (e) {
+    // Perder el enriquecimiento del almacén es menos grave que tumbar una
+    // exploración ya pagada y guardada.
+    console.error("[exploracion] no se pudieron guardar los términos:", e);
+  }
+
   await anotar({
     usuarioId: o.usuarioId,
     clienteId: o.clienteId,
@@ -59,6 +67,13 @@ export async function explorarYGuardar(o: {
   });
 
   return panorama;
+}
+
+/** Una foto de menos de dos semanas no se vuelve a pagar sin que alguien lo pida a propósito. */
+export const DIAS_FRESCA = 14;
+
+export function esFresca(creado: Date): boolean {
+  return Date.now() - creado.getTime() < DIAS_FRESCA * 86_400_000;
 }
 
 /** La foto guardada de un dominio, si la hay. Gratis. */

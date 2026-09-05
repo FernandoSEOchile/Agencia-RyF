@@ -79,7 +79,8 @@ export async function PATCH(req: NextRequest) {
   if ("error" in p) return Response.json({ error: p.error }, { status: p.codigo });
   if (p.rol === "LECTOR") return Response.json({ error: "Los lectores no pueden explorar." }, { status: 403 });
 
-  const d = limpioDominio(String(dominio || ""));
+  // «propio» es el dominio del cliente: así Posiciones no tiene que saberlo.
+  const d = String(dominio || "") === "propio" ? limpioDominio(p.cliente.dominio) : limpioDominio(String(dominio || ""));
   const rival = await db.competidor.findUnique({ where: { clienteId_dominio: { clienteId: p.cliente.id, dominio: d } } });
   if (!rival && d !== limpioDominio(p.cliente.dominio)) {
     return Response.json({ error: "Ese dominio no es el cliente ni uno de sus rivales." }, { status: 400 });
