@@ -183,7 +183,7 @@ export default function Panorama({
       {/* Cifras: lo que se mira primero y decide si hay que preocuparse. */}
       {/* Las cinco cifras en un solo bloque, con una junta de un pelo entre
           ellas, y la unica sombra de la pantalla: es lo que se mira primero. */}
-      <div className="tarjeta tarjeta-destacada mt-5 grid gap-px overflow-hidden bg-[color:var(--linea)] sm:grid-cols-2 lg:grid-cols-5">
+      <div className="tarjeta tarjeta-destacada mt-5 grid gap-px overflow-hidden sm:grid-cols-2 lg:grid-cols-5 [&>*]:ring-1 [&>*]:ring-[color:var(--linea)]">
         <Cifra
           etiqueta="Clics"
           valor={miles(clics.reduce((t, v) => t + v, 0))}
