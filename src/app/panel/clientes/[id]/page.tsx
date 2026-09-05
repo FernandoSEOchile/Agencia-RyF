@@ -71,7 +71,7 @@ export default async function Ficha({
 
   // Se piden en paralelo y ningún fallo bloquea al resto: un endpoint que la
   // versión instalada del conector no tiene no debe vaciar la ficha entera.
-  const [log, productos, terminos, registroPanel, totalConversaciones, memorias, rastreosHechos, fichasHechas, enlacesMedidos, bitacorasHechas, conversaciones] =
+  const [log, productos, terminos, registroPanel, totalConversaciones, memorias, rastreosHechos, fichasHechas, enlacesMedidos, bitacorasHechas, promptsIa, conversaciones] =
     await Promise.all([
     api<{ entradas: EntradaLog[]; total: number }>(id, "GET", "/log?por_pagina=50").catch(() => null),
     api<{ total: number }>(id, "GET", "/products?pagina=1").catch(() => null),
@@ -94,6 +94,7 @@ export default async function Ficha({
     db.auditoriaFicha.count({ where: { clienteId: id } }),
     db.backlinks.findUnique({ where: { clienteId: id }, select: { medido: true } }),
     db.bitacora.count({ where: { clienteId: id } }),
+    db.promptIa.count({ where: { clienteId: id, activo: true } }),
     db.conversacion.findMany({
       where: { clienteId: id },
       orderBy: { tocado: "desc" },
@@ -418,6 +419,8 @@ export default async function Ficha({
           mediciones: k._count.posiciones,
           // Las últimas doce, en orden cronológico, para el mini-gráfico.
           historial: [...k.posiciones].reverse().map((x) => x.puesto),
+          iaOverview: k.posiciones[0]?.iaOverview ?? null,
+          iaCitado: k.posiciones[0]?.iaCitado ?? null,
         }))}
         arquitectura={
           arq
@@ -484,6 +487,7 @@ export default async function Ficha({
           { texto: "Ficha de Google analizada", hecho: fichasHechas > 0, pestaña: "local" },
           { texto: "Instrucciones fijas escritas", hecho: Boolean(cliente.instrucciones), pestaña: "datos" },
           { texto: "Primera bitácora", hecho: bitacorasHechas > 0, pestaña: "bitacora" },
+          { texto: "Preguntas de IA definidas", hecho: promptsIa > 0, pestaña: "ia" },
         ]}
         reconectar={conectarSitio}
         esWordPress={cliente.plataforma !== "shopify"}

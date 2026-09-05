@@ -88,6 +88,10 @@ model Cliente {
   /// revoca desde Datos; quien tenga la ficha ve el informe, nadie más.
   tokenInforme String? @unique
 
+  /// El nombre con el que la gente llama al negocio, si no es el de la ficha:
+  /// es lo que se busca en las respuestas de la IA.
+  marca String?
+
   /// Propiedad de Search Console que corresponde a este sitio. Puede ser de
   /// tipo dominio («sc-domain:ejemplo.cl») o de prefijo de URL.
   gscPropiedad String?
@@ -110,6 +114,7 @@ model Cliente {
   revisiones    Revision[]
   rastreos      Rastreo[]
   anotaciones   Anotacion[]
+  promptsIa     PromptIa[]
 }
 
 /// Una pasada del rastreador sobre un sitio.
@@ -692,6 +697,13 @@ model Posicion {
   /// La URL concreta que Google eligió mostrar.
   url String?
 
+  /// El bloque de IA de Google en esa búsqueda: si lo hubo, si citó al
+  /// cliente, a qué URL, y a qué dominios citó (JSON). Nulo si no se miró.
+  iaOverview Boolean?
+  iaCitado   Boolean?
+  iaUrl      String?
+  iaFuentes  String?
+
   /// Resultados totales y cuántos bloques no orgánicos había por encima:
   /// estar tercero bajo un bloque de anuncios y un mapa no es estar tercero.
   bloquesArriba Int?
@@ -973,4 +985,47 @@ model Anotacion {
   creado    DateTime @default(now())
 
   @@index([clienteId, fecha])
+}
+
+/// Una pregunta que la gente le hace a la IA y cuya respuesta podría
+/// recomendar a este cliente. La unidad de la visibilidad en IA: no es una
+/// palabra clave, es lo que alguien escribe en un chat.
+model PromptIa {
+  id        String  @id @default(cuid())
+  clienteId String
+  cliente   Cliente @relation(fields: [clienteId], references: [id], onDelete: Cascade)
+
+  texto  String
+  activo Boolean @default(true)
+  creado DateTime @default(now())
+
+  respuestas RespuestaIa[]
+
+  @@index([clienteId])
+}
+
+/// Una respuesta de una plataforma a un prompt, y lo que se dedujo de ella.
+model RespuestaIa {
+  id       String   @id @default(cuid())
+  promptId String
+  prompt   PromptIa @relation(fields: [promptId], references: [id], onDelete: Cascade)
+
+  /// «chatgpt» o «gemini».
+  plataforma String
+  modelo     String
+
+  /// Nombra al cliente o lo cita; citar es más fuerte: mandó al lector a su sitio.
+  aparece  Boolean
+  citado   Boolean
+  /// Puesto del cliente entre los dominios citados, empezando en 1.
+  posicion Int?
+  url      String?
+  /// Los dominios citados, en orden (JSON). Es la lista de a quién le gana la IA.
+  dominios String
+
+  texto  String
+  coste  Float    @default(0)
+  medido DateTime @default(now())
+
+  @@index([promptId, medido])
 }

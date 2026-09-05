@@ -14,6 +14,7 @@ import Panorama from "@/components/Panorama";
 import Local from "@/components/Local";
 import FichaLocal from "@/components/FichaLocal";
 import { descargarCsv } from "@/lib/csv";
+import VisibilidadIa from "@/components/VisibilidadIa";
 
 export interface Suceso {
   fecha: string;
@@ -56,6 +57,7 @@ type Pestaña =
   | "posiciones"
   | "local"
   | "backlinks"
+  | "ia"
   | "tecnico"
   | "sitemap"
   | "arquitectura"
@@ -80,6 +82,7 @@ const ZONAS: readonly Zona[] = [
       { id: "posiciones", etiqueta: "Posiciones" },
       { id: "local", etiqueta: "Local" },
       { id: "backlinks", etiqueta: "Backlinks" },
+      { id: "ia", etiqueta: "IA" },
     ],
   },
   {
@@ -421,6 +424,8 @@ export default function FichaCliente({
       {activa === "tecnico" && <Rastreo clienteId={clienteId} puedeLanzar={puedeSubir} onPedir={llevarAlChat} />}
 
       {activa === "backlinks" && <Backlinks clienteId={clienteId} puedeEditar={puedeSubir} />}
+
+      {activa === "ia" && <VisibilidadIa clienteId={clienteId} puedeEditar={puedeSubir} hayProveedor={hayProveedor} />}
 
       {activa === "bitacora" && <Bitacora clienteId={clienteId} puedeEditar={puedeSubir} />}
 

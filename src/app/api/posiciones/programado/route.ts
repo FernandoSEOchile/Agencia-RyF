@@ -5,6 +5,7 @@ import { medirPosiciones, caidas } from "@/lib/medicion";
 import { avisar } from "@/lib/avisos";
 import { anotar } from "@/lib/clientes";
 import { tomar, soltar } from "@/lib/candado";
+import { medirIa, desaparecidas, MODELOS } from "@/lib/ia";
 
 /**
  * La pasada programada de posiciones.
@@ -66,6 +67,27 @@ export async function POST(req: NextRequest) {
 
       const bajaron = caidas(r.cambios);
       hechos.push({ cliente: c.nombre, medidas: r.medidas, coste: r.coste, caidas: bajaron.length });
+
+      // Las preguntas a la IA van en la misma pasada, si el cliente tiene.
+      const conPrompts = await db.promptIa.count({ where: { clienteId: c.id, activo: true } });
+      if (conPrompts > 0) {
+        try {
+          const ia = await medirIa({ clienteId: c.id, usuarioId: null, concepto: "ia_programada" });
+          const perdidas = desaparecidas(ia.cambios);
+          if (perdidas.length > 0) {
+            const lista = perdidas
+              .slice(0, 4)
+              .map((x) => `${MODELOS[x.plataforma].nombre}: «${x.prompt.slice(0, 70)}»`)
+              .join(" · ");
+            await avisar(
+              `🤖 ${c.nombre} dejó de aparecer en ${perdidas.length} ${perdidas.length === 1 ? "respuesta" : "respuestas"} de IA: ${lista}${perdidas.length > 4 ? "…" : ""}. ${PANEL}/panel/clientes/${c.id}?t=ia`,
+              { clienteId: c.id, accion: "aviso_ia" }
+            );
+          }
+        } catch (e) {
+          await anotar({ clienteId: c.id, accion: "ia_programada", resumen: `No se pudo medir la IA: ${e instanceof Error ? e.message : "error"}`, resultado: "error" });
+        }
+      }
 
       if (bajaron.length > 0) {
         const lista = bajaron

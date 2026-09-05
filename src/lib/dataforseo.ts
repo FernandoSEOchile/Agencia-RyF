@@ -23,6 +23,11 @@ export interface Medicion {
   url: string | null;
   bloquesArriba: number | null;
   coste: number | null;
+  /** Si Google puso su bloque de IA en esa búsqueda, si citó al cliente y a quién citó. */
+  iaOverview: boolean;
+  iaCitado: boolean;
+  iaUrl: string | null;
+  iaFuentes: string[];
 }
 
 export interface Credenciales {
@@ -155,7 +160,10 @@ export async function medir(
 ): Promise<Medicion> {
   const base = c.pruebas ? PRUEBAS : PRODUCCION;
 
-  const r = await fetch(`${base}/v3/serp/google/organic/live/regular`, {
+  // «advanced» y no «regular» para traer el bloque de IA de Google con sus
+  // fuentes: cuesta el doble (US$0,004 medido en vivo) y con eso se sabe si la
+  // IA cita al cliente en la misma consulta que mide el puesto.
+  const r = await fetch(`${base}/v3/serp/google/organic/live/advanced`, {
     method: "POST",
     headers: { Authorization: cabecera(c), "Content-Type": "application/json" },
     body: JSON.stringify([
@@ -165,6 +173,7 @@ export async function medir(
         language_code: consulta.idioma,
         device: consulta.dispositivo,
         depth: 100,
+        load_async_ai_overview: true,
       },
     ]),
     signal: AbortSignal.timeout(90000),
@@ -191,6 +200,24 @@ export async function medir(
   let orgánicos = 0;
   let noOrgánicosArriba = 0;
 
+  // El bloque de IA: sus fuentes vienen arriba (`references`) y dentro de cada
+  // trozo de texto (`items[].references`). Se juntan todas.
+  const ai = items.find((i) => String(i.type ?? "") === "ai_overview") as
+    | { references?: { domain?: string; url?: string }[]; items?: { references?: { domain?: string; url?: string }[] }[] }
+    | undefined;
+  const fuentes: string[] = [];
+  let iaUrl: string | null = null;
+  if (ai) {
+    const refs = [...(ai.references ?? []), ...(ai.items ?? []).flatMap((x) => x.references ?? [])];
+    for (const ref of refs) {
+      const d = raiz(String(ref.domain ?? "") || String(ref.url ?? ""));
+      if (!d) continue;
+      if (d === objetivo && !iaUrl) iaUrl = String(ref.url ?? "") || null;
+      if (!fuentes.includes(d)) fuentes.push(d);
+    }
+  }
+  const ia = { iaOverview: Boolean(ai), iaCitado: fuentes.includes(objetivo), iaUrl, iaFuentes: fuentes.slice(0, 20) };
+
   for (const item of items) {
     const tipo = String(item.type ?? "");
 
@@ -212,10 +239,11 @@ export async function medir(
         url: suUrl || null,
         bloquesArriba: noOrgánicosArriba,
         coste,
+        ...ia,
       };
     }
   }
 
   // No aparecer no es un error: es el dato.
-  return { puesto: null, url: null, bloquesArriba: null, coste };
+  return { puesto: null, url: null, bloquesArriba: null, coste, ...ia };
 }

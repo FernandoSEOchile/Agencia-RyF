@@ -31,6 +31,9 @@ export interface KeywordVista {
   anterior: number | null;
   mediciones: number;
   historial: (number | null)[];
+  /** El bloque de IA de Google en esa búsqueda: nulo si no se midió. */
+  iaOverview: boolean | null;
+  iaCitado: boolean | null;
 }
 
 const UBICACIONES = [
@@ -311,6 +314,12 @@ export default function Posiciones({
               <div className="mt-3">
                 <Distribucion top3={top(3)} top10={top(10)} top20={top(20)} total={medidas.length} />
               </div>
+              {keywords.some((k) => k.iaOverview !== null) && (
+                <p className="mt-2 text-[13px] text-[color:var(--tinta-media)]">
+                  Bloque de IA de Google en {keywords.filter((k) => k.iaOverview).length} de {keywords.filter((k) => k.iaOverview !== null).length} búsquedas
+                  {keywords.filter((k) => k.iaOverview).length > 0 && ` · te cita en ${keywords.filter((k) => k.iaCitado).length}`}
+                </p>
+              )}
               <p className="mt-2 text-[13px] text-[color:var(--tinta-suave)]">
                 {media !== null ? `puesto medio ${media}` : "sin medir"}
                 {fuera > 0 && ` · ${fuera} fuera del top 100`}
@@ -566,6 +575,14 @@ export default function Posiciones({
                               title={`${k.bloquesArriba} bloques de Google (anuncios, mapas, preguntas) por encima`}
                             >
                               +{k.bloquesArriba}
+                            </span>
+                          )}
+                          {k.iaOverview && (
+                            <span
+                              className={`ml-1.5 pastilla align-middle ${k.iaCitado ? "bg-emerald-50 text-emerald-700" : "bg-black/[0.05] text-[color:var(--tinta-media)]"}`}
+                              title={k.iaCitado ? "Google puso un bloque de IA y cita a este sitio" : "Google puso un bloque de IA y no cita a este sitio"}
+                            >
+                              IA{k.iaCitado ? " ✓" : ""}
                             </span>
                           )}
                         </td>

@@ -73,6 +73,10 @@ export async function medirPosiciones(o: {
               url: r.url,
               bloquesArriba: r.bloquesArriba,
               coste: r.coste,
+              iaOverview: r.iaOverview,
+              iaCitado: r.iaCitado,
+              iaUrl: r.iaUrl,
+              iaFuentes: JSON.stringify(r.iaFuentes),
             },
           });
 
