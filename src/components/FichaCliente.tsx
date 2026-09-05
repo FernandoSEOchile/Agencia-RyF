@@ -16,6 +16,7 @@ import FichaLocal from "@/components/FichaLocal";
 import { descargarCsv } from "@/lib/csv";
 import VisibilidadIa from "@/components/VisibilidadIa";
 import Competidores from "@/components/Competidores";
+import { Icono, type NombreIcono } from "@/components/Iconos";
 
 export interface Suceso {
   fecha: string;
@@ -71,40 +72,40 @@ type Pestaña =
 interface Zona {
   id: string;
   etiqueta: string;
-  pestañas: readonly { id: Pestaña; etiqueta: string }[];
+  pestañas: readonly { id: Pestaña; etiqueta: string; icono: NombreIcono }[];
 }
 
 const ZONAS: readonly Zona[] = [
-  { id: "trabajar", etiqueta: "Trabajar", pestañas: [{ id: "chat", etiqueta: "Asistente" }] },
+  { id: "trabajar", etiqueta: "Trabajar", pestañas: [{ id: "chat", etiqueta: "Asistente", icono: "asistente" }] },
   {
     id: "medir",
     etiqueta: "Medir",
     pestañas: [
-      { id: "panorama", etiqueta: "Panorama" },
-      { id: "posiciones", etiqueta: "Posiciones" },
-      { id: "local", etiqueta: "Local" },
-      { id: "backlinks", etiqueta: "Backlinks" },
-      { id: "ia", etiqueta: "IA" },
-      { id: "competidores", etiqueta: "Competidores" },
+      { id: "panorama", etiqueta: "Panorama", icono: "panorama" },
+      { id: "posiciones", etiqueta: "Posiciones", icono: "posiciones" },
+      { id: "local", etiqueta: "Local", icono: "local" },
+      { id: "backlinks", etiqueta: "Backlinks", icono: "backlinks" },
+      { id: "ia", etiqueta: "IA", icono: "ia" },
+      { id: "competidores", etiqueta: "Competidores", icono: "competidores" },
     ],
   },
   {
     id: "revisar",
     etiqueta: "Revisar",
     pestañas: [
-      { id: "tecnico", etiqueta: "Técnico" },
-      { id: "sitemap", etiqueta: "Sitemap" },
-      { id: "arquitectura", etiqueta: "Arquitectura" },
+      { id: "tecnico", etiqueta: "Técnico", icono: "tecnico" },
+      { id: "sitemap", etiqueta: "Sitemap", icono: "sitemap" },
+      { id: "arquitectura", etiqueta: "Arquitectura", icono: "arquitectura" },
     ],
   },
   {
     id: "cuenta",
     etiqueta: "Cuenta",
     pestañas: [
-      { id: "bitacora", etiqueta: "Bitácora" },
-      { id: "gasto", etiqueta: "Gasto" },
-      { id: "registro", etiqueta: "Registro" },
-      { id: "datos", etiqueta: "Datos" },
+      { id: "bitacora", etiqueta: "Bitácora", icono: "bitacora" },
+      { id: "gasto", etiqueta: "Gasto", icono: "recibo" },
+      { id: "registro", etiqueta: "Registro", icono: "registro" },
+      { id: "datos", etiqueta: "Datos", icono: "datos" },
     ],
   },
 ];
@@ -248,11 +249,51 @@ export default function FichaCliente({
   );
 
   return (
-    <div className="mt-7">
+    <div className="mt-6 flex items-start gap-8">
       {dialogo}
+
+      {/* La columna de secciones, como en cualquier herramienta de escritorio:
+          fija mientras se baja, agrupada por lo que se va a hacer. En pantallas
+          estrechas no cabe y se vuelve a los segmentos de siempre. */}
+      <aside className="sticky top-16 hidden w-48 shrink-0 lg:block">
+        <nav aria-label="Secciones del cliente" className="flex flex-col gap-4">
+          {ZONAS.map((z) => (
+            <div key={z.id}>
+              <p className="rotulo px-3 pb-1.5">{z.etiqueta}</p>
+              <ul className="flex flex-col gap-px">
+                {z.pestañas.map((p) => {
+                  const aqui = activa === p.id;
+                  return (
+                    <li key={p.id}>
+                      <button
+                        type="button"
+                        onClick={() => setActiva(p.id)}
+                        aria-current={aqui ? "page" : undefined}
+                        className={`flex w-full items-center gap-2.5 rounded-xl px-3 py-[7px] text-left text-[13.5px] font-medium transition ${
+                          aqui
+                            ? "bg-white text-[color:var(--tinta)] shadow-[0_1px_3px_rgba(0,0,0,0.1)]"
+                            : "text-[color:var(--tinta-media)] hover:bg-black/[0.04] hover:text-[color:var(--tinta)]"
+                        }`}
+                      >
+                        <Icono nombre={p.icono} tam={17} className={aqui ? "text-[color:var(--acento)]" : "text-[color:var(--tinta-suave)]"} />
+                        <span className="truncate">{p.etiqueta}</span>
+                        {p.id === "registro" && sucesos.length > 0 && (
+                          <span className="ml-auto text-[12px] tabular-nums text-[color:var(--tinta-suave)]">{sucesos.length}</span>
+                        )}
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          ))}
+        </nav>
+      </aside>
+
+      <div className="min-w-0 flex-1">
       {/* Control segmentado en vez de pestañas subrayadas: agrupa las vistas en
           un solo objeto en lugar de dejar cinco palabras sueltas sobre una raya. */}
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-2 lg:hidden">
         <div className="segmentos" role="tablist" aria-label="Zona">
           {ZONAS.map((z) => {
             const activaAqui = zonaDe(activa).id === z.id;
@@ -846,6 +887,7 @@ export default function FichaCliente({
           )}
         </div>
       )}
+      </div>
     </div>
   );
 }

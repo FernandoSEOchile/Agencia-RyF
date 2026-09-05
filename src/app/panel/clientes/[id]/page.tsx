@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { redirect, notFound } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
@@ -339,14 +338,10 @@ export default async function Ficha({
 
   return (
     <>
-      <main className="contenedor py-10">
-      <Link href="/panel" className="boton-sutil">
-        ← Clientes
-      </Link>
-
-      <header className="mt-4 flex flex-wrap items-center justify-between gap-3">
+      <main className="contenedor py-7">
+      <header className="flex flex-wrap items-center justify-between gap-3">
         <div className="min-w-0">
-          <h1 className="truncate text-[28px] font-bold leading-tight">{cliente.nombre}</h1>
+          <h1 className="truncate text-[26px] font-bold leading-tight">{cliente.nombre}</h1>
           <p className="mt-0.5 flex flex-wrap items-center gap-2 text-[14px] text-[color:var(--tinta-media)]">
             <Plataforma cual={cliente.plataforma} tam={14} />
             <a
