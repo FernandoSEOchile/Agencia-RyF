@@ -93,6 +93,66 @@ const APARTE: Record<string, { etiqueta: string; porque: string }> = {
   },
 };
 
+/**
+ * Las comprobaciones, en cuatro bloques y en orden de importancia.
+ *
+ * Veinticuatro cuadros iguales obligaban a leerlos todos para saber qué
+ * mirar. Agrupados por lo que significan —si Google llega, qué lee, cómo se
+ * ve el resultado, cuánto tarda— la pantalla se recorre de arriba abajo y en
+ * cada bloque solo se despliega lo que está mal.
+ */
+const GRUPOS: { id: string; etiqueta: string; porque: string; ids: string[] }[] = [
+  {
+    id: "indexacion",
+    etiqueta: "Indexación",
+    porque: "Si Google no llega o no puede indexar, nada de lo demás cuenta.",
+    ids: ["rotas", "noIndexables", "huerfanas", "redirigidas", "canonicalAjeno", "sinCanonical", "profundas", "sinEnlacesSalientes"],
+  },
+  {
+    id: "contenido",
+    etiqueta: "Contenido",
+    porque: "Lo que Google lee para decidir por qué búsquedas sales.",
+    ids: ["tituloRepetido", "sinTitulo", "descripcionRepetida", "sinDescripcion", "sinH1", "variosH1", "contenidoPobre", "canibal"],
+  },
+  {
+    id: "marcado",
+    etiqueta: "Datos y marcado",
+    porque: "Lo que hace que el resultado se vea completo y la página se entienda.",
+    ids: ["datosRotos", "sinDatos", "sinAlt", "sinLang", "sinViewport"],
+  },
+  {
+    id: "rendimiento",
+    etiqueta: "Rendimiento",
+    porque: "Cuánto tarda en llegar, en móvil, que es lo que Google mide.",
+    ids: ["lentas", "velocidad"],
+  },
+];
+
+/**
+ * Una nota de 0 a 100 que se pueda explicar.
+ *
+ * Cada comprobación resta según la parte del sitio que afecta: lo grave hasta
+ * 30 puntos si afecta a todas las páginas, lo demás hasta 10. La velocidad
+ * resta aparte. No pretende ser exacta; pretende que dos rastreos seguidos
+ * se puedan comparar con un número y que ese número no cambie porque sí.
+ */
+function notaTecnica(problemas: Problemas, total: number, velocidad: number | null): number {
+  if (total <= 0) return 0;
+  let nota = 100;
+  for (const i of INFORMES) {
+    const n = problemas[i.id];
+    if (!n) continue;
+    nota -= Math.min(1, n / total) * (i.grave ? 30 : 10);
+  }
+  if (velocidad != null) nota -= velocidad < 50 ? 10 : velocidad < 90 ? 5 : 0;
+  return Math.max(0, Math.round(nota));
+}
+
+/** Verde a partir de 80, ámbar desde 50, rojo por debajo. Igual que la ficha. */
+function colorNota(n: number) {
+  return n >= 80 ? "text-emerald-700" : n >= 50 ? "text-amber-700" : "text-red-600";
+}
+
 interface Sitio {
   robots: boolean;
   estado?: number;
@@ -244,227 +304,9 @@ export default function Rastreo({
               : (p[c] ?? -1)
       );
 
-  if (cargando) return <Esqueleto tipo="cifras" />;
-
-  return (
-    <>
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h2 className="text-[17px] font-semibold">Rastreo técnico</h2>
-          <p className="mt-0.5 max-w-2xl text-[14px] text-[color:var(--tinta-media)]">
-            Pide cada URL del sitemap y anota cómo respondió. No cuesta dinero, solo tiempo: va
-            despacio a propósito para no ahogar el hosting del cliente.
-          </p>
-        </div>
-
-        {puedeLanzar && tanda?.estado !== "corriendo" && (
-          <button onClick={lanzar} className="boton-fuerte">
-            {tanda ? "Rastrear de nuevo" : "Rastrear el sitio"}
-          </button>
-        )}
-      </div>
-
-      {error && <p className="mt-3 text-[14px] font-medium text-red-600">{error}</p>}
-
-      {!tanda && (
-        <div className="mt-6 rounded-2xl border border-[color:var(--linea)] bg-[color:var(--panel)] px-6 py-16 text-center">
-          <p className="text-[15px] font-medium">Este sitio no se ha rastreado nunca.</p>
-          <p className="mx-auto mt-2 max-w-sm text-[14px] text-[color:var(--tinta-media)]">
-            La primera pasada tarda unos minutos, según cuántas páginas tenga.
-          </p>
-        </div>
-      )}
-
-      {tanda?.estado === "corriendo" && (
-        <div className="tarjeta mt-6 p-5">
-          <p className="text-[14px] font-medium">
-            Rastreando… {miles(tanda.hechas)}
-            {tanda.total > 0 && ` de ${miles(tanda.total)}`}
-          </p>
-          {tanda.total > 0 && (
-            <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-black/[0.07]">
-              <div
-                className="h-full rounded-full bg-[color:var(--acento)] transition-all"
-                style={{ width: `${Math.round((tanda.hechas / tanda.total) * 100)}%` }}
-              />
-            </div>
-          )}
-          <p className="mt-3 text-[13px] text-[color:var(--tinta-suave)]">
-            Puedes irte a otra pestaña: sigue por su cuenta.
-          </p>
-        </div>
-      )}
-
-      {tanda && tanda.estado !== "corriendo" && (
-        <p className="mt-4 text-[14px] text-[color:var(--tinta-media)]">
-          {tanda.estado === "terminado"
-            ? `${miles(tanda.hechas)} páginas revisadas ${fecha(tanda.creado)}`
-            : tanda.estado === "interrumpido"
-              ? "El último rastreo se cortó a mitad."
-              : "El último rastreo falló."}
-          {tanda.nota && ` · ${tanda.nota}`}
-        </p>
-      )}
-
-      {sitio && (
-        <div
-          className={`mt-4 rounded-2xl border px-5 py-3 text-[14px] ${
-            sitio.cierraTodo || !sitio.robots
-              ? "border-red-200 bg-red-50 text-red-700"
-              : "border-[color:var(--linea)] bg-white text-[color:var(--tinta-media)]"
-          }`}
-        >
-          <span className="font-medium">robots.txt:</span>{" "}
-          {!sitio.robots ? (
-            <>no existe o no responde{sitio.error ? ` · ${sitio.error}` : ""}. Google rastrea igual,
-            pero nadie le está diciendo qué evitar ni dónde está el sitemap.</>
-          ) : sitio.cierraTodo ? (
-            <>lleva un <code className="font-mono">Disallow: /</code>. Eso cierra el sitio entero a
-            los buscadores.</>
-          ) : (
-            <>
-              en su sitio
-              {sitio.bloqueos?.length ? ` · ${sitio.bloqueos.length} reglas de bloqueo` : " · sin bloqueos"}
-              {sitio.declaraSitemap ? " · declara el sitemap" : " · no declara el sitemap"}
-            </>
-          )}
-        </div>
-      )}
-
-      {problemas && (() => {
-        // Lo grave con cifra primero, luego lo demás con cifra, y los ceros al
-        // final y atenuados. Antes «90 canibalizaciones» pesaba lo mismo que
-        // «0 sin viewport» y había que leer la rejilla entera para saber qué
-        // mirar.
-        const visibles = INFORMES.filter((i) => problemas[i.id] !== undefined);
-        const peso = (i: (typeof INFORMES)[number]) =>
-          problemas[i.id] === 0 ? 2 : i.grave ? 0 : 1;
-        const ordenados = [...visibles].sort(
-          (x, y) => peso(x) - peso(y) || problemas[y.id] - problemas[x.id]
-        );
-        const conCifra = ordenados.filter((i) => problemas[i.id] > 0);
-        return (
-          <>
-            <p className="mt-5 text-[14px]">
-              {conCifra.length === 0 ? (
-                <span className="font-medium text-emerald-700">Nada que arreglar en lo rastreado.</span>
-              ) : (
-                <>
-                  <span className="font-medium">
-                    {conCifra.length} {conCifra.length === 1 ? "cosa" : "cosas"} que mirar:
-                  </span>{" "}
-                  <span className="text-[color:var(--tinta-media)]">
-                    {conCifra
-                      .slice(0, 4)
-                      .map((i) => `${miles(problemas[i.id])} ${i.etiqueta.toLowerCase()}`)
-                      .join(", ")}
-                    {conCifra.length > 4 ? "…" : "."}
-                  </span>
-                </>
-              )}
-            </p>
-        <div className="mt-3 grid gap-3 grid-cols-2 sm:grid-cols-4 lg:grid-cols-7">
-          {ordenados.map((i) => {
-            const n = problemas[i.id];
-            const activo = abierto === i.id;
-            return (
-              <button
-                key={i.id}
-                onClick={() => abrir(i.id)}
-                title={i.porque}
-                className={`rounded-2xl border px-4 py-3 text-left transition ${
-                  activo
-                    ? "border-[color:var(--tinta)] bg-white shadow-sm"
-                    : n === 0
-                      ? "border-transparent bg-black/[0.025] opacity-70 hover:opacity-100"
-                      : "border-[color:var(--linea)] bg-white hover:border-[color:var(--linea-fuerte)]"
-                }`}
-              >
-                <p
-                  className={`text-[22px] cifra font-semibold tabular-nums ${
-                    n === 0
-                      ? "text-[color:var(--tinta-suave)]"
-                      : i.grave
-                        ? "text-red-600"
-                        : "text-amber-700"
-                  }`}
-                >
-                  {miles(n)}
-                </p>
-                <p className="mt-0.5 text-[13px] text-[color:var(--tinta-media)]">{i.etiqueta}</p>
-                {anterior && anterior.problemas[i.id] !== undefined && anterior.problemas[i.id] !== n && (
-                  <p
-                    className={`mt-0.5 text-[12px] tabular-nums ${n < anterior.problemas[i.id] ? "text-emerald-700" : "text-red-600"}`}
-                    title={`Rastreo anterior: ${anterior.problemas[i.id]}`}
-                  >
-                    {n < anterior.problemas[i.id] ? "▼" : "▲"} {Math.abs(n - anterior.problemas[i.id])} desde {fecha(anterior.creado)}
-                  </p>
-                )}
-              </button>
-            );
-          })}
-
-          {/* Canibalizaciones: el número tarda porque hay que preguntarle a
-              Google, así que hasta que llegue se enseña un guion en gris. */}
-          <button
-            onClick={() => abrir("canibal")}
-            title={APARTE.canibal.porque}
-            className={`rounded-2xl border px-4 py-3 text-left transition ${
-              abierto === "canibal"
-                ? "border-[color:var(--tinta)] bg-white shadow-sm"
-                : "border-[color:var(--linea)] bg-white hover:border-[color:var(--linea-fuerte)]"
-            }`}
-          >
-            <p
-              className={`text-[22px] cifra font-semibold tabular-nums ${
-                canibales == null
-                  ? "text-[color:var(--tinta-suave)]"
-                  : canibales === 0
-                    ? "text-[color:var(--tinta-suave)]"
-                    : "text-amber-700"
-              }`}
-            >
-              {canibales == null ? "—" : miles(canibales)}
-            </p>
-            <p className="mt-0.5 text-[13px] text-[color:var(--tinta-media)]">
-              {APARTE.canibal.etiqueta}
-            </p>
-          </button>
-
-          <button
-            onClick={() => abrir("velocidad")}
-            title={APARTE.velocidad.porque}
-            className={`rounded-2xl border px-4 py-3 text-left transition ${
-              abierto === "velocidad"
-                ? "border-[color:var(--tinta)] bg-white shadow-sm"
-                : "border-[color:var(--linea)] bg-white hover:border-[color:var(--linea-fuerte)]"
-            }`}
-          >
-            <p
-              className={`text-[22px] cifra font-semibold tabular-nums ${
-                velocidad?.nota == null
-                  ? "text-[color:var(--tinta-suave)]"
-                  : velocidad.nota >= 90
-                    ? "text-emerald-700"
-                    : velocidad.nota >= 50
-                      ? "text-amber-700"
-                      : "text-red-600"
-              }`}
-            >
-              {velocidad?.nota ?? "—"}
-            </p>
-            <p className="mt-0.5 text-[13px] text-[color:var(--tinta-media)]">
-              {APARTE.velocidad.etiqueta}
-            </p>
-          </button>
-        </div>
-          </>
-        );
-      })()}
-
-      {abierto && (
-        <div className="mt-5">
-          <p className="text-[14px] text-[color:var(--tinta-media)]">
+  const panel = abierto ? (
+        <div className="border-t border-[color:var(--linea)] bg-black/[0.015] px-5 pb-5 pt-4">
+          <p className="max-w-3xl text-[14px] text-[color:var(--tinta-media)]">
             {APARTE[abierto]?.porque ?? INFORMES.find((i) => i.id === abierto)?.porque}
           </p>
           {onPedir && !APARTE[abierto] && (problemas?.[abierto] ?? 0) > 0 && (
@@ -554,7 +396,232 @@ export default function Rastreo({
             </div>
           )}
         </div>
+      ) : null;
+
+  if (cargando) return <Esqueleto tipo="cifras" />;
+
+  return (
+    <>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h2 className="text-[17px] font-semibold">Rastreo técnico</h2>
+          <p className="mt-0.5 max-w-2xl text-[14px] text-[color:var(--tinta-media)]">
+            Pide cada URL del sitemap y anota cómo respondió. No cuesta dinero, solo tiempo: va
+            despacio a propósito para no ahogar el hosting del cliente.
+          </p>
+        </div>
+
+        {puedeLanzar && tanda?.estado !== "corriendo" && (
+          <button onClick={lanzar} className="boton-fuerte">
+            {tanda ? "Rastrear de nuevo" : "Rastrear el sitio"}
+          </button>
+        )}
+      </div>
+
+      {error && <p className="mt-3 text-[14px] font-medium text-red-600">{error}</p>}
+
+      {!tanda && (
+        <div className="mt-6 rounded-2xl border border-[color:var(--linea)] bg-[color:var(--panel)] px-6 py-16 text-center">
+          <p className="text-[15px] font-medium">Este sitio no se ha rastreado nunca.</p>
+          <p className="mx-auto mt-2 max-w-sm text-[14px] text-[color:var(--tinta-media)]">
+            La primera pasada tarda unos minutos, según cuántas páginas tenga.
+          </p>
+        </div>
       )}
+
+      {tanda?.estado === "corriendo" && (
+        <div className="tarjeta mt-6 p-5">
+          <p className="text-[14px] font-medium">
+            Rastreando… {miles(tanda.hechas)}
+            {tanda.total > 0 && ` de ${miles(tanda.total)}`}
+          </p>
+          {tanda.total > 0 && (
+            <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-black/[0.07]">
+              <div
+                className="h-full rounded-full bg-[color:var(--acento)] transition-all"
+                style={{ width: `${Math.round((tanda.hechas / tanda.total) * 100)}%` }}
+              />
+            </div>
+          )}
+          <p className="mt-3 text-[13px] text-[color:var(--tinta-suave)]">
+            Puedes irte a otra pestaña: sigue por su cuenta.
+          </p>
+        </div>
+      )}
+
+      {tanda && tanda.estado !== "corriendo" && tanda.estado !== "terminado" && (
+        <p className="mt-4 text-[14px] font-medium text-red-600">
+          {tanda.estado === "interrumpido" ? "El último rastreo se cortó a mitad." : "El último rastreo falló."}
+          {tanda.nota && ` · ${tanda.nota}`}
+        </p>
+      )}
+
+      {sitio && (sitio.cierraTodo || !sitio.robots) && (
+        <div className="mt-4 rounded-2xl border border-red-200 bg-red-50 px-5 py-3 text-[14px] text-red-700">
+          <span className="font-medium">robots.txt:</span>{" "}
+          {!sitio.robots ? (
+            <>no existe o no responde{sitio.error ? ` · ${sitio.error}` : ""}. Google rastrea igual,
+            pero nadie le está diciendo qué evitar ni dónde está el sitemap.</>
+          ) : sitio.cierraTodo ? (
+            <>lleva un <code className="font-mono">Disallow: /</code>. Eso cierra el sitio entero a
+            los buscadores.</>
+          ) : (
+            <>
+              en su sitio
+              {sitio.bloqueos?.length ? ` · ${sitio.bloqueos.length} reglas de bloqueo` : " · sin bloqueos"}
+              {sitio.declaraSitemap ? " · declara el sitemap" : " · no declara el sitemap"}
+            </>
+          )}
+        </div>
+      )}
+
+      {problemas && tanda && (() => {
+        const hay = (id: string) =>
+          id === "canibal" ? (canibales ?? 0) : id === "velocidad" ? 0 : (problemas[id] ?? 0);
+        const existe = (id: string) => id === "canibal" || id === "velocidad" || problemas[id] !== undefined;
+        const etiqueta = (id: string) => APARTE[id]?.etiqueta ?? INFORMES.find((i) => i.id === id)?.etiqueta ?? id;
+        const grave = (id: string) => Boolean(INFORMES.find((i) => i.id === id)?.grave);
+
+        const nota = notaTecnica(problemas, tanda.hechas, velocidad?.nota ?? null);
+        const notaAntes = anterior ? notaTecnica(anterior.problemas, tanda.hechas, null) : null;
+        const conCifra = INFORMES.filter((i) => (problemas[i.id] ?? 0) > 0).sort(
+          (x, y) => Number(Boolean(y.grave)) - Number(Boolean(x.grave)) || problemas[y.id] - problemas[x.id]
+        );
+
+        return (
+          <>
+            {/* La cabecera: un número que resume, qué mirar primero, y de qué
+                rastreo sale. Es lo que se lee cuando se abre la pestaña con prisa. */}
+            <div className="tarjeta tarjeta-destacada mt-5 grid gap-px overflow-hidden sm:grid-cols-[auto_1fr_auto] [&>*]:ring-1 [&>*]:ring-[color:var(--linea)]">
+              <div className="bg-[color:var(--panel)] px-5 py-4">
+                <p className="rotulo">Salud técnica</p>
+                <p className={`mt-1.5 cifra text-[34px] leading-none ${colorNota(nota)}`}>
+                  {nota}
+                  <span className="text-[16px] text-[color:var(--tinta-suave)]">/100</span>
+                </p>
+                {notaAntes !== null && notaAntes !== nota && (
+                  <p className={`mt-1.5 text-[13px] tabular-nums ${nota > notaAntes ? "text-emerald-700" : "text-red-600"}`}>
+                    {nota > notaAntes ? "▲" : "▼"} {Math.abs(nota - notaAntes)} desde {fecha(anterior!.creado)}
+                  </p>
+                )}
+              </div>
+
+              <div className="bg-[color:var(--panel)] px-5 py-4">
+                <p className="rotulo">Qué mirar primero</p>
+                {conCifra.length === 0 ? (
+                  <p className="mt-1.5 text-[15px] font-medium text-emerald-700">Nada que arreglar en lo rastreado.</p>
+                ) : (
+                  <ol className="mt-1.5 flex flex-col gap-0.5">
+                    {conCifra.slice(0, 3).map((i, k) => (
+                      <li key={i.id}>
+                        <button
+                          type="button"
+                          onClick={() => abrir(i.id)}
+                          className="text-left text-[15px] underline-offset-4 hover:text-[color:var(--acento)] hover:underline"
+                        >
+                          <span className="mr-2 tabular-nums text-[color:var(--tinta-suave)]">{k + 1}.</span>
+                          <span className={`cifra mr-1.5 ${i.grave ? "text-red-600" : "text-amber-700"}`}>{miles(problemas[i.id])}</span>
+                          {i.etiqueta.toLowerCase()}
+                        </button>
+                      </li>
+                    ))}
+                    {conCifra.length > 3 && (
+                      <li className="text-[13px] text-[color:var(--tinta-suave)]">y {conCifra.length - 3} más abajo</li>
+                    )}
+                  </ol>
+                )}
+              </div>
+
+              <div className="bg-[color:var(--panel)] px-5 py-4 text-[13px] text-[color:var(--tinta-media)]">
+                <p className="rotulo">Rastreo</p>
+                <p className="mt-1.5">
+                  <span className="cifra text-[15px] text-[color:var(--tinta)]">{miles(tanda.hechas)}</span> páginas · {fecha(tanda.creado)}
+                </p>
+                {sitio && sitio.robots && !sitio.cierraTodo && (
+                  <p className="mt-1">
+                    robots.txt {sitio.bloqueos?.length ? `· ${sitio.bloqueos.length} bloqueos` : "· sin bloqueos"}
+                    {sitio.declaraSitemap ? " · con sitemap" : " · sin sitemap"}
+                  </p>
+                )}
+                {anterior && <p className="mt-1">anterior: {fecha(anterior.creado)}</p>}
+              </div>
+            </div>
+
+            {/* Los cuatro bloques. En cada uno, solo lo que está mal como filas
+                —lo grave primero—, y lo que está a cero, plegado en una línea. */}
+            {GRUPOS.map((g) => {
+              const ids = g.ids.filter(existe);
+              const malas = ids
+                .filter((id) => id === "velocidad" ? (velocidad?.nota != null && velocidad.nota < 90) : hay(id) > 0)
+                .sort((x, y) => Number(grave(y)) - Number(grave(x)) || hay(y) - hay(x));
+              const bien = ids.filter((id) => !malas.includes(id));
+              // Velocidad se enseña siempre: sin medir también es información.
+              const filasGrupo = malas.includes("velocidad") || !ids.includes("velocidad") ? malas : [...malas, "velocidad"];
+              const bienSinVel = bien.filter((id) => id !== "velocidad");
+
+              return (
+                <section key={g.id} className="tarjeta mt-4 overflow-hidden">
+                  <header className="flex flex-wrap items-baseline gap-x-3 gap-y-0.5 px-5 pb-2 pt-4">
+                    <h3 className="text-[15px] font-semibold">{g.etiqueta}</h3>
+                    <p className="text-[13px] text-[color:var(--tinta-media)]">{g.porque}</p>
+                    <p className="ml-auto text-[13px] tabular-nums text-[color:var(--tinta-suave)]">
+                      {malas.length === 0 ? "todo en orden" : `${malas.length} de ${ids.length} con algo`}
+                    </p>
+                  </header>
+
+                  {filasGrupo.map((id) => {
+                    const n = hay(id);
+                    const activo = abierto === id;
+                    const esVel = id === "velocidad";
+                    const valor = esVel ? (velocidad?.nota ?? null) : id === "canibal" && canibales == null ? null : n;
+                    const color = esVel
+                      ? valor == null ? "text-[color:var(--tinta-suave)]" : colorNota(valor)
+                      : valor == null ? "text-[color:var(--tinta-suave)]" : grave(id) ? "text-red-600" : "text-amber-700";
+                    const antes = anterior?.problemas[id];
+                    return (
+                      <div key={id} className="border-t border-[color:var(--linea)]">
+                        <button
+                          type="button"
+                          onClick={() => abrir(id)}
+                          aria-expanded={activo}
+                          className={`grid w-full grid-cols-[72px_1fr_auto] items-center gap-3 px-5 py-3 text-left transition hover:bg-black/[0.02] ${activo ? "bg-black/[0.02]" : ""}`}
+                        >
+                          <span className={`cifra text-[22px] leading-none ${color}`}>
+                            {valor == null ? "—" : miles(valor)}
+                            {esVel && valor != null && <span className="text-[12px] text-[color:var(--tinta-suave)]">/100</span>}
+                          </span>
+                          <span className="min-w-0">
+                            <span className="block text-[14px] font-medium">{etiqueta(id)}</span>
+                            <span className="block truncate text-[13px] text-[color:var(--tinta-media)]">
+                              {APARTE[id]?.porque ?? INFORMES.find((i) => i.id === id)?.porque}
+                            </span>
+                          </span>
+                          <span className="flex items-center gap-3 text-[12px] tabular-nums">
+                            {!esVel && antes !== undefined && antes !== n && (
+                              <span className={n < antes ? "text-emerald-700" : "text-red-600"} title={`Rastreo anterior: ${antes}`}>
+                                {n < antes ? "▼" : "▲"} {Math.abs(n - antes)}
+                              </span>
+                            )}
+                            <span className={`text-[color:var(--tinta-suave)] transition ${activo ? "rotate-90" : ""}`}>▸</span>
+                          </span>
+                        </button>
+                        {activo && panel}
+                      </div>
+                    );
+                  })}
+
+                  {bienSinVel.length > 0 && (
+                    <p className="border-t border-[color:var(--linea)] px-5 py-2.5 text-[13px] text-[color:var(--tinta-suave)]">
+                      <span className="mr-1.5 text-emerald-700">✓</span>
+                      Sin problemas: {bienSinVel.map(etiqueta).join(" · ")}
+                    </p>
+                  )}
+                </section>
+              );
+            })}
+          </>
+        );
+      })()}
     </>
   );
 }
