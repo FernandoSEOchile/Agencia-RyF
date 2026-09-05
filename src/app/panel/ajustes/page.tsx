@@ -2,7 +2,6 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { anotar } from "@/lib/clientes";
-import Barra from "@/components/Barra";
 import { db } from "@/lib/db";
 import {
   MODELOS,
@@ -213,7 +212,6 @@ export default async function Ajustes({
 
   return (
     <>
-      <Barra usuarioId={sesion.user?.id} usuario={sesion.user!.name} rol="ADMIN" />
       <main className="mx-auto max-w-2xl px-6 py-8">
         <Link href="/panel" className="text-sm text-neutral-500 underline-offset-4 hover:underline">
           ← Clientes

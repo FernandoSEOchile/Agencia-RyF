@@ -3,7 +3,6 @@ import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { clientesDe } from "@/lib/clientes";
 import { db } from "@/lib/db";
-import Barra from "@/components/Barra";
 import Errores, { type Fallo } from "@/components/Errores";
 import Revisar from "@/components/Revisar";
 
@@ -75,11 +74,6 @@ export default async function PaginaErrores() {
 
   return (
     <>
-      <Barra usuarioId={sesion.user?.id}
-        usuario={sesion.user.name}
-        rol={rol}
-      />
-
       <main className="contenedor py-10">
         <Link href="/panel" className="boton-sutil">
           ← Clientes

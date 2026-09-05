@@ -2,7 +2,6 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { veTodo } from "@/lib/clientes";
-import Barra from "@/components/Barra";
 import GastoGeneral from "@/components/GastoGeneral";
 
 export const metadata = { title: "Gasto · Panel AppSEO" };
@@ -19,11 +18,6 @@ export default async function PaginaGasto() {
 
   return (
     <>
-      <Barra usuarioId={sesion.user?.id}
-        usuario={sesion.user.name}
-        rol={rol}
-      />
-
       <main className="contenedor py-10">
         <Link href="/panel" className="boton-sutil">
           ← Clientes

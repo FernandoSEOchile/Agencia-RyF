@@ -5,7 +5,6 @@ import bcrypt from "bcryptjs";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { anotar } from "@/lib/clientes";
-import Barra from "@/components/Barra";
 import { fecha } from "@/lib/formato";
 
 export const metadata = { title: "Usuarios · Panel AppSEO" };
@@ -112,7 +111,6 @@ export default async function Usuarios({
 
   return (
     <>
-      <Barra usuarioId={sesion.user?.id} usuario={sesion.user!.name} rol="ADMIN" />
       <main className="mx-auto max-w-4xl px-6 py-8">
         <Link href="/panel" className="text-sm text-neutral-500 underline-offset-4 hover:underline">
           ← Clientes

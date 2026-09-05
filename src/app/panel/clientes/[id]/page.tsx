@@ -6,7 +6,6 @@ import { api, sondear, anotar, veTodo } from "@/lib/clientes";
 import FichaCliente, { type Suceso } from "@/components/FichaCliente";
 import { credenciales } from "@/lib/dataforseo";
 import { aplicacion } from "@/lib/gsc";
-import Barra from "@/components/Barra";
 import Plataforma from "@/components/Plataforma";
 import { fecha } from "@/lib/formato";
 import { conectarSitio } from "@/lib/conectarSitio";
@@ -340,7 +339,6 @@ export default async function Ficha({
 
   return (
     <>
-      <Barra usuarioId={sesion.user?.id} usuario={sesion.user.name} rol={rol} />
       <main className="contenedor py-10">
       <Link href="/panel" className="boton-sutil">
         ← Clientes

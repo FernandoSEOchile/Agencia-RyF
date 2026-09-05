@@ -4,7 +4,6 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { clientesDe } from "@/lib/clientes";
-import Barra from "@/components/Barra";
 import { IconoWordPress } from "@/components/Plataforma";
 import SitiosConector from "@/components/SitiosConector";
 import { fecha } from "@/lib/formato";
@@ -76,11 +75,6 @@ export default async function PaginaConector() {
 
   return (
     <>
-      <Barra usuarioId={sesion.user?.id}
-        usuario={sesion.user.name}
-        rol={rol}
-      />
-
       <main className="contenedor py-10">
         <Link href="/panel" className="boton-sutil">
           ← Clientes

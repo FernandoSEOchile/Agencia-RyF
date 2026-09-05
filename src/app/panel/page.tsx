@@ -6,7 +6,6 @@ import { auth } from "@/lib/auth";
 import { clientesDe } from "@/lib/clientes";
 import { ultimas } from "@/lib/vigia";
 import { db } from "@/lib/db";
-import Barra from "@/components/Barra";
 import Plataforma, { IconoWordPress } from "@/components/Plataforma";
 import { fecha } from "@/lib/formato";
 import FiltroClientes from "@/components/FiltroClientes";
@@ -78,11 +77,6 @@ export default async function Panel() {
 
   return (
     <>
-      <Barra usuarioId={sesion.user?.id}
-        usuario={sesion.user.name}
-        rol={rol}
-      />
-
       <main className="contenedor py-14">
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>

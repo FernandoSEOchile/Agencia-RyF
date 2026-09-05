@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
-import Barra from "@/components/Barra";
 import Palabras from "@/components/Palabras";
 
 export const metadata = { title: "Palabras clave · Panel AppSEO" };
@@ -26,11 +25,6 @@ export default async function PaginaPalabras() {
 
   return (
     <>
-      <Barra usuarioId={sesion.user?.id}
-        usuario={sesion.user.name}
-        rol={rol}
-      />
-
       <main className="contenedor py-10">
         <Link href="/panel" className="boton-sutil">
           ← Clientes

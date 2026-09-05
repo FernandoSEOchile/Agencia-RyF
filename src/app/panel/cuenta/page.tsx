@@ -3,7 +3,6 @@ import bcrypt from "bcryptjs";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { anotar } from "@/lib/clientes";
-import Barra from "@/components/Barra";
 import { fecha } from "@/lib/formato";
 
 export const metadata = { title: "Mi cuenta · Panel AppSEO" };
@@ -72,7 +71,6 @@ export default async function Cuenta({
 
   return (
     <>
-      <Barra usuarioId={sesion.user.id} usuario={sesion.user.name} rol={yo.rol} />
       <main className="mx-auto max-w-xl px-6 py-10">
         <h1 className="text-[28px] font-bold leading-tight">Mi cuenta</h1>
         <p className="mt-1 text-[14px] text-[color:var(--tinta-media)]">

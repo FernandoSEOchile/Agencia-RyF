@@ -78,9 +78,11 @@ h2,
 
 @layer components {
   /* Un solo ancho para todas las pantallas: si cada pestaña elige el suyo, las
-     columnas bailan al cambiar de una a otra. */
+     columnas bailan al cambiar de una a otra. Va a todo el ancho porque el
+     panel es una herramienta con tablas, no un texto: el tope solo evita que
+     en una pantalla enorme una fila mida dos metros. */
   .contenedor {
-    @apply mx-auto w-full max-w-[1120px] px-6;
+    @apply mx-auto w-full max-w-[1600px] px-5 sm:px-6 lg:px-8;
   }
 
   /* Superficie base. El borde es un pelo, no una caja: lo que separa del fondo

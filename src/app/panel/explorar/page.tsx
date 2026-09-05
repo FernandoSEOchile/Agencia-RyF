@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
-import Barra from "@/components/Barra";
 import Explorar from "@/components/Explorar";
 
 export const metadata = { title: "Explorar dominio · Panel AppSEO" };
@@ -23,11 +22,6 @@ export default async function PaginaExplorar() {
 
   return (
     <>
-      <Barra usuarioId={sesion.user?.id}
-        usuario={sesion.user.name}
-        rol={rol}
-      />
-
       <main className="contenedor py-10">
         <Link href="/panel" className="boton-sutil">
           ← Clientes

@@ -1,23 +1,17 @@
 "use client";
 
-import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { Icono } from "@/components/Iconos";
+import type { Enlace } from "@/lib/navegacion";
 
 /**
- * La navegación del panel: los enlaces de arriba, el selector de cliente y la
- * paleta de Ctrl+K.
+ * El selector de cliente y la paleta de Ctrl+K, en la barra de arriba.
  *
- * Antes la barra solo tenía el logo y «Salir»; Gasto, Fallos o Ajustes vivían
- * únicamente como botones en la portada, y desde cualquier otra pantalla la
- * salida era «← Clientes». Cambiar de cliente eran tres clics y una recarga.
- * Aquí es un desplegable en la barra, o dos teclas.
+ * Las pantallas del panel ya no van aquí: están en el riel. Lo que queda es
+ * lo que cambia con el contexto —en qué cliente estás y a cuál quieres ir— y
+ * el buscador, que llega a clientes y pantallas por igual.
  */
-
-export interface Enlace {
-  href: string;
-  texto: string;
-}
 
 export interface ClienteBreve {
   id: string;
@@ -25,21 +19,18 @@ export interface ClienteBreve {
   dominio: string;
 }
 
-export default function Navegacion({
-  enlaces,
-  clientes,
-  clienteId,
-}: {
-  enlaces: Enlace[];
-  clientes: ClienteBreve[];
-  clienteId?: string | null;
-}) {
+export default function Navegacion({ enlaces, clientes }: { enlaces: Enlace[]; clientes: ClienteBreve[] }) {
   const ruta = usePathname();
   const router = useRouter();
   const [abierta, setAbierta] = useState(false);
   const [busca, setBusca] = useState("");
   const [marcado, setMarcado] = useState(0);
   const campo = useRef<HTMLInputElement>(null);
+
+  // El cliente actual se deduce de la ruta: así ninguna página tiene que
+  // decírselo a la barra, y el selector lo enseña en cuanto entras en su ficha.
+  const clienteId = ruta.match(/^\/panel\/clientes\/([^/]+)/)?.[1] ?? null;
+  const actual = clientes.find((c) => c.id === clienteId) ?? null;
 
   // Ctrl+K (o Cmd+K) abre la paleta; Escape la cierra.
   useEffect(() => {
@@ -82,36 +73,22 @@ export default function Navegacion({
     router.push(href);
   }
 
-  const activo = (href: string) =>
-    href === "/panel" ? ruta === "/panel" || ruta.startsWith("/panel/clientes") : ruta.startsWith(href);
-
   return (
     <>
-      <nav aria-label="Principal" className="flex min-w-0 items-center gap-1 overflow-x-auto">
-        {enlaces.map((e) => (
-          <Link
-            key={e.href}
-            href={e.href}
-            aria-current={activo(e.href) ? "page" : undefined}
-            className={`shrink-0 rounded-full px-3 py-1.5 text-[12.5px] font-medium transition ${
-              activo(e.href) ? "bg-white/[0.12] text-white" : "text-white/60 hover:text-white"
-            }`}
-          >
-            {e.texto}
-          </Link>
-        ))}
-      </nav>
-
       {clientes.length > 0 && (
-        <label className="relative hidden sm:block">
+        <label className="relative block min-w-0">
           <span className="sr-only">Ir a un cliente</span>
           <select
-            value={clienteId ?? ""}
+            value={actual?.id ?? ""}
             onChange={(e) => e.target.value && ir(`/panel/clientes/${e.target.value}`)}
-            className="h-8 max-w-[200px] cursor-pointer appearance-none rounded-full border border-white/15 bg-white/[0.06] py-0 pl-3 pr-8 text-[12.5px] font-medium text-white outline-none transition hover:bg-white/[0.12] focus:border-white/40"
+            className={`h-8 max-w-[220px] cursor-pointer appearance-none truncate rounded-full border py-0 pl-3 pr-8 text-[13px] font-medium outline-none transition focus:border-[color:var(--acento)] ${
+              actual
+                ? "border-[color:var(--tinta)] bg-[color:var(--tinta)] text-white"
+                : "border-[color:var(--linea-fuerte)] bg-white text-[color:var(--tinta-media)] hover:border-[color:var(--tinta)]"
+            }`}
           >
             <option value="" className="text-black">
-              {clienteId ? "Cambiar de cliente…" : "Ir a un cliente…"}
+              {actual ? "Cambiar de cliente…" : "Ir a un cliente…"}
             </option>
             {clientes.map((c) => (
               <option key={c.id} value={c.id} className="text-black">
@@ -119,21 +96,27 @@ export default function Navegacion({
               </option>
             ))}
           </select>
-          <span aria-hidden className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[11px] text-white/50">
-            ▼
+          <span aria-hidden className={`pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 ${actual ? "text-white/70" : "text-[color:var(--tinta-suave)]"}`}>
+            <Icono nombre="abajo" tam={14} />
           </span>
         </label>
+      )}
+
+      {actual && (
+        <span className="hidden truncate text-[13px] text-[color:var(--tinta-suave)] lg:block">{actual.dominio}</span>
       )}
 
       <button
         type="button"
         onClick={() => setAbierta(true)}
         title="Buscar cliente o pantalla (Ctrl+K)"
-        aria-label="Buscar cliente o pantalla"
-        className="hidden h-8 items-center gap-1.5 rounded-full border border-white/15 px-2.5 text-[12px] text-white/50 transition hover:text-white md:flex"
+        className="hidden h-8 items-center gap-2 rounded-full border border-[color:var(--linea-fuerte)] bg-white pl-3 pr-2 text-[13px] text-[color:var(--tinta-suave)] transition hover:border-[color:var(--tinta)] hover:text-[color:var(--tinta)] sm:flex"
       >
-        <kbd className="font-sans">Ctrl</kbd>
-        <kbd className="font-sans">K</kbd>
+        <Icono nombre="buscar" tam={15} />
+        <span className="hidden md:inline">Cliente o pantalla…</span>
+        <kbd className="ml-1 rounded-md border border-[color:var(--linea)] bg-black/[0.03] px-1.5 py-0.5 font-sans text-[10.5px] text-[color:var(--tinta-suave)]">
+          Ctrl K
+        </kbd>
       </button>
 
       {abierta && (
