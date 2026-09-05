@@ -487,7 +487,7 @@ export default async function Ficha({
         revocarEnlace={revocarEnlaceInforme}
         pasos={[
           { texto: cliente.plataforma === "dominio" ? "Conectar el sitio para poder escribir (opcional)" : "Sitio conectado", hecho: Boolean(cliente.version) || cliente.plataforma === "shopify", pestaña: "datos" },
-          { texto: "Escritura activada", hecho: cliente.soloLectura === false && !cliente.escrituraBloqueada, pestaña: "datos" },
+          ...(cliente.plataforma === "dominio" ? [] : [{ texto: "Escritura activada", hecho: cliente.soloLectura === false && !cliente.escrituraBloqueada, pestaña: "datos" }]),
           { texto: "Search Console conectado", hecho: Boolean(cliente.gscPropiedad), pestaña: "posiciones" },
           { texto: "Palabras en seguimiento", hecho: keywords.length > 0, pestaña: "posiciones" },
           { texto: "Primer rastreo técnico", hecho: rastreosHechos > 0, pestaña: "tecnico" },
