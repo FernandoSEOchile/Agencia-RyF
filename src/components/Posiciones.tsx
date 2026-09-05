@@ -3,21 +3,19 @@
 import { useConfirmar } from "@/components/Confirmar";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import SearchConsole, { type ResumenGsc } from "@/components/SearchConsole";
 import Chispa from "@/components/Chispa";
 import { dinero, fecha, miles } from "@/lib/formato";
 import { descargarCsv } from "@/lib/csv";
 import { Cabecera, useOrden, type Columna as ColumnaTabla } from "@/components/Tabla";
 
 /**
- * Posiciones: lo que Google dice que pasa y lo que medimos a propósito.
+ * Posiciones: la medición directa, la que se paga por consulta.
  *
- * Son dos fuentes distintas y conviene no confundirlas: Search Console es la
- * verdad de Google —gratis, con dos días de retraso, promedios— y la medición
- * directa es una foto exacta de un puesto, que se paga por consulta. Antes
- * había que elegir una fuente con un interruptor y cada una traía sus propias
- * cifras; ahora las dos se leen en la misma cabecera y debajo van apiladas,
- * con lo accionable —qué medir, qué oportunidades, qué canibaliza— arriba.
+ * Search Console tiene su propia pestaña. Son dos fuentes distintas y conviene
+ * no confundirlas: aquella es la verdad de Google —gratis, con dos días de
+ * retraso, promedios— y esta es una foto exacta de un puesto en un momento.
+ * Aquí van las palabras que se siguen a propósito, con su histórico, y la
+ * exploración del dominio, que es de donde salen las candidatas a seguir.
  */
 
 export interface KeywordVista {
@@ -134,7 +132,7 @@ export default function Posiciones({
   costePorMedicion,
   exploracion,
   costeExploracion,
-  gscConectado,
+  irA,
 }: {
   clienteId: string;
   keywords: KeywordVista[];
@@ -148,13 +146,12 @@ export default function Posiciones({
   /** La exploración del dominio, si se hizo. */
   exploracion: ExploracionVista | null;
   costeExploracion: number;
-  /** Este cliente tiene propiedad de Search Console elegida: el dato real existe aunque tarde en llegar. */
-  gscConectado: boolean;
+  /** Para saltar a otra pestaña de la ficha: a Search Console, donde está el dato real. */
+  irA?: (pestaña: string) => void;
 }) {
   const { confirmar, dialogo } = useConfirmar();
   const router = useRouter();
   const [programada, setProgramada] = useState<number | null>(medirCada);
-  const [gsc, setGsc] = useState<ResumenGsc | null>(null);
   const [abierto, setAbierto] = useState(false);
   const [texto, setTexto] = useState("");
   const [ubicacion, setUbicacion] = useState(2152);
@@ -226,8 +223,8 @@ export default function Posiciones({
     }
   }
 
-  /** Pasa una consulta de Search Console al seguimiento medido. */
-  async function seguirDesdeGsc(consulta: string): Promise<boolean> {
+  /** Pasa una palabra —de la exploración, o de donde sea— al seguimiento medido. */
+  async function seguirPalabra(consulta: string): Promise<boolean> {
     setError(null);
     setAviso(null);
     try {
@@ -334,30 +331,15 @@ export default function Posiciones({
       {error && <p className="mb-4 rounded-2xl bg-red-50 px-4 py-3 text-[14px] text-red-700">{error}</p>}
       {aviso && <p className="mb-4 rounded-2xl bg-emerald-50 px-4 py-3 text-[14px] text-emerald-700">{aviso}</p>}
 
-      {/* ---------------- La cabecera: las dos fuentes y qué hacer ---------------- */}
+      {/* ---------------- La cabecera: la estimación, lo medido y qué hacer ---------------- */}
       <div className="tarjeta tarjeta-destacada grid gap-px overflow-hidden lg:grid-cols-3 [&>*]:ring-1 [&>*]:ring-[color:var(--linea)]">
         <div className="bg-[color:var(--panel)] px-5 py-4">
-          <p className="rotulo">En Google{gsc ? ` · últimos ${gsc.dias} días` : ""}</p>
-          {gscConectado && gsc ? (
-            <>
-              <p className="mt-1.5 cifra text-[28px] leading-none">
-                {miles(gsc.consultas)}
-                <span className="ml-1.5 text-[14px] font-normal text-[color:var(--tinta-media)]">búsquedas por las que apareces</span>
-              </p>
-              <div className="mt-3">
-                <Distribucion top3={gsc.top3} top10={gsc.top10} top20={gsc.top20} total={gsc.consultas} />
-              </div>
-              <p className="mt-2 text-[13px] text-[color:var(--tinta-suave)]">
-                posición media {gsc.media ?? "—"} · datos de Google, con dos o tres días de retraso
-              </p>
-            </>
-          ) : gscConectado ? (
-            <p className="mt-2 text-[14px] text-[color:var(--tinta-suave)]">Leyendo Search Console…</p>
-          ) : exploracion ? (
+          <p className="rotulo">Estimación del dominio</p>
+          {exploracion ? (
             <>
               <p className="mt-1.5 cifra text-[28px] leading-none">
                 {miles(exploracion.resumen.keywords)}
-                <span className="ml-1.5 text-[14px] font-normal text-[color:var(--tinta-media)]">palabras por las que apareces, estimadas</span>
+                <span className="ml-1.5 text-[14px] font-normal text-[color:var(--tinta-media)]">palabras por las que apareces</span>
               </p>
               <div className="mt-3">
                 <Distribucion
@@ -368,17 +350,28 @@ export default function Posiciones({
                 />
               </div>
               <p className="mt-2 text-[13px] text-[color:var(--tinta-suave)]">
-                ≈ {miles(exploracion.resumen.trafico)} visitas al mes · estimación de DataForSEO · explorado {fecha(exploracion.creado)}
-                {hayGsc ? " · conecta Search Console para el dato real" : " · Search Console no está habilitado en este panel"}
+                ≈ {miles(exploracion.resumen.trafico)} visitas al mes · DataForSEO · explorado {fecha(exploracion.creado)}
+                {hayGsc && irA && (
+                  <>
+                    {" · "}
+                    <button type="button" onClick={() => irA("gsc")} className="underline-offset-4 hover:text-[color:var(--acento)] hover:underline">
+                      el dato real está en Search Console →
+                    </button>
+                  </>
+                )}
               </p>
             </>
-          ) : !hayGsc ? (
-            <p className="mt-2 text-[14px] text-[color:var(--tinta-media)]">
-              Search Console no está habilitado en este panel.
-            </p>
           ) : (
             <p className="mt-2 text-[14px] text-[color:var(--tinta-media)]">
-              Sin conectar todavía: conecta Search Console más abajo para ver las búsquedas reales.
+              Sin explorar. Explorar el dominio trae las palabras por las que ya posiciona, para elegir qué seguir.
+              {hayGsc && irA && (
+                <>
+                  {" "}
+                  <button type="button" onClick={() => irA("gsc")} className="underline-offset-4 hover:text-[color:var(--acento)] hover:underline">
+                    El dato real está en Search Console →
+                  </button>
+                </>
+              )}
             </p>
           )}
         </div>
@@ -441,23 +434,7 @@ export default function Posiciones({
                 {subieron === 1 ? "subió" : "subieron"} 3 puestos o más
               </li>
             )}
-            {gsc && gsc.oportunidades > 0 && (
-              <li>
-                <button type="button" onClick={() => ir("oportunidades")} className="text-left underline-offset-4 hover:text-[color:var(--acento)] hover:underline">
-                  <span className="cifra mr-1.5 text-[color:var(--tinta)]">{miles(gsc.oportunidades)}</span>
-                  oportunidades entre el puesto 4 y el 20
-                </button>
-              </li>
-            )}
-            {gsc && gsc.canibales > 0 && (
-              <li>
-                <button type="button" onClick={() => ir("canibalizaciones")} className="text-left underline-offset-4 hover:text-[color:var(--acento)] hover:underline">
-                  <span className="cifra mr-1.5 text-amber-700">{miles(gsc.canibales)}</span>
-                  {gsc.canibales === 1 ? "canibalización" : "canibalizaciones"}
-                </button>
-              </li>
-            )}
-            {sinMedir === 0 && bajaron === 0 && !(gsc && (gsc.oportunidades > 0 || gsc.canibales > 0)) && (
+            {sinMedir === 0 && bajaron === 0 && (
               <li className="text-[color:var(--tinta-media)]">Nada urgente por aquí.</li>
             )}
           </ul>
@@ -828,7 +805,7 @@ export default function Posiciones({
                                     onClick={async () => {
                                       setSiguiendo(k.keyword);
                                       try {
-                                        if (await seguirDesdeGsc(k.keyword)) setSeguidas((x) => new Set(x).add(k.keyword));
+                                        if (await seguirPalabra(k.keyword)) setSeguidas((x) => new Set(x).add(k.keyword));
                                       } finally {
                                         setSiguiendo(null);
                                       }
@@ -858,12 +835,6 @@ export default function Posiciones({
           })()}
       </section>
 
-      {/* ---------------- Search Console, apilado ---------------- */}
-      {hayGsc && (
-        <section className="mt-10">
-          <SearchConsole clienteId={clienteId} puedeEditar={puedeEditar} onSeguir={seguirDesdeGsc} apilado onResumen={setGsc} />
-        </section>
-      )}
     </div>
   );
 }

@@ -321,6 +321,19 @@ export async function consultas(
 }
 
 /**
+ * El mismo periodo, pero justo antes: los mismos días, terminando el día
+ * anterior a donde empieza el actual. Es contra lo que se dice «subió» o «bajó».
+ */
+export async function consultasAnteriores(
+  conexionId: string,
+  propiedad: string,
+  dias = 28,
+  limite = 25000
+): Promise<FilaConsulta[]> {
+  return consultasEntre(conexionId, propiedad, haceDias(2 * dias + 4), haceDias(dias + 4), limite);
+}
+
+/**
  * Lo mismo, entre dos fechas concretas.
  *
  * Existe aparte porque los tramos por mes necesitan meses naturales y no «los

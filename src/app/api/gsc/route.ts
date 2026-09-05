@@ -2,7 +2,7 @@ import { NextRequest } from "next/server";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { veTodo } from "@/lib/clientes";
-import { aplicacion, propiedades, consultas } from "@/lib/gsc";
+import { aplicacion, propiedades, consultas, consultasAnteriores, type FilaConsulta } from "@/lib/gsc";
 
 /**
  * Datos de Search Console para un cliente.
@@ -33,6 +33,21 @@ async function permiso(clienteId: string) {
   if (!cliente) return { error: "Ese cliente no existe.", codigo: 404 as const };
 
   return { rol, cliente };
+}
+
+/** Las cifras de un periodo, para compararlas con el actual. Los tramos son acumulativos. */
+function resumen(filas: FilaConsulta[]) {
+  const top = (n: number) => filas.filter((f) => f.posicion <= n).length;
+  return {
+    consultas: filas.length,
+    clics: filas.reduce((s, f) => s + f.clics, 0),
+    impresiones: filas.reduce((s, f) => s + f.impresiones, 0),
+    media: filas.length ? Math.round((filas.reduce((s, f) => s + f.posicion, 0) / filas.length) * 10) / 10 : null,
+    top3: top(3),
+    top10: top(10),
+    top20: top(20),
+    top100: top(100),
+  };
 }
 
 export async function GET(req: NextRequest) {
@@ -83,8 +98,26 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    const filas = await consultas(p.cliente.gscConexionId, p.cliente.gscPropiedad, dias);
-    return Response.json({ ...base, propiedades: disponibles, dias, filas });
+    const actuales = await consultas(p.cliente.gscConexionId, p.cliente.gscPropiedad, dias);
+
+    // El periodo anterior de verdad —los mismos días, justo antes— para decir
+    // cuánto cambió cada consulta y cada cifra. Va después y no en paralelo:
+    // dos consultas a la vez a Google es la forma más rápida de que nos limite.
+    // Si falla, la tabla sale igual, solo sin la columna de cambio.
+    let previas: FilaConsulta[] | null = null;
+    try {
+      previas = await consultasAnteriores(p.cliente.gscConexionId, p.cliente.gscPropiedad, dias);
+    } catch {
+      previas = null;
+    }
+    const porConsulta = new Map((previas ?? []).map((f) => [f.consulta, f]));
+    const filas = actuales.map((f) => {
+      const a = porConsulta.get(f.consulta);
+      return { ...f, antes: previas && a ? { posicion: a.posicion, clics: a.clics, impresiones: a.impresiones } : null };
+    });
+
+    const anterior = previas ? resumen(previas) : null;
+    return Response.json({ ...base, propiedades: disponibles, dias, filas, anterior });
   } catch (e) {
     return Response.json(
       {

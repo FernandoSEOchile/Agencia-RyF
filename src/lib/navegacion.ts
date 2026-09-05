@@ -19,6 +19,7 @@ export function enlacesDelPanel(rol: string): Enlace[] {
     { href: "/panel", texto: "Clientes", icono: "clientes" },
     { href: "/panel/explorar", texto: "Explorar", icono: "explorar" },
     { href: "/panel/terminos", texto: "Palabras", icono: "palabras" },
+    { href: "/panel/local", texto: "Local", icono: "local" },
     { href: "/panel/errores", texto: "Fallos", icono: "fallos" },
     ...(rol === "ADMIN" || rol === "GESTOR" ? [{ href: "/panel/gasto", texto: "Gasto", icono: "gasto" as const }] : []),
     ...(rol === "ADMIN"

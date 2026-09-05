@@ -17,6 +17,7 @@ import { descargarCsv } from "@/lib/csv";
 import VisibilidadIa from "@/components/VisibilidadIa";
 import Competidores from "@/components/Competidores";
 import { Icono, type NombreIcono } from "@/components/Iconos";
+import SearchConsole from "@/components/SearchConsole";
 
 export interface Suceso {
   fecha: string;
@@ -57,6 +58,7 @@ type Pestaña =
   | "chat"
   | "panorama"
   | "posiciones"
+  | "gsc"
   | "local"
   | "backlinks"
   | "ia"
@@ -82,6 +84,7 @@ const ZONAS: readonly Zona[] = [
     etiqueta: "Medir",
     pestañas: [
       { id: "panorama", etiqueta: "Panorama", icono: "panorama" },
+      { id: "gsc", etiqueta: "Search Console", icono: "consola" },
       { id: "posiciones", etiqueta: "Posiciones", icono: "posiciones" },
       { id: "local", etiqueta: "Local", icono: "local" },
       { id: "backlinks", etiqueta: "Backlinks", icono: "backlinks" },
@@ -171,7 +174,6 @@ export default function FichaCliente({
   costePorMedicion,
   exploracion,
   costeExploracion,
-  gscConectado,
 }: {
   clienteId: string;
   nombre: string;
@@ -207,7 +209,6 @@ export default function FichaCliente({
   costePorMedicion: number;
   exploracion: ExploracionVista | null;
   costeExploracion: number;
-  gscConectado: boolean;
 }) {
   const [activa, setActivaEstado] = useState<Pestaña>("chat");
 
@@ -463,6 +464,8 @@ export default function FichaCliente({
 
       {activa === "panorama" && <Panorama clienteId={clienteId} irA={(t) => setActiva(t as Pestaña)} puedeEditar={puedeSubir} />}
 
+      {activa === "gsc" && <SearchConsole clienteId={clienteId} puedeEditar={puedeSubir} irA={(t) => setActiva(t as Pestaña)} />}
+
       {activa === "local" && (
         <>
           <FichaLocal clienteId={clienteId} nombreCliente={nombre} puedeAuditar={puedeSubir} />
@@ -511,7 +514,7 @@ export default function FichaCliente({
           costePorMedicion={costePorMedicion}
           exploracion={exploracion}
           costeExploracion={costeExploracion}
-          gscConectado={gscConectado}
+          irA={(t) => setActiva(t as Pestaña)}
         />
       )}
 

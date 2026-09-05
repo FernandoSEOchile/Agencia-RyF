@@ -417,7 +417,6 @@ export default async function Ficha({
             : null
         }
         costeExploracion={costeExploracion}
-        gscConectado={gscListo && Boolean(cliente.gscPropiedad)}
         costePorMedicion={(() => {
           const costes = keywords.map((k) => k.posiciones[0]?.coste).filter((c): c is number => typeof c === "number" && c > 0);
           return costes.length ? costes.reduce((t, c) => t + c, 0) / costes.length : 0.003;
@@ -497,7 +496,7 @@ export default async function Ficha({
         pasos={[
           { texto: cliente.plataforma === "dominio" ? "Conectar el sitio para poder escribir (opcional)" : "Sitio conectado", hecho: Boolean(cliente.version) || cliente.plataforma === "shopify", pestaña: "datos" },
           ...(cliente.plataforma === "dominio" ? [] : [{ texto: "Escritura activada", hecho: cliente.soloLectura === false && !cliente.escrituraBloqueada, pestaña: "datos" }]),
-          { texto: "Search Console conectado", hecho: Boolean(cliente.gscPropiedad), pestaña: "posiciones" },
+          { texto: "Search Console conectado", hecho: Boolean(cliente.gscPropiedad), pestaña: "gsc" },
           { texto: "Palabras en seguimiento", hecho: keywords.length > 0, pestaña: "posiciones" },
           { texto: "Primer rastreo técnico", hecho: rastreosHechos > 0, pestaña: "tecnico" },
           { texto: "Backlinks consultados", hecho: Boolean(enlacesMedidos), pestaña: "backlinks" },
