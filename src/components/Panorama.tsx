@@ -38,6 +38,7 @@ interface Datos {
   cliente: { nombre: string; dominio: string };
   dias: number;
   trafico: Dia[];
+  traficoAnterior: Dia[];
   avisoGsc: string | null;
   posiciones: DiaPosiciones[];
   trabajo: { fecha: string; cuantos: number }[];
@@ -55,21 +56,20 @@ interface Datos {
 const miles = (n: number) => Math.round(n).toLocaleString("es-CL");
 
 /**
- * Cuánto cambió la segunda mitad respecto a la primera.
+ * Cuánto cambió este periodo respecto al anterior del mismo largo.
  *
- * Se parte el periodo por la mitad en vez de comparar contra los mismos días
- * del año pasado porque casi ningún sitio tiene un año de historial aquí
- * todavía. Cuando lo tengan, esta es la función que hay que cambiar.
+ * Se compara contra los mismos días de antes —los 28 anteriores a estos 28—
+ * y no partiendo el periodo por la mitad, que era lo que se hacía y decía
+ * «vs. periodo anterior» sin serlo. En `promedio` (la posición media) se
+ * comparan medias y no sumas: sumar posiciones no significa nada.
  */
-function variacion(valores: number[]): number | null {
-  if (valores.length < 14) return null;
-
-  const mitad = Math.floor(valores.length / 2);
-  const antes = valores.slice(0, mitad).reduce((t, v) => t + v, 0);
-  const ahora = valores.slice(mitad).reduce((t, v) => t + v, 0);
-
-  if (antes === 0) return null;
-  return Math.round(((ahora - antes) / antes) * 100);
+function variacionEntre(actual: number[], anterior: number[], promedio = false): number | null {
+  if (actual.length < 3 || anterior.length < 3) return null;
+  const agregar = (v: number[]) => (promedio ? v.reduce((t, x) => t + x, 0) / v.length : v.reduce((t, x) => t + x, 0));
+  const a = agregar(anterior);
+  const b = agregar(actual);
+  if (a === 0) return null;
+  return Math.round(((b - a) / a) * 100);
 }
 
 export default function Panorama({
@@ -123,6 +123,11 @@ export default function Panorama({
   const clics = d.trafico.map((x) => x.clics);
   const impresiones = d.trafico.map((x) => x.impresiones);
   const posicion = d.trafico.map((x) => x.posicion);
+  const antes = {
+    clics: (d.traficoAnterior ?? []).map((x) => x.clics),
+    impresiones: (d.traficoAnterior ?? []).map((x) => x.impresiones),
+    posicion: (d.traficoAnterior ?? []).map((x) => x.posicion),
+  };
 
   const media = (v: number[]) => (v.length ? v.reduce((t, x) => t + x, 0) / v.length : 0);
 
@@ -150,18 +155,18 @@ export default function Panorama({
         <Cifra
           etiqueta="Clics"
           valor={miles(clics.reduce((t, v) => t + v, 0))}
-          variacion={variacion(clics)}
+          variacion={variacionEntre(clics, antes.clics)}
           pie={`en ${d.dias} días`}
         />
         <Cifra
           etiqueta="Impresiones"
           valor={miles(impresiones.reduce((t, v) => t + v, 0))}
-          variacion={variacion(impresiones)}
+          variacion={variacionEntre(impresiones, antes.impresiones)}
         />
         <Cifra
           etiqueta="Posición media"
           valor={posicion.length ? media(posicion).toFixed(1) : "—"}
-          variacion={variacion(posicion)}
+          variacion={variacionEntre(posicion, antes.posicion, true)}
           mejorMenos
         />
         <Cifra

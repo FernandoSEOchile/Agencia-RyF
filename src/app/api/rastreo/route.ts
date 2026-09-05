@@ -1,9 +1,9 @@
 import { NextRequest } from "next/server";
-import type { Prisma } from "@prisma/client";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { veTodo, anotar } from "@/lib/clientes";
 import { arrancar, limpiarColgados } from "@/lib/rastreador";
+import { FILTROS, PROPIA, problemasDe } from "@/lib/rastreoInformes";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -17,52 +17,6 @@ export const dynamic = "force-dynamic";
  * «títulos repetidos» que en realidad son la misma página vista desde sus URLs
  * viejas—. Una redirección es un problema de otra clase y tiene su propio
  * informe.
- */
-const PROPIA: Prisma.PaginaWhereInput = { estado: { lt: 400 }, destino: null };
-
-/**
- * Qué se considera un problema, en un solo sitio.
- *
- * Los contadores y las listas salen de aquí para que no puedan discrepar: si el
- * cuadro dice 40 y la lista enseña 37, nadie vuelve a fiarse de la pantalla.
- *
- * Los umbrales no son caprichosos: 300 palabras es el mínimo por debajo del
- * cual una página rara vez tiene bastante que decir para competir por nada, y
- * tres clics es donde Google empieza a repartir bastante menos autoridad.
- */
-const FILTROS: Record<string, Prisma.PaginaWhereInput> = {
-  rotas: { OR: [{ estado: { gte: 400 } }, { estado: null }] },
-  noIndexables: { noindex: true, destino: null },
-  huerfanas: { ...PROPIA, entrantes: 0 },
-  redirigidas: { destino: { not: null } },
-  sinTitulo: { ...PROPIA, titulo: null },
-  sinDescripcion: { ...PROPIA, descripcion: null },
-  sinH1: { ...PROPIA, h1s: 0 },
-  variosH1: { ...PROPIA, h1s: { gt: 1 } },
-  contenidoPobre: { ...PROPIA, palabras: { lt: 300, gt: 0 } },
-  sinEnlacesSalientes: { ...PROPIA, enlacesInternos: 0 },
-  sinDatos: { ...PROPIA, tipos: "[]" },
-  datosRotos: { ...PROPIA, ldRoto: true },
-  canonicalAjeno: { ...PROPIA, canonical: { not: null } },
-  sinCanonical: { ...PROPIA, canonical: null },
-  profundas: { ...PROPIA, profundidad: { gt: 3 } },
-  sinLang: { ...PROPIA, lang: null },
-  sinViewport: { ...PROPIA, viewport: false },
-  // El tiempo sí es suyo aunque redirija: lo que tardó, tardó.
-  lentas: { ms: { gte: 3000 } },
-  sinAlt: { ...PROPIA, imagenesSinAlt: { gt: 0 } },
-};
-
-/**
- * Si Google puede indexar esta página, y por qué no cuando no puede.
- *
- * Se decide aquí y no en la pantalla porque son cuatro razones distintas que
- * conviene no repetir en dos sitios: una URL que redirige no se indexa ella
- * —se indexa su destino—, y una que apunta su canonical a otra tampoco, aunque
- * responda 200 y se vea perfecta. Esas dos son las que más despistan.
- *
- * No mira el robots.txt: eso bloquea el rastreo, no la indexación, y sus reglas
- * son del sitio entero. Sale aparte, en el aviso de arriba.
  */
 function indexabilidad(p: {
   estado: number | null;
@@ -234,59 +188,16 @@ export async function GET(req: NextRequest) {
     return Response.json({ problema, paginas: paginas.map(aFila) });
   }
 
-  const claves = Object.keys(FILTROS) as (keyof typeof FILTROS)[];
+  const problemas = await problemasDe(rastreo.id);
 
-  const cuentas = await Promise.all(
-    claves.map((k) => db.pagina.count({ where: { ...de, ...FILTROS[k] } }))
-  );
-
-  const problemas: Record<string, number> = {};
-  claves.forEach((k, i) => (problemas[k] = cuentas[i]));
-
-  // Repetidos: dos páginas con el mismo título compiten entre ellas por la
-  // misma búsqueda, y en catálogos grandes es de los fallos más comunes. Sale
-  // de un agrupado y no de un filtro, por eso va aparte.
-  const [titulos, descripciones] = await Promise.all([
-    db.pagina.groupBy({
-      by: ["titulo"],
-      where: { ...de, ...PROPIA, titulo: { not: null } },
-      _count: { titulo: true },
-      having: { titulo: { _count: { gt: 1 } } },
-    }),
-    db.pagina.groupBy({
-      by: ["descripcion"],
-      where: { ...de, ...PROPIA, descripcion: { not: null } },
-      _count: { descripcion: true },
-      having: { descripcion: { _count: { gt: 1 } } },
-    }),
-  ]);
-
-  // «Canonical a otra página» compara dos columnas entre sí, y eso Prisma no lo
-  // sabe hacer con un filtro: se cuenta a mano sobre las que declaran uno.
-  const conCanonical = await db.pagina.findMany({
-    where: { ...de, ...PROPIA, canonical: { not: null } },
-    select: { url: true, canonical: true },
+  // El rastreo anterior terminado, para decir qué cambió desde entonces: qué se
+  // arregló y qué apareció. Sin esto cada tanda era una foto suelta.
+  const previo = await db.rastreo.findFirst({
+    where: { clienteId, estado: "terminado", creado: { lt: rastreo.creado } },
+    orderBy: { creado: "desc" },
+    select: { id: true, creado: true },
   });
-
-  const mismaPagina = (a: string, b: string) => {
-    const l = (u: string) =>
-      u.replace(/^https?:\/\/(www\.)?/, "").replace(/\/+$/, "").toLowerCase();
-    return l(a) === l(b);
-  };
-
-  problemas.canonicalAjeno = conCanonical.filter(
-    (x) => x.canonical && !mismaPagina(x.url, x.canonical)
-  ).length;
-
-  problemas.tituloRepetido = titulos.reduce((t, r) => t + r._count.titulo, 0);
-  problemas.descripcionRepetida = descripciones.reduce((t, r) => t + r._count.descripcion, 0);
-
-  // Un rastreo anterior al grafo de enlaces no guardó ninguno, y entonces todas
-  // sus páginas tienen cero entrantes y saldrían como huérfanas. Antes que
-  // enseñar un número falso, se quita el informe: quien lo quiera, que vuelva a
-  // rastrear.
-  const hayGrafo = await db.enlace.findFirst({ where: { rastreoId: rastreo.id }, select: { id: true } });
-  if (!hayGrafo) delete problemas.huerfanas;
+  const anterior = previo ? { creado: previo.creado.toISOString(), problemas: await problemasDe(previo.id) } : null;
 
   return Response.json({
     rastreo: {
@@ -299,6 +210,7 @@ export async function GET(req: NextRequest) {
       nota: rastreo.nota,
     },
     problemas,
+    anterior,
     sitio: rastreo.sitio ? JSON.parse(rastreo.sitio) : null,
   });
 }

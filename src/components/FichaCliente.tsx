@@ -13,6 +13,7 @@ import Rastreo from "@/components/Rastreo";
 import Panorama from "@/components/Panorama";
 import Local from "@/components/Local";
 import FichaLocal from "@/components/FichaLocal";
+import { descargarCsv } from "@/lib/csv";
 
 export interface Suceso {
   fecha: string;
@@ -207,8 +208,17 @@ export default function FichaCliente({
   const [sitemapVisto, setSitemapVisto] = useState(false);
   if (activa === "sitemap" && !sitemapVisto) setSitemapVisto(true);
   const [filtro, setFiltro] = useState<"todo" | "sitio" | "panel">("todo");
+  const [buscaRegistro, setBuscaRegistro] = useState("");
+  const [quien, setQuien] = useState("");
 
-  const visibles = sucesos.filter((s) => filtro === "todo" || s.origen === filtro);
+  const personas = [...new Set(sucesos.map((s) => s.quien).filter((q): q is string => Boolean(q)))].sort();
+  const q = buscaRegistro.trim().toLowerCase();
+  const visibles = sucesos.filter(
+    (s) =>
+      (filtro === "todo" || s.origen === filtro) &&
+      (!quien || s.quien === quien) &&
+      (!q || `${s.accion} ${s.resumen}`.toLowerCase().includes(q))
+  );
 
   return (
     <div className="mt-7">
@@ -396,13 +406,13 @@ export default function FichaCliente({
 
       {/* Velocidad y canibalizaciones viven dentro de Rastreo, como dos cuadros
           más de su rejilla: son comprobaciones técnicas y se miran ahí. */}
-      {activa === "tecnico" && <Rastreo clienteId={clienteId} puedeLanzar={puedeSubir} />}
+      {activa === "tecnico" && <Rastreo clienteId={clienteId} puedeLanzar={puedeSubir} onPedir={llevarAlChat} />}
 
       {activa === "backlinks" && <Backlinks clienteId={clienteId} puedeEditar={puedeSubir} />}
 
       {activa === "bitacora" && <Bitacora clienteId={clienteId} puedeEditar={puedeSubir} />}
 
-      {activa === "gasto" && <Gasto clienteId={clienteId} />}
+      {activa === "gasto" && <Gasto clienteId={clienteId} tarifa={ajustes.tarifa} />}
 
       {activa === "posiciones" && (
         <Posiciones
@@ -436,6 +446,40 @@ export default function FichaCliente({
                 {texto}
               </button>
             ))}
+            <input
+              value={buscaRegistro}
+              onChange={(e) => setBuscaRegistro(e.target.value)}
+              placeholder="Buscar en el registro…"
+              aria-label="Buscar en el registro"
+              className="rounded-full border border-[color:var(--linea-fuerte)] bg-white px-3 py-1 text-xs outline-none transition focus:border-[color:var(--acento)]"
+            />
+            {personas.length > 1 && (
+              <select
+                value={quien}
+                onChange={(e) => setQuien(e.target.value)}
+                aria-label="Filtrar por persona"
+                className="rounded-full border border-[color:var(--linea-fuerte)] bg-white px-3 py-1 text-xs outline-none focus:border-[color:var(--acento)]"
+              >
+                <option value="">Cualquier persona</option>
+                {personas.map((per) => (
+                  <option key={per} value={per}>
+                    {per}
+                  </option>
+                ))}
+              </select>
+            )}
+            <button
+              type="button"
+              onClick={() =>
+                descargarCsv(
+                  `registro-${nombre}`,
+                  visibles.map((s) => ({ fecha: s.fecha, accion: s.accion, resumen: s.resumen, resultado: s.resultado, origen: s.origen, quien: s.quien ?? "" }))
+                )
+              }
+              className="text-xs text-[color:var(--tinta-suave)] transition hover:text-[color:var(--acento)]"
+            >
+              Descargar CSV
+            </button>
             <p className="ml-auto text-xs text-[color:var(--tinta-suave)]">
               {visibles.length} {visibles.length === 1 ? "operación" : "operaciones"}
             </p>

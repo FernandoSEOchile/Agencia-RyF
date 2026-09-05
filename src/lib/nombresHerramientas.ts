@@ -29,6 +29,7 @@ export const NOMBRES_HERRAMIENTAS: Record<string, string> = {
   disenar_con_elementor: "Maquetando con Elementor",
   ver_pagina: "Mirando la página en vivo",
   ver_registro: "Revisando el registro",
+  ver_rastreo: "Consultando el rastreo técnico",
   analizar_competencia: "Analizando la competencia",
   ver_search_console: "Consultando Search Console",
   ver_posiciones: "Consultando posiciones",

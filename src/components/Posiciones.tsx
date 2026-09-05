@@ -4,6 +4,8 @@ import { useConfirmar } from "@/components/Confirmar";
 import { useState } from "react";
 import SearchConsole from "@/components/SearchConsole";
 import { dinero } from "@/lib/formato";
+import Chispa from "@/components/Chispa";
+import { descargarCsv } from "@/lib/csv";
 
 export interface KeywordVista {
   id: string;
@@ -16,6 +18,7 @@ export interface KeywordVista {
   medido: string | null;
   anterior: number | null;
   mediciones: number;
+  historial: (number | null)[];
 }
 
 const UBICACIONES = [
@@ -182,6 +185,11 @@ export default function Posiciones({
         : String(x).localeCompare(String(y), "es");
     return orden.asc ? cmp : -cmp;
   });
+  const [buscaKw, setBuscaKw] = useState("");
+  const qKw = buscaKw.trim().toLowerCase();
+  const visiblesKw = qKw
+    ? ordenadas.filter((k) => `${k.termino} ${k.urlPosicionada ?? ""} ${k.urlObjetivo ?? ""}`.toLowerCase().includes(qKw))
+    : ordenadas;
 
   const medidas = keywords.filter((k) => k.puesto !== null);
   const sinMedir = keywords.filter((k) => k.mediciones === 0).length;
@@ -349,7 +357,42 @@ export default function Posiciones({
             ))}
           </dl>
 
-          <div className="tarjeta mt-3 overflow-x-auto">
+          <div className="mt-3 flex flex-wrap items-center gap-2">
+            <input
+              value={buscaKw}
+              onChange={(e) => setBuscaKw(e.target.value)}
+              placeholder="Buscar palabra o URL…"
+              aria-label="Buscar palabra o URL"
+              className="w-full max-w-xs rounded-full border border-[color:var(--linea-fuerte)] bg-white px-3.5 py-1.5 text-[13px] outline-none transition focus:border-[color:var(--acento)]"
+            />
+            {qKw && (
+              <span className="text-[12px] text-[color:var(--tinta-suave)]">
+                {visiblesKw.length} de {keywords.length}
+              </span>
+            )}
+            <button
+              type="button"
+              onClick={() =>
+                descargarCsv(
+                  "posiciones",
+                  visiblesKw.map((k) => ({
+                    palabra: k.termino,
+                    dispositivo: k.dispositivo,
+                    puesto: k.mediciones === 0 ? "" : (k.puesto ?? "+100"),
+                    anterior: k.anterior ?? "",
+                    url: k.urlPosicionada ?? "",
+                    url_objetivo: k.urlObjetivo ?? "",
+                    medido: k.medido ?? "",
+                  }))
+                )
+              }
+              className="ml-auto text-[12px] text-[color:var(--tinta-suave)] transition hover:text-[color:var(--acento)]"
+            >
+              Descargar CSV
+            </button>
+          </div>
+
+          <div className="tarjeta mt-2 overflow-x-auto">
             <table className="w-full min-w-[720px] border-collapse text-[13px]">
               <thead>
                 <tr className="border-b border-[color:var(--linea)] text-left">
@@ -372,7 +415,7 @@ export default function Posiciones({
                 </tr>
               </thead>
               <tbody className="divide-y divide-[color:var(--linea)]">
-                {ordenadas.map((k) => {
+                {visiblesKw.map((k) => {
                   const d = delta(k);
                   return (
                     <tr key={k.id} className="align-top transition hover:bg-black/[0.015]">
@@ -387,6 +430,11 @@ export default function Posiciones({
 
                       <td className={`px-3 py-3 text-right text-[15px] font-semibold tabular-nums ${colorPuesto(k.puesto)}`}>
                         {k.mediciones === 0 ? "—" : k.puesto ?? "+100"}
+                        {k.historial.filter((x) => x !== null).length >= 2 && (
+                          <span className="ml-2 inline-block align-middle" title={`Últimas ${k.historial.length} mediciones`}>
+                            <Chispa valores={k.historial} invertido ancho={56} alto={16} />
+                          </span>
+                        )}
                         {k.bloquesArriba !== null && k.bloquesArriba > 0 && (
                           <span
                             className="ml-1 text-[11px] font-normal text-[color:var(--tinta-suave)]"

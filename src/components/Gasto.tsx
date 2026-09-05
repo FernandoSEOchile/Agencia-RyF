@@ -45,7 +45,14 @@ function fecha(diasAtras: number): string {
 const dolares = (n: number) =>
   dinero(n, "—");
 
-export default function Gasto({ clienteId }: { clienteId: string }) {
+export default function Gasto({
+  clienteId,
+  tarifa,
+}: {
+  clienteId: string;
+  /** Lo que se le cobra al mes, en dólares, si está puesto en Datos. */
+  tarifa?: number | null;
+}) {
   const [datos, setDatos] = useState<Datos | null>(null);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -140,6 +147,26 @@ export default function Gasto({ clienteId }: { clienteId: string }) {
               </div>
             ))}
           </dl>
+
+          {/* El panel decía cuánto costaba un cliente pero no si salía
+              rentable. Con la tarifa puesta en Datos, se lee al lado. */}
+          {tarifa ? (() => {
+            const ms = new Date(hasta).getTime() - new Date(desde).getTime();
+            const diasRango = Math.max(1, Math.round(ms / 86_400_000) + 1);
+            const alMes = (datos.total * 30) / diasRango;
+            const parte = Math.round((100 * alMes) / tarifa);
+            return (
+              <p className={`mt-3 text-[13px] ${parte >= 60 ? "text-red-700" : "text-[color:var(--tinta-media)]"}`}>
+                Tarifa {dinero(tarifa)} al mes · a este ritmo el mes cuesta {dinero(alMes)}, el{" "}
+                <span className="font-medium text-[color:var(--tinta)]">{parte}%</span> de lo que se cobra
+                {parte >= 60 ? " — margen estrecho." : "."}
+              </p>
+            );
+          })() : (
+            <p className="mt-3 text-[12px] text-[color:var(--tinta-suave)]">
+              Pon la tarifa mensual en Datos para ver qué parte de lo cobrado se va en operar este cliente.
+            </p>
+          )}
 
           {datos.porDia.length > 1 && (
             <div className="tarjeta mt-3 p-5">

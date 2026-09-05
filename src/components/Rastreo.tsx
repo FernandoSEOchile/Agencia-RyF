@@ -117,9 +117,12 @@ const miles = (n: number) => n.toLocaleString("es-CL");
 export default function Rastreo({
   clienteId,
   puedeLanzar,
+  onPedir,
 }: {
   clienteId: string;
   puedeLanzar: boolean;
+  /** Rellena el chat con la orden de arreglar lo abierto. */
+  onPedir?: (texto: string) => void;
 }) {
   const [tanda, setTanda] = useState<Tanda | null>(null);
   const [problemas, setProblemas] = useState<Problemas | null>(null);
@@ -129,6 +132,7 @@ export default function Rastreo({
     null
   );
   const [abierto, setAbierto] = useState<string | null>(null);
+  const [anterior, setAnterior] = useState<{ creado: string; problemas: Record<string, number> } | null>(null);
   const [paginas, setPaginas] = useState<Pagina[]>([]);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -148,6 +152,7 @@ export default function Rastreo({
       }
       setTanda(d.rastreo);
       setProblemas(d.problemas ?? null);
+        setAnterior(d.anterior ?? null);
       setSitio(d.sitio ?? null);
     } catch {
       setError("No se pudo leer el rastreo.");
@@ -387,6 +392,14 @@ export default function Rastreo({
                   {miles(n)}
                 </p>
                 <p className="mt-0.5 text-[12px] text-[color:var(--tinta-media)]">{i.etiqueta}</p>
+                {anterior && anterior.problemas[i.id] !== undefined && anterior.problemas[i.id] !== n && (
+                  <p
+                    className={`mt-0.5 text-[11px] tabular-nums ${n < anterior.problemas[i.id] ? "text-emerald-700" : "text-red-600"}`}
+                    title={`Rastreo anterior: ${anterior.problemas[i.id]}`}
+                  >
+                    {n < anterior.problemas[i.id] ? "▼" : "▲"} {Math.abs(n - anterior.problemas[i.id])} desde {fecha(anterior.creado)}
+                  </p>
+                )}
               </button>
             );
           })}
@@ -454,6 +467,19 @@ export default function Rastreo({
           <p className="text-[13px] text-[color:var(--tinta-media)]">
             {APARTE[abierto]?.porque ?? INFORMES.find((i) => i.id === abierto)?.porque}
           </p>
+          {onPedir && !APARTE[abierto] && (problemas?.[abierto] ?? 0) > 0 && (
+            <button
+              type="button"
+              onClick={() =>
+                onPedir(
+                  `Mira el último rastreo técnico con ver_rastreo y arregla «${INFORMES.find((i) => i.id === abierto)?.etiqueta ?? abierto}» (${problemas?.[abierto]} páginas). Empieza por una, enséñamela y espera mi visto bueno antes de seguir con el resto.`
+                )
+              }
+              className="boton mt-3"
+            >
+              Pedir al asistente que lo arregle
+            </button>
+          )}
 
           {abierto === "canibal" && (
             <div className="mt-4">

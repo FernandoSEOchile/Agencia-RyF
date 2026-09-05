@@ -2,7 +2,7 @@ import { readFile, stat } from "node:fs/promises";
 import { join } from "node:path";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { auth, signOut } from "@/lib/auth";
+import { auth } from "@/lib/auth";
 import { clientesDe } from "@/lib/clientes";
 import Barra from "@/components/Barra";
 import { IconoWordPress } from "@/components/Plataforma";
@@ -73,23 +73,12 @@ export default async function PaginaConector() {
     .filter((c) => c.plataforma !== "shopify")
     .map((c) => ({ id: c.id, nombre: c.nombre, dominio: c.dominio, version: c.version }));
 
-  async function salir() {
-    "use server";
-    await signOut({ redirectTo: "/entrar" });
-  }
 
   return (
     <>
       <Barra usuarioId={sesion.user?.id}
         usuario={sesion.user.name}
         rol={rol}
-        acciones={
-          <form action={salir}>
-            <button className="text-[12px] font-medium text-white/55 transition hover:text-white">
-              Salir
-            </button>
-          </form>
-        }
       />
 
       <main className="contenedor py-10">

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { auth, signOut } from "@/lib/auth";
+import { auth } from "@/lib/auth";
 import { clientesDe } from "@/lib/clientes";
 import { db } from "@/lib/db";
 import Barra from "@/components/Barra";
@@ -68,10 +68,6 @@ export default async function PaginaErrores() {
     })),
   ];
 
-  async function salir() {
-    "use server";
-    await signOut({ redirectTo: "/entrar" });
-  }
 
   const sitiosCaidos = new Set(
     revisiones.filter((r) => !r.webOk).map((r) => r.clienteId)
@@ -82,13 +78,6 @@ export default async function PaginaErrores() {
       <Barra usuarioId={sesion.user?.id}
         usuario={sesion.user.name}
         rol={rol}
-        acciones={
-          <form action={salir}>
-            <button className="text-[12px] font-medium text-white/55 transition hover:text-white">
-              Salir
-            </button>
-          </form>
-        }
       />
 
       <main className="contenedor py-10">

@@ -15,6 +15,8 @@ import {
 } from "@/lib/config";
 import { credenciales, guardarCredenciales, borrarCredenciales, saldo, estadoCuenta } from "@/lib/dataforseo";
 import { aplicacion, urlRedireccion } from "@/lib/gsc";
+import { guardarWebhookAvisos } from "@/lib/config";
+import { avisar } from "@/lib/avisos";
 
 export const metadata = { title: "Ajustes · Panel AppSEO" };
 export const dynamic = "force-dynamic";
@@ -172,6 +174,28 @@ export default async function Ajustes({
       resumen: v ? `Espacio de trabajo: ${v}` : "Espacio de trabajo borrado",
     });
     redirect("/panel/ajustes?ok=" + encodeURIComponent(v ? "Espacio de trabajo guardado." : "Espacio de trabajo borrado."));
+  }
+
+  async function guardarAvisos(datos: FormData) {
+    "use server";
+    await exigirAdmin();
+    try {
+      await guardarWebhookAvisos(String(datos.get("webhook") ?? ""));
+    } catch (e) {
+      redirect("/panel/ajustes?error=" + encodeURIComponent((e as Error).message));
+    }
+    redirect("/panel/ajustes?ok=" + encodeURIComponent("Webhook guardado."));
+  }
+
+  async function probarAvisos() {
+    "use server";
+    await exigirAdmin();
+    const ok = await avisar("Prueba desde el panel AppSEO: los avisos llegan por aquí.", { accion: "aviso_prueba" });
+    redirect(
+      ok
+        ? "/panel/ajustes?ok=" + encodeURIComponent("El aviso de prueba llegó al canal.")
+        : "/panel/ajustes?error=" + encodeURIComponent("El webhook no aceptó el aviso. Revisa la URL; el detalle está en Fallos.")
+    );
   }
 
   async function cambiarModelo(datos: FormData) {
@@ -417,6 +441,36 @@ export default async function Ajustes({
             <form action={quitarDataForSeo} className="mt-3 border-t border-[color:var(--linea)] pt-3">
               <button className="text-[12px] text-[color:var(--tinta-suave)] transition hover:text-red-600">
                 Desconectar DataForSEO
+              </button>
+            </form>
+          )}
+        </section>
+
+        {/* --- Avisos --- */}
+        <section className="mt-5 rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm">
+          <h2 className="text-sm font-semibold text-neutral-900">Avisos</h2>
+          <p className="mt-0.5 text-xs text-neutral-500">
+            El vigía revisa cada sitio cada diez minutos. Con un webhook, avisa aquí cuando uno se cae y
+            cuando vuelve —solo al cambiar, no cada diez minutos—. Vale la URL de un webhook entrante de
+            Slack, Discord o Google Chat.
+          </p>
+          <form action={guardarAvisos} className="mt-4 flex flex-wrap items-center gap-2">
+            <input
+              name="webhook"
+              type="url"
+              defaultValue=""
+              placeholder={cfg.avisos ? "Configurado · pega otra URL para cambiarla, o deja vacío para quitarla" : "https://hooks.slack.com/services/…"}
+              aria-label="URL del webhook"
+              className="min-w-[280px] flex-1 rounded-lg border border-neutral-200 px-3 py-2 font-mono text-xs outline-none focus:border-[#ff6b00]"
+            />
+            <button type="submit" className="boton">
+              Guardar
+            </button>
+          </form>
+          {cfg.avisos && (
+            <form action={probarAvisos} className="mt-3">
+              <button className="text-[12px] font-medium text-[color:var(--acento)] underline-offset-4 hover:underline">
+                Enviar un aviso de prueba
               </button>
             </form>
           )}

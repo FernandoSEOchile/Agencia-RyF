@@ -54,7 +54,7 @@ export default async function Ficha({
   const [keywords, proveedor] = await Promise.all([
     db.keyword.findMany({
       where: { clienteId: id, activa: true },
-      include: { posiciones: { orderBy: { medido: "desc" }, take: 2 }, _count: { select: { posiciones: true } } },
+      include: { posiciones: { orderBy: { medido: "desc" }, take: 12 }, _count: { select: { posiciones: true } } },
       orderBy: { creado: "asc" },
     }),
     credenciales(),
@@ -384,6 +384,8 @@ export default async function Ficha({
           medido: k.posiciones[0] ? k.posiciones[0].medido.toISOString().slice(5, 10) : null,
           anterior: k.posiciones[1]?.puesto ?? null,
           mediciones: k._count.posiciones,
+          // Las últimas doce, en orden cronológico, para el mini-gráfico.
+          historial: [...k.posiciones].reverse().map((x) => x.puesto),
         }))}
         arquitectura={
           arq

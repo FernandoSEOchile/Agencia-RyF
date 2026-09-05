@@ -21,6 +21,7 @@ import { db } from "@/lib/db";
 import { consultas as consultasGsc } from "@/lib/gsc";
 import { apuntar } from "@/lib/gasto";
 import { herramientasShopify } from "@/lib/herramientasShopify";
+import { problemasDe, paginasDe } from "@/lib/rastreoInformes";
 
 export interface Contexto {
   clienteId: string;
@@ -976,11 +977,39 @@ export function herramientasDe(ctx: Contexto) {
     arquitectura,
   ];
 
+  const verRastreo = betaZodTool({
+    name: "ver_rastreo",
+    description:
+      "El último rastreo técnico del sitio (tipo Screaming Frog): cuántas páginas tienen cada problema —rotas, sin título, sin descripción, huérfanas, contenido pobre, imágenes sin alt…— y, si pides un problema concreto, las primeras páginas que lo tienen. Úsala antes de arreglar algo técnico, para saber por dónde empezar.",
+    inputSchema: z.object({
+      problema: z
+        .string()
+        .optional()
+        .describe("Id de un problema para ver sus páginas: rotas, noIndexables, huerfanas, sinTitulo, sinDescripcion, sinH1, variosH1, contenidoPobre, redirigidas, sinEnlacesSalientes, sinDatos, datosRotos, canonicalAjeno, sinCanonical, profundas, sinLang, sinViewport, lentas, sinAlt."),
+    }),
+    run: async (i) => {
+      const rastreo = await db.rastreo.findFirst({
+        where: { clienteId: ctx.clienteId, estado: "terminado" },
+        orderBy: { creado: "desc" },
+        select: { id: true, creado: true, total: true },
+      });
+      if (!rastreo) return problema("Este sitio no tiene ningún rastreo técnico terminado. Pídele a la persona que lo lance desde Revisar → Técnico.");
+
+      const problemas = await problemasDe(rastreo.id);
+      if (i.problema) {
+        const paginas = await paginasDe(rastreo.id, i.problema);
+        return JSON.stringify({ rastreo: rastreo.creado, problema: i.problema, total: problemas[i.problema] ?? 0, paginas });
+      }
+      return JSON.stringify({ rastreo: rastreo.creado, paginasRastreadas: rastreo.total, problemas });
+    },
+  });
+
   if (ctx.plataforma === "shopify") {
-    return conRegistro([...herramientasShopify(ctx), ...transversales], ctx);
+    return conRegistro([...herramientasShopify(ctx), ...transversales, verRastreo], ctx);
   }
 
   return conRegistro([
+      verRastreo,
     salud,
     ...transversales,
     auditar,

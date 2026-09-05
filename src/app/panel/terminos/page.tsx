@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { auth, signOut } from "@/lib/auth";
+import { auth } from "@/lib/auth";
 import Barra from "@/components/Barra";
 import Palabras from "@/components/Palabras";
 
@@ -23,23 +23,12 @@ export default async function PaginaPalabras() {
 
   const rol = (sesion.user as { rol?: string }).rol ?? "LECTOR";
 
-  async function salir() {
-    "use server";
-    await signOut({ redirectTo: "/entrar" });
-  }
 
   return (
     <>
       <Barra usuarioId={sesion.user?.id}
         usuario={sesion.user.name}
         rol={rol}
-        acciones={
-          <form action={salir}>
-            <button className="text-[12px] font-medium text-white/55 transition hover:text-white">
-              Salir
-            </button>
-          </form>
-        }
       />
 
       <main className="contenedor py-10">

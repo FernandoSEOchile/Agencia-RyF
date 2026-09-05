@@ -2,6 +2,7 @@ import "server-only";
 import type { Revision } from "@prisma/client";
 import { db } from "@/lib/db";
 import { sondear } from "@/lib/clientes";
+import { avisar } from "@/lib/avisos";
 
 /**
  * Comprobación periódica de que los sitios siguen en pie.
@@ -112,6 +113,14 @@ export async function revisar(clienteId: string): Promise<Resultado | null> {
       .filter(Boolean)
       .join(" · ") || null;
 
+  // Se avisa solo cuando CAMBIA el estado: al caer y al volver. Repetirlo
+  // cada diez minutos convertiría el canal en ruido y nadie lo miraría.
+  const previa = await db.revision.findFirst({
+    where: { clienteId: cliente.id },
+    orderBy: { creado: "desc" },
+    select: { webOk: true },
+  });
+
   await db.revision.create({
     data: {
       clienteId: cliente.id,
@@ -122,6 +131,16 @@ export async function revisar(clienteId: string): Promise<Resultado | null> {
       detalle: detalle?.slice(0, 500) ?? null,
     },
   });
+
+  if (previa && previa.webOk !== web.ok) {
+    const enlace = `https://panel.agenciaryf.com/panel/clientes/${cliente.id}`;
+    await avisar(
+      web.ok
+        ? `✅ ${cliente.nombre} (${cliente.dominio}) volvió a responder. ${enlace}`
+        : `⚠️ ${cliente.nombre} (${cliente.dominio}) no responde: ${web.detalle ?? "sin detalle"}. ${enlace}`,
+      { clienteId: cliente.id, accion: "aviso_caida" }
+    ).catch(() => {});
+  }
 
   return {
     clienteId: cliente.id,

@@ -69,11 +69,18 @@ export async function GET(req: NextRequest) {
 
   /* ---------------- Tráfico, de Search Console ---------------- */
   let trafico: Awaited<ReturnType<typeof porDia>> = [];
+  let traficoAnterior: Awaited<ReturnType<typeof porDia>> = [];
   let avisoGsc: string | null = null;
 
   if (cliente.gscConexionId && cliente.gscPropiedad) {
     try {
-      trafico = await porDia(cliente.gscConexionId, cliente.gscPropiedad, dias);
+      // Se pide el doble para comparar con el periodo anterior de verdad. Antes
+      // la «variación» partía el mismo periodo por la mitad y decía «vs.
+      // periodo anterior», que no era cierto.
+      const todo = await porDia(cliente.gscConexionId, cliente.gscPropiedad, dias * 2);
+      const corte = desde.toISOString().slice(0, 10);
+      trafico = todo.filter((x) => x.fecha >= corte);
+      traficoAnterior = todo.filter((x) => x.fecha < corte);
     } catch (e) {
       avisoGsc = e instanceof Error ? e.message : "No se pudo leer Search Console.";
     }
@@ -245,6 +252,7 @@ export async function GET(req: NextRequest) {
     cliente: { nombre: cliente.nombre, dominio: cliente.dominio },
     dias,
     trafico,
+    traficoAnterior,
     avisoGsc,
     posiciones,
     trabajo,

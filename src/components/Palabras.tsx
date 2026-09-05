@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { Cabecera, useOrden, type Columna } from "@/components/Tabla";
 import { dinero } from "@/lib/formato";
+import { descargarCsv } from "@/lib/csv";
 
 /**
  * Palabras clave: lo que ya tenemos y lo que falta por comprar, en una pantalla.
@@ -237,6 +238,15 @@ export default function Palabras({ puedePagar }: { puedePagar: boolean }) {
       </div>
 
       <div className="mt-5 flex flex-wrap items-center gap-x-4 gap-y-2">
+        {filas.length > 0 && (
+          <button
+            type="button"
+            onClick={() => descargarCsv("palabras-clave", filas.map((t) => ({ ...t })))}
+            className="text-[12px] text-[color:var(--tinta-suave)] transition hover:text-[color:var(--acento)]"
+          >
+            Descargar CSV
+          </button>
+        )}
         <p className="text-[13px] text-[color:var(--tinta-media)]">
           {cargando
             ? hayBusqueda

@@ -315,7 +315,7 @@ export async function consultas(
   conexionId: string,
   propiedad: string,
   dias = 28,
-  limite = 2000
+  limite = 25000
 ): Promise<FilaConsulta[]> {
   return consultasEntre(conexionId, propiedad, haceDias(dias + 3), haceDias(3), limite);
 }
@@ -332,35 +332,46 @@ export async function consultasEntre(
   propiedad: string,
   desde: string,
   hasta: string,
-  limite = 2000
+  limite = 25000
 ): Promise<FilaConsulta[]> {
   const t = await token(conexionId);
 
-  const r = await fetch(`${API}/sites/${encodeURIComponent(propiedad)}/searchAnalytics/query`, {
-    method: "POST",
-    headers: { Authorization: `Bearer ${t}`, "Content-Type": "application/json" },
-    body: JSON.stringify({
-      startDate: desde,
-      endDate: hasta,
-      // Consulta y página a la vez: sin la segunda no se sabe qué URL está
-      // rankeando, que es justo lo que hace falta para decidir dónde tocar. Y
-      // de paso deja ver cuándo hay dos páginas peleando por lo mismo.
-      dimensions: ["query", "page"],
-      rowLimit: limite,
-      type: "web",
-    }),
-    signal: AbortSignal.timeout(30000),
-    cache: "no-store",
-  });
-
-  if (r.status === 403) {
-    throw new Error("Esa cuenta de Google ya no tiene acceso a esta propiedad.");
-  }
-  if (!r.ok) throw new Error(`Search Console respondió ${r.status}.`);
-
-  const j = await r.json();
-
   type Cruda = { keys: string[]; clicks: number; impressions: number; ctr: number; position: number };
+
+  // Search Console entrega de a 25.000 filas como mucho y aquí se pedían 2.000
+  // una sola vez: un sitio con tráfico se quedaba sin la cola de consultas y el
+  // reparto por tramos salía recortado sin decirlo. Se pagina hasta `limite`.
+  const crudas: Cruda[] = [];
+  const PAGINA = 5000;
+  for (let inicio = 0; inicio < limite; inicio += PAGINA) {
+    const r = await fetch(`${API}/sites/${encodeURIComponent(propiedad)}/searchAnalytics/query`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${t}`, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        startDate: desde,
+        endDate: hasta,
+        // Consulta y página a la vez: sin la segunda no se sabe qué URL está
+        // rankeando, que es justo lo que hace falta para decidir dónde tocar. Y
+        // de paso deja ver cuándo hay dos páginas peleando por lo mismo.
+        dimensions: ["query", "page"],
+        rowLimit: Math.min(PAGINA, limite - inicio),
+        startRow: inicio,
+        type: "web",
+      }),
+      signal: AbortSignal.timeout(30000),
+      cache: "no-store",
+    });
+
+    if (r.status === 403) {
+      throw new Error("Esa cuenta de Google ya no tiene acceso a esta propiedad.");
+    }
+    if (!r.ok) throw new Error(`Search Console respondió ${r.status}.`);
+
+    const j = await r.json();
+    const filas = (j.rows ?? []) as Cruda[];
+    crudas.push(...filas);
+    if (filas.length < Math.min(PAGINA, limite - inicio)) break;
+  }
 
   // Vienen tantas filas como combinaciones de consulta y página, así que hay
   // que juntarlas: una consulta es una fila, con la página que más veces se
@@ -375,7 +386,7 @@ export async function consultasEntre(
     }
   >();
 
-  for (const f of (j.rows ?? []) as Cruda[]) {
+  for (const f of crudas) {
     const [consulta, pagina] = f.keys;
     const acc =
       porConsulta.get(consulta) ??
