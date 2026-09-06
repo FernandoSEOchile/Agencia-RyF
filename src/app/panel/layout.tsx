@@ -24,7 +24,7 @@ export default async function PanelLayout({ children }: { children: React.ReactN
   const clientes = (await clientesDe(sesion.user.id, rol)).map((c) => ({ id: c.id, nombre: c.nombre, dominio: c.dominio }));
 
   return (
-    <div className="flex min-h-screen">
+    <div className="zona-panel flex min-h-screen">
       <Riel enlaces={enlaces} usuario={sesion.user.name} />
       <div className="flex min-w-0 flex-1 flex-col">
         <Barra enlaces={enlaces} clientes={clientes} usuario={sesion.user.name} rol={rol} />

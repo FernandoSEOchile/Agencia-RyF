@@ -28,6 +28,16 @@ export interface Mes {
   consultas: number;
 }
 
+/**
+ * Cuándo Search Console ya tiene el mes entero: tres días después de acabar,
+ * el mismo retraso que recorta gsc.ts. Un mes guardado antes de eso está a
+ * medias aunque el calendario diga que terminó.
+ */
+export function cierreDe(mes: string): number {
+  const [a, m] = mes.split("-").map(Number);
+  return Date.UTC(a, m, 1) + 3 * 86_400_000;
+}
+
 /** El primer y el último día de un mes, como los quiere la API. */
 function limites(mes: string) {
   const [a, m] = mes.split("-").map(Number);
@@ -79,11 +89,13 @@ export async function porMes(
   for (const mes of meses) {
     const guardado = porClave.get(mes);
 
-    // El mes en curso se recalcula, pero no más de una vez por hora: mirar la
-    // pantalla tres veces seguidas no debería costar tres llamadas a Google.
+    // Un mes solo se da por cerrado si se calculó después de que Google lo
+    // completara; mientras tanto se recalcula, pero no más de una vez por
+    // hora: mirar la pantalla tres veces seguidas no debería costar tres
+    // llamadas a Google.
     const fresco =
       guardado &&
-      (mes !== enCurso || Date.now() - guardado.calculado.getTime() < 3_600_000);
+      (guardado.calculado.getTime() >= cierreDe(mes) || Date.now() - guardado.calculado.getTime() < 3_600_000);
 
     if (fresco) {
       salida.push({
@@ -118,6 +130,10 @@ export async function porMes(
       }
       continue;
     }
+
+    // Los primeros días del mes Google todavía no tiene nada de él: guardarlo a
+    // cero y pintarlo hundiría la curva en el último punto.
+    if (mes === enCurso && filas.length === 0) continue;
 
     const t = { top3: 0, top10: 0, top20: 0, top50: 0, resto: 0 };
 

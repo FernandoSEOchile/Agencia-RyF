@@ -391,6 +391,12 @@ export default async function Ficha({
         <p className="mt-5 rounded-2xl bg-emerald-50 px-4 py-3 text-[14px] text-emerald-700">{exito}</p>
       )}
 
+      {!cliente.activo && (
+        <p className="mt-5 rounded-2xl bg-red-50 px-4 py-3 text-[14px] text-red-700">
+          Este cliente está dado de baja: no sale en la cartera ni en el selector, y no se mide solo.
+        </p>
+      )}
+
       {caido && (
         <p className="mt-5 rounded-2xl bg-red-50 px-4 py-3 text-[14px] text-red-700">
           La última comprobación falló: {cliente.estadoSonda}

@@ -1,5 +1,5 @@
 import "server-only";
-import type { Revision } from "@prisma/client";
+import { Prisma, type Revision } from "@prisma/client";
 import { db } from "@/lib/db";
 import { sondear } from "@/lib/clientes";
 import { avisar } from "@/lib/avisos";
@@ -191,18 +191,20 @@ async function limpiar() {
 /**
  * La última revisión de cada cliente, para pintar el estado de un vistazo.
  *
- * Con `distinct` Postgres resuelve esto de una vez. Traer las N más recientes y
- * quedarse con la primera de cada cliente no valdría: si un sitio se revisó
- * cien veces seguidas, sus filas taparían a las de los demás.
+ * Va en SQL con DISTINCT ON porque el `distinct` de Prisma se resuelve en
+ * memoria: traía las revisiones de treinta días de cada cliente —miles, con
+ * su detalle— para quedarse con una. Traer las N más recientes tampoco
+ * valdría: si un sitio se revisó cien veces seguidas, sus filas taparían a
+ * las de los demás.
  */
 export async function ultimas(clienteIds: string[]) {
   if (clienteIds.length === 0) return new Map<string, Revision>();
 
-  const filas = await db.revision.findMany({
-    where: { clienteId: { in: clienteIds } },
-    orderBy: [{ clienteId: "asc" }, { creado: "desc" }],
-    distinct: ["clienteId"],
-  });
+  const filas = await db.$queryRaw<Revision[]>`
+    SELECT DISTINCT ON ("clienteId") *
+    FROM "Revision"
+    WHERE "clienteId" IN (${Prisma.join(clienteIds)})
+    ORDER BY "clienteId", "creado" DESC`;
 
   return new Map(filas.map((f) => [f.clienteId, f]));
 }

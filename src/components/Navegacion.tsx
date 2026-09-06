@@ -1,7 +1,7 @@
 "use client";
 
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { Icono } from "@/components/Iconos";
 import type { Enlace } from "@/lib/navegacion";
 
@@ -26,6 +26,11 @@ export default function Navegacion({ enlaces, clientes }: { enlaces: Enlace[]; c
   const [busca, setBusca] = useState("");
   const [marcado, setMarcado] = useState(0);
   const campo = useRef<HTMLInputElement>(null);
+  const [pendiente, empezar] = useTransition();
+  // Lo elegido en el desplegable mientras la ficha aún no llegó: sin esto
+  // React devuelve el <select> al cliente de la ruta nada más soltar el clic,
+  // y durante un segundo parece que no pasó nada.
+  const [elegido, setElegido] = useState<string | null>(null);
 
   // El cliente actual se deduce de la ruta: así ninguna página tiene que
   // decírselo a la barra, y el selector lo enseña en cuanto entras en su ficha.
@@ -70,8 +75,11 @@ export default function Navegacion({ enlaces, clientes }: { enlaces: Enlace[]; c
 
   function ir(href: string) {
     setAbierta(false);
-    router.push(href);
+    empezar(() => router.push(href));
   }
+
+  const mostrado = pendiente && elegido ? elegido : (actual?.id ?? "");
+  const conCliente = Boolean(mostrado);
 
   return (
     <>
@@ -79,42 +87,51 @@ export default function Navegacion({ enlaces, clientes }: { enlaces: Enlace[]; c
         <label className="relative block min-w-0">
           <span className="sr-only">Ir a un cliente</span>
           <select
-            value={actual?.id ?? ""}
-            onChange={(e) => e.target.value && ir(`/panel/clientes/${e.target.value}`)}
+            value={mostrado}
+            aria-busy={pendiente}
+            onChange={(e) => {
+              if (!e.target.value) return;
+              setElegido(e.target.value);
+              ir(`/panel/clientes/${e.target.value}`);
+            }}
             className={`h-8 max-w-[220px] cursor-pointer appearance-none truncate rounded-full border py-0 pl-3 pr-8 text-[13px] font-medium outline-none transition focus:border-[color:var(--acento)] ${
-              actual
+              conCliente
                 ? "border-[color:var(--tinta)] bg-[color:var(--tinta)] text-white"
                 : "border-[color:var(--linea-fuerte)] bg-white text-[color:var(--tinta-media)] hover:border-[color:var(--tinta)]"
             }`}
           >
-            <option value="" className="text-black">
-              {actual ? "Cambiar de cliente…" : "Ir a un cliente…"}
+            {/* Fondo blanco explícito en las opciones: Chromium hereda el negro
+                del select y las pintaba negro sobre negro. */}
+            <option value="" className="bg-white text-black">
+              {conCliente ? "Cambiar de cliente…" : "Ir a un cliente…"}
             </option>
             {clientes.map((c) => (
-              <option key={c.id} value={c.id} className="text-black">
+              <option key={c.id} value={c.id} className="bg-white text-black">
                 {c.nombre}
               </option>
             ))}
           </select>
-          <span aria-hidden className={`pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 ${actual ? "text-white/70" : "text-[color:var(--tinta-suave)]"}`}>
+          <span aria-hidden className={`pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 ${conCliente ? "text-white/70" : "text-[color:var(--tinta-suave)]"}`}>
             <Icono nombre="abajo" tam={14} />
           </span>
         </label>
       )}
 
-      {actual && (
+      {actual && !pendiente && (
         <span className="hidden truncate text-[13px] text-[color:var(--tinta-suave)] lg:block">{actual.dominio}</span>
       )}
+      {pendiente && <span className="hidden text-[13px] text-[color:var(--tinta-suave)] lg:block">abriendo…</span>}
 
       <button
         type="button"
         onClick={() => setAbierta(true)}
         title="Buscar cliente o pantalla (Ctrl+K)"
+        aria-label="Buscar cliente o pantalla (Ctrl+K)"
         className="hidden h-8 items-center gap-2 rounded-full border border-[color:var(--linea-fuerte)] bg-white pl-3 pr-2 text-[13px] text-[color:var(--tinta-suave)] transition hover:border-[color:var(--tinta)] hover:text-[color:var(--tinta)] sm:flex"
       >
         <Icono nombre="buscar" tam={15} />
         <span className="hidden md:inline">Cliente o pantalla…</span>
-        <kbd className="ml-1 rounded-md border border-[color:var(--linea)] bg-black/[0.03] px-1.5 py-0.5 font-sans text-[10.5px] text-[color:var(--tinta-suave)]">
+        <kbd aria-hidden className="ml-1 rounded-md border border-[color:var(--linea)] bg-black/[0.03] px-1.5 py-0.5 font-sans text-[10.5px] text-[color:var(--tinta-suave)]">
           Ctrl K
         </kbd>
       </button>
@@ -127,6 +144,7 @@ export default function Navegacion({ enlaces, clientes }: { enlaces: Enlace[]; c
         >
           <div
             role="dialog"
+            aria-modal="true"
             aria-label="Ir a"
             className="w-full max-w-md overflow-hidden rounded-2xl bg-white shadow-2xl"
             onClick={(e) => e.stopPropagation()}
@@ -161,7 +179,7 @@ export default function Navegacion({ enlaces, clientes }: { enlaces: Enlace[]; c
                     onMouseEnter={() => setMarcado(i)}
                     onClick={() => ir(o.href)}
                     className={`flex w-full items-baseline justify-between gap-3 px-4 py-2 text-left text-[14px] ${
-                      i === marcado ? "bg-[color:var(--acento)]/10" : ""
+                      i === marcado ? "bg-[rgb(var(--acento-rgb)/0.1)]" : ""
                     }`}
                   >
                     <span className="truncate">{o.texto}</span>

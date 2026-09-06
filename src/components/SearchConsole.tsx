@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import Periodo, { usePeriodo } from "@/components/Periodo";
 import Esqueleto from "@/components/Esqueleto";
 import { Cabecera, useOrden, type Columna } from "@/components/Tabla";
@@ -56,6 +57,9 @@ interface Respuesta {
   dias?: number;
   filas: Fila[];
   anterior?: Resumen | null;
+  /** Falso cuando no hubo periodo anterior con el que comparar: «antes» va nulo en todas. */
+  comparable?: boolean;
+  motivoSinAnterior?: "retencion" | "error" | null;
   error?: string;
 }
 
@@ -219,13 +223,15 @@ export default function SearchConsole({
   const [siguiendo, setSiguiendo] = useState<string | null>(null);
   const [meses, setMeses] = useState<MesGsc[] | null>(null);
   const [mesesError, setMesesError] = useState(false);
+  const [intento, setIntento] = useState(0);
   const { orden, ordenar, ordenarPor } = useOrden<Col>("impresiones", false);
+  const router = useRouter();
 
   async function cargar(d: number) {
     setCargando(true);
     setError(null);
     try {
-      const r = await fetch(`/api/gsc?cliente=${encodeURIComponent(clienteId)}&dias=${d}`);
+      const r = await fetch(`/api/gsc?cliente=${encodeURIComponent(clienteId)}&dias=${d}${soloCanibal ? "&comparar=0" : ""}`);
       const j = await r.json();
 
       // Un fallo al hablar con Google no debe borrar el resto: la pantalla
@@ -253,6 +259,7 @@ export default function SearchConsole({
   useEffect(() => {
     if (!hayPropiedad || soloCanibal || meses) return;
     let vivo = true;
+    setMesesError(false);
     fetch(`/api/gsc/tramos?cliente=${encodeURIComponent(clienteId)}`)
       .then((r) => r.json())
       .then((j) => {
@@ -265,7 +272,7 @@ export default function SearchConsole({
       vivo = false;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hayPropiedad, clienteId]);
+  }, [hayPropiedad, clienteId, intento]);
 
   async function guardar(cuerpo: Record<string, unknown>) {
     setCargando(true);
@@ -279,6 +286,7 @@ export default function SearchConsole({
       const j = await r.json();
       if (!r.ok) throw new Error(j.error || "No se pudo guardar.");
       setMeses(null);
+      setMesesError(false);
       await cargar(dias);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Error inesperado.");
@@ -303,6 +311,9 @@ export default function SearchConsole({
       });
       const j = await r.json().catch(() => ({}));
       if (!r.ok) throw new Error(j.error ?? "No se pudo seguir.");
+      // Posiciones recibe sus palabras del servidor: sin esto, al saltar allí
+      // la recién añadida no estaría.
+      router.refresh();
       setAviso(`«${consulta}» añadida al seguimiento medido. Mídela desde Posiciones.`);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Error inesperado.");
@@ -455,12 +466,19 @@ export default function SearchConsole({
   const canibales = filas.filter(esCanibal);
   const ahora = resumir(filas);
   const antes = datos.anterior ?? null;
+  // Sin periodo anterior, «antes» va nulo en todas las filas: no son nuevas,
+  // es que no se pudo comparar, y los filtros de cambio no tienen sentido.
+  const comparable = datos.comparable !== false && antes !== null;
+  const DE_CAMBIO: Tramo[] = ["nuevas", "subieron", "bajaron"];
+  const tramoEfectivo: Tramo = !comparable && DE_CAMBIO.includes(tramo) ? "todas" : tramo;
 
   const q = busca.trim().toLowerCase();
   const coincide = (f: Fila) => !q || f.consulta.includes(q) || (f.pagina ?? "").toLowerCase().includes(q);
 
   const conjunto = vista === "oportunidades" ? oportunidades : vista === "canibal" ? canibales : filas;
-  const filtradas = conjunto.filter((f) => coincide(f) && enTramo(f, tramo));
+  // El tramo solo filtra donde su control está a la vista: en canibalizaciones
+  // no hay selector y un recorte invisible dejaba «buena señal» sin serlo.
+  const filtradas = conjunto.filter((f) => coincide(f) && (vista === "canibal" || enTramo(f, tramoEfectivo)));
   const ordenadas = ordenarPor(filtradas, (f, c) => {
     switch (c) {
       case "consulta":
@@ -483,6 +501,17 @@ export default function SearchConsole({
     }
   });
   const visibles = ordenadas.slice(0, ver);
+
+  const avisoOk = aviso && (
+    <p className="mt-4 flex flex-wrap items-center gap-3 rounded-2xl bg-emerald-50 px-4 py-3 text-[14px] text-emerald-700">
+      {aviso}
+      {irA && (
+        <button type="button" onClick={() => irA("posiciones")} className="font-medium underline-offset-4 hover:underline">
+          Ir a Posiciones →
+        </button>
+      )}
+    </p>
+  );
 
   const barra = (
     <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
@@ -570,6 +599,7 @@ export default function SearchConsole({
       <div className="mt-4">
         {barra}
         {avisoError}
+        {avisoOk}
         {tarjetasCanibal([...canibales].sort((a, b) => b.impresiones - a.impresiones))}
       </div>
     );
@@ -622,8 +652,10 @@ export default function SearchConsole({
                     {f.posicion}
                   </td>
                   <td className="px-3 py-2.5 text-right tabular-nums">
-                    {c === null ? (
-                      <span className="pastilla bg-[color:var(--acento)]/10 text-[color:var(--acento)]" title="No aparecía en el periodo anterior">nueva</span>
+                    {!comparable ? (
+                      <span className="text-[color:var(--tinta-suave)]" title="Sin datos del periodo anterior">—</span>
+                    ) : c === null ? (
+                      <span className="pastilla bg-[rgb(var(--acento-rgb)/0.1)] text-[color:var(--acento)]" title="No aparecía en el periodo anterior">nueva</span>
                     ) : c === 0 ? (
                       <span className="text-[color:var(--tinta-suave)]">=</span>
                     ) : (
@@ -651,16 +683,7 @@ export default function SearchConsole({
     <div className="mt-4">
       {barra}
       {avisoError}
-      {aviso && (
-        <p className="mt-4 flex flex-wrap items-center gap-3 rounded-2xl bg-emerald-50 px-4 py-3 text-[14px] text-emerald-700">
-          {aviso}
-          {irA && (
-            <button type="button" onClick={() => irA("posiciones")} className="font-medium underline-offset-4 hover:underline">
-              Ir a Posiciones →
-            </button>
-          )}
-        </p>
-      )}
+      {avisoOk}
 
       {/* Las cifras del periodo, cada una contra el periodo anterior de verdad
           —el mismo número de días justo antes—, no contra la mitad del mismo. */}
@@ -724,7 +747,20 @@ export default function SearchConsole({
           </p>
         )}
         {mesesError && (
-          <p className="text-[13px] text-[color:var(--tinta-suave)]">No se pudo leer la curva mensual; la tabla no depende de ella.</p>
+          <p className="text-[13px] text-[color:var(--tinta-suave)]">
+            No se pudo leer la curva mensual; la tabla no depende de ella.{" "}
+            <button
+              type="button"
+              onClick={() => {
+                setMeses(null);
+                setMesesError(false);
+                setIntento((n) => n + 1);
+              }}
+              className="underline-offset-4 hover:text-[color:var(--acento)] hover:underline"
+            >
+              Reintentar
+            </button>
+          </p>
         )}
       </div>
 
@@ -748,7 +784,7 @@ export default function SearchConsole({
         </div>
         {vista !== "canibal" && (
           <select
-            value={tramo}
+            value={tramoEfectivo}
             onChange={(e) => {
               setTramo(e.target.value as Tramo);
               setVer(PAGINA);
@@ -757,7 +793,7 @@ export default function SearchConsole({
             className="h-9 cursor-pointer rounded-full border border-[color:var(--linea-fuerte)] bg-white px-3 text-[13.5px] font-medium outline-none transition focus:border-[color:var(--acento)]"
           >
             {TRAMOS.map(([id, n]) => (
-              <option key={id} value={id}>
+              <option key={id} value={id} disabled={!comparable && DE_CAMBIO.includes(id)}>
                 {n}
               </option>
             ))}
@@ -819,9 +855,13 @@ export default function SearchConsole({
       <p className="mt-4 max-w-3xl text-[13px] leading-relaxed text-[color:var(--tinta-suave)]">
         Datos reales de Google, sin coste. La posición es un promedio de todas las veces que el sitio
         se mostró en el periodo, no la foto de un momento — por eso sale con decimales y no coincide
-        exactamente con lo que mide DataForSEO en Posiciones. «Cambio» compara con los {dias} días
-        anteriores al periodo. Search Console va con dos o tres días de retraso, así que el periodo
-        termina ahí.
+        exactamente con lo que mide DataForSEO en Posiciones.{" "}
+        {comparable
+          ? `«Cambio» compara con los ${dias} días anteriores al periodo.`
+          : datos.motivoSinAnterior === "retencion"
+            ? "Sin periodo anterior comparable: Google guarda dieciséis meses y el año anterior ya no está entero."
+            : "Esta vez no se pudo leer el periodo anterior, así que no hay columna de cambio."}{" "}
+        Search Console va con dos o tres días de retraso, así que el periodo termina ahí.
       </p>
     </div>
   );

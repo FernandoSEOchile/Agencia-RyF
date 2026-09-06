@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Cabecera, useOrden, type Columna } from "@/components/Tabla";
 import Plataforma from "@/components/Plataforma";
-import { dinero, fecha, miles } from "@/lib/formato";
+import { dinero, fecha, mesCorto, miles } from "@/lib/formato";
 import type { FilaCartera } from "@/lib/cartera";
 
 /**
@@ -19,9 +19,10 @@ import type { FilaCartera } from "@/lib/cartera";
 
 type Col = "nombre" | "estado" | "top10" | "gsc" | "ia" | "tecnico" | "enlaces" | "gasto";
 
+/** «Estado» arranca por lo roto: quien lo pulsa busca los problemas. */
 const COLUMNAS: readonly Columna<Col>[] = [
   { id: "nombre", texto: "Cliente" },
-  { id: "estado", texto: "Estado" },
+  { id: "estado", texto: "Estado", num: true },
   { id: "top10", texto: "Top 10", clase: "text-right", num: true },
   { id: "gsc", texto: "En Google", clase: "text-right", num: true },
   { id: "ia", texto: "IA", clase: "text-right", num: true },
@@ -30,7 +31,7 @@ const COLUMNAS: readonly Columna<Col>[] = [
   { id: "gasto", texto: "Gasto mes", clase: "text-right", num: true },
 ];
 
-const NIVEL = { ok: 0, neutro: 1, aviso: 2, caido: 3 } as const;
+const NIVEL = { ok: 0, neutro: 1, aviso: 2, conector: 3, caido: 4 } as const;
 
 /** La variación contra la medición anterior. En «rotas» bajar es lo bueno. */
 function Delta({ n, invertido = false }: { n: number | null; invertido?: boolean }) {
@@ -61,15 +62,31 @@ function Vacio({ titulo }: { titulo: string }) {
   );
 }
 
-function mesCorto(mes: string) {
-  const [a, m] = mes.split("-").map(Number);
-  return new Date(Date.UTC(a, m - 1, 1)).toLocaleDateString("es-CL", { month: "short", timeZone: "UTC" });
+function haceCuanto(iso: string | null) {
+  if (!iso) return "sin sondear";
+  const min = Math.round((Date.now() - new Date(iso).getTime()) / 60000);
+  if (min < 1) return "hace un momento";
+  if (min < 60) return `hace ${min} min`;
+  const h = Math.round(min / 60);
+  if (h < 24) return `hace ${h} h`;
+  return `hace ${Math.round(h / 24)} d`;
 }
 
 export default function Cartera({ filas }: { filas: FilaCartera[] }) {
   const router = useRouter();
   const [busca, setBusca] = useState("");
   const { orden, ordenar, ordenarPor } = useOrden<Col>("nombre", true);
+
+  // La fila se comporta como el enlace que era la tarjeta: con Ctrl, Cmd o
+  // Shift abre otra pestaña, y seleccionar texto para copiarlo no navega.
+  function abrir(e: React.MouseEvent, href: string) {
+    if (window.getSelection()?.toString()) return;
+    if (e.ctrlKey || e.metaKey || e.shiftKey) {
+      window.open(href, "_blank");
+      return;
+    }
+    router.push(href);
+  }
 
   const q = busca.trim().toLowerCase();
   const visibles = ordenarPor(
@@ -124,101 +141,113 @@ export default function Cartera({ filas }: { filas: FilaCartera[] }) {
                 </td>
               </tr>
             )}
-            {visibles.map((f) => (
-              <tr
-                key={f.id}
-                onClick={() => router.push(`/panel/clientes/${f.id}`)}
-                className="cursor-pointer transition hover:bg-black/[0.02]"
-              >
-                <td className="px-5 py-3">
-                  <Link href={`/panel/clientes/${f.id}`} className="block min-w-0" onClick={(e) => e.stopPropagation()}>
-                    <span className="block truncate text-[15px] font-semibold">{f.nombre}</span>
-                    <span className="mt-0.5 flex items-center gap-1.5 text-[13px] text-[color:var(--tinta-suave)]">
-                      <Plataforma cual={f.plataforma} tam={13} />
-                      <span className="truncate">{f.dominio}</span>
-                    </span>
-                  </Link>
-                </td>
-                <td className="px-3 py-3">
-                  <span
-                    title={f.estado.detalle}
-                    className={`pastilla ${
-                      f.estado.nivel === "caido"
-                        ? "bg-red-50 text-red-700"
-                        : f.estado.nivel === "aviso"
-                          ? "bg-amber-50 text-amber-700"
-                          : f.estado.nivel === "ok" && f.estado.texto === "Escritura"
-                            ? "bg-emerald-50 text-emerald-700"
-                            : "bg-black/[0.05] text-[color:var(--tinta-media)]"
-                    }`}
-                  >
-                    {f.estado.texto}
-                  </span>
-                </td>
-                <td className="px-3 py-3 text-right">
-                  {f.top10 === null ? (
-                    <Vacio titulo={f.seguidas ? "Seguidas pero sin medir todavía" : "Sin palabras en seguimiento"} />
-                  ) : (
-                    <span className="flex flex-col items-end gap-0.5">
-                      <Cifra valor={miles(f.top10)} de={miles(f.seguidas)} titulo="Palabras seguidas en el top 10 de Google" />
-                      <Delta n={f.top10Delta} />
-                    </span>
-                  )}
-                </td>
-                <td className="px-3 py-3 text-right">
-                  {!f.gsc ? (
-                    <Vacio titulo="Sin Search Console leído: conéctalo o abre su Panorama" />
-                  ) : (
-                    <span className="flex flex-col items-end gap-0.5">
-                      <Cifra valor={miles(f.gsc.consultas)} titulo={`Búsquedas por las que salió en ${mesCorto(f.gsc.mes)} (Search Console)`} />
-                      <span className="flex items-center gap-1.5">
-                        <span className="text-[11.5px] text-[color:var(--tinta-suave)]">{mesCorto(f.gsc.mes)}</span>
-                        <Delta n={f.gsc.delta} />
+            {visibles.map((f) => {
+              const href = `/panel/clientes/${f.id}`;
+              return (
+                <tr
+                  key={f.id}
+                  onClick={(e) => abrir(e, href)}
+                  onAuxClick={(e) => {
+                    if (e.button === 1) window.open(href, "_blank");
+                  }}
+                  className="cursor-pointer transition hover:bg-black/[0.02]"
+                >
+                  <td className="px-5 py-3">
+                    <Link href={href} className="block min-w-0" onClick={(e) => e.stopPropagation()}>
+                      <span className="block truncate text-[15px] font-semibold">{f.nombre}</span>
+                      <span className="mt-0.5 flex items-center gap-1.5 text-[13px] text-[color:var(--tinta-suave)]">
+                        <Plataforma cual={f.plataforma} tam={13} />
+                        <span className="truncate">{f.dominio}</span>
                       </span>
+                    </Link>
+                  </td>
+                  <td className="px-3 py-3">
+                    <span
+                      title={f.estado.detalle}
+                      className={`pastilla ${
+                        f.estado.nivel === "caido" || f.estado.nivel === "conector"
+                          ? "bg-red-50 text-red-700"
+                          : f.estado.nivel === "aviso"
+                            ? "bg-amber-50 text-amber-700"
+                            : f.estado.nivel === "ok" && f.estado.texto === "Escritura"
+                              ? "bg-emerald-50 text-emerald-700"
+                              : "bg-black/[0.05] text-[color:var(--tinta-media)]"
+                      }`}
+                    >
+                      {f.estado.texto}
                     </span>
-                  )}
-                </td>
-                <td className="px-3 py-3 text-right">
-                  {!f.ia ? (
-                    <Vacio titulo="Sin preguntas de IA definidas" />
-                  ) : (
-                    <span className="flex flex-col items-end gap-0.5">
-                      <Cifra valor={miles(f.ia.visibles)} de={miles(f.ia.total)} titulo="Preguntas en las que ChatGPT o Gemini lo nombran" />
-                      <Delta n={f.ia.delta} />
-                    </span>
-                  )}
-                </td>
-                <td className="px-3 py-3 text-right">
-                  {!f.tecnico ? (
-                    <Vacio titulo="Sin rastreo técnico" />
-                  ) : (
-                    <span className="flex flex-col items-end gap-0.5">
-                      <Cifra
-                        valor={miles(f.tecnico.rotas)}
-                        de={miles(f.tecnico.paginas)}
-                        titulo={`Páginas rotas de las rastreadas · ${fecha(f.tecnico.medido)}`}
-                      />
-                      <Delta n={f.tecnico.delta} invertido />
-                    </span>
-                  )}
-                </td>
-                <td className="px-3 py-3 text-right">
-                  {!f.enlaces ? (
-                    <Vacio titulo="Perfil de enlaces sin consultar" />
-                  ) : (
-                    <Cifra valor={miles(f.enlaces.dominios)} titulo={`Dominios que enlazan · ${fecha(f.enlaces.medido)}`} />
-                  )}
-                </td>
-                <td className="px-3 py-3 text-right">
-                  <span className="flex flex-col items-end gap-0.5">
-                    <Cifra valor={dinero(f.gastoMes, "US$0")} titulo="Gasto en proveedores este mes" />
-                    {f.tarifa != null && (
-                      <span className="text-[11.5px] text-[color:var(--tinta-suave)]">de {dinero(f.tarifa)}</span>
+                    {/* A los «solo dominio» el vigía no los sondea: su fecha sería siempre vieja. */}
+                    {f.plataforma !== "dominio" && (
+                      <span className="mt-1 block text-[11.5px] text-[color:var(--tinta-suave)]" title="Última vez que se sondeó el conector">
+                        {haceCuanto(f.ultimaSonda)}
+                      </span>
                     )}
-                  </span>
-                </td>
-              </tr>
-            ))}
+                  </td>
+                  <td className="px-3 py-3 text-right">
+                    {f.top10 === null ? (
+                      <Vacio titulo={f.seguidas ? "Seguidas pero sin medir todavía" : "Sin palabras en seguimiento"} />
+                    ) : (
+                      <span className="flex flex-col items-end gap-0.5">
+                        <Cifra valor={miles(f.top10)} de={miles(f.seguidas)} titulo="Palabras seguidas en el top 10 de Google" />
+                        <Delta n={f.top10Delta} />
+                      </span>
+                    )}
+                  </td>
+                  <td className="px-3 py-3 text-right">
+                    {!f.gsc ? (
+                      <Vacio titulo="Sin un mes cerrado de Search Console: conéctalo o abre su Panorama" />
+                    ) : (
+                      <span className="flex flex-col items-end gap-0.5">
+                        <Cifra valor={miles(f.gsc.consultas)} titulo={`Búsquedas por las que salió en ${mesCorto(f.gsc.mes)}, el último mes cerrado (Search Console)`} />
+                        <span className="flex items-center gap-1.5">
+                          <span className="text-[11.5px] text-[color:var(--tinta-suave)]">{mesCorto(f.gsc.mes)}</span>
+                          <Delta n={f.gsc.delta} />
+                        </span>
+                      </span>
+                    )}
+                  </td>
+                  <td className="px-3 py-3 text-right">
+                    {!f.ia ? (
+                      <Vacio titulo={f.preguntasIa ? "Preguntas guardadas sin lanzar todavía" : "Sin preguntas de IA definidas"} />
+                    ) : (
+                      <span className="flex flex-col items-end gap-0.5">
+                        <Cifra valor={miles(f.ia.visibles)} de={miles(f.ia.total)} titulo="Preguntas lanzadas en las que ChatGPT o Gemini lo nombran" />
+                        <Delta n={f.ia.delta} />
+                      </span>
+                    )}
+                  </td>
+                  <td className="px-3 py-3 text-right">
+                    {!f.tecnico ? (
+                      <Vacio titulo="Sin rastreo técnico" />
+                    ) : (
+                      <span className="flex flex-col items-end gap-0.5">
+                        <Cifra
+                          valor={miles(f.tecnico.rotas)}
+                          de={miles(f.tecnico.paginas)}
+                          titulo={`Páginas rotas de las rastreadas · ${fecha(f.tecnico.medido)}`}
+                        />
+                        <Delta n={f.tecnico.delta} invertido />
+                      </span>
+                    )}
+                  </td>
+                  <td className="px-3 py-3 text-right">
+                    {!f.enlaces ? (
+                      <Vacio titulo="Perfil de enlaces sin consultar" />
+                    ) : (
+                      <Cifra valor={miles(f.enlaces.dominios)} titulo={`Dominios que enlazan · ${fecha(f.enlaces.medido)}`} />
+                    )}
+                  </td>
+                  <td className="px-3 py-3 text-right">
+                    <span className="flex flex-col items-end gap-0.5">
+                      <Cifra valor={dinero(f.gastoMes, "US$0")} titulo="Gasto en proveedores este mes" />
+                      {f.tarifa ? (
+                        <span className="text-[11.5px] text-[color:var(--tinta-suave)]">de {dinero(f.tarifa)}</span>
+                      ) : null}
+                    </span>
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>

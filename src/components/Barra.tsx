@@ -11,6 +11,10 @@ import type { Enlace } from "@/lib/navegacion";
  * actual, el buscador y la salida. Es clara para que el contenido y ella sean
  * una sola superficie, y sigue fija arriba: es el marco constante de la
  * herramienta.
+ *
+ * El fondo es opaco a propósito, sin desenfoque: un `backdrop-filter` convierte
+ * la barra en el bloque contenedor de todo lo `fixed` que cuelga de ella, y la
+ * paleta de Ctrl+K y el menú del móvil quedaban encerrados en sus 48 px.
  */
 export default function Barra({
   enlaces,
@@ -24,7 +28,7 @@ export default function Barra({
   rol?: string;
 }) {
   return (
-    <header className="sticky top-0 z-40 border-b border-[color:var(--linea)] bg-[color:var(--fondo)]/85 backdrop-blur">
+    <header className="sticky top-0 z-40 border-b border-[color:var(--linea)] bg-[color:var(--fondo)]">
       <div className="flex h-12 items-center gap-3 px-4 lg:px-6">
         <MenuMovil enlaces={enlaces} />
 

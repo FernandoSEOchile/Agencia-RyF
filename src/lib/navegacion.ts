@@ -31,7 +31,12 @@ export function enlacesDelPanel(rol: string): Enlace[] {
   ];
 }
 
-/** Si el enlace es el de la pantalla actual. La portada abarca las fichas de cliente. */
+/**
+ * Si el enlace es el de la pantalla actual. La portada abarca las fichas de
+ * cliente y el conector, que no tiene icono propio en el riel.
+ */
 export function enlaceActivo(href: string, ruta: string): boolean {
-  return href === "/panel" ? ruta === "/panel" || ruta.startsWith("/panel/clientes") : ruta.startsWith(href);
+  return href === "/panel"
+    ? ruta === "/panel" || ruta.startsWith("/panel/clientes") || ruta.startsWith("/panel/conector")
+    : ruta.startsWith(href);
 }

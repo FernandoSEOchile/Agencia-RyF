@@ -225,7 +225,7 @@ export default function Competidores({
                 key={s.dominio}
                 onClick={() => añadir(s.dominio)}
                 disabled={ocupado !== null}
-                className="pastilla bg-black/[0.05] text-[color:var(--tinta)] transition hover:bg-[color:var(--acento)]/10 hover:text-[color:var(--acento)]"
+                className="pastilla bg-black/[0.05] text-[color:var(--tinta)] transition hover:bg-[rgb(var(--acento-rgb)/0.1)] hover:text-[color:var(--acento)]"
                 title={`Top 10 en ${s.serp} de tus palabras · citado ${s.ia} veces por la IA${s.labs ? ` · ${s.labs} palabras en común` : ""}`}
               >
                 + {s.dominio}
@@ -252,10 +252,10 @@ export default function Competidores({
               {d.dominios.map((x) => {
                 const rival = d.rivales.find((r) => r.dominio === x.dominio);
                 return (
-                  <tr key={x.dominio} className={x.esCliente ? "bg-[color:var(--acento)]/[0.04]" : "transition hover:bg-black/[0.015]"}>
+                  <tr key={x.dominio} className={x.esCliente ? "bg-[rgb(var(--acento-rgb)/0.04)]" : "transition hover:bg-black/[0.015]"}>
                     <td className="px-5 py-3">
                       <span className={x.esCliente ? "font-semibold" : ""}>{x.dominio}</span>
-                      {x.esCliente && <span className="ml-2 pastilla bg-[color:var(--acento)]/10 text-[color:var(--acento)]">tú</span>}
+                      {x.esCliente && <span className="ml-2 pastilla bg-[rgb(var(--acento-rgb)/0.1)] text-[color:var(--acento)]">tú</span>}
                     </td>
                     <td className="px-3 py-3 text-right tabular-nums">{medidas ? x.serp.top3 : "—"}</td>
                     <td className="px-3 py-3 text-right tabular-nums">{medidas ? x.serp.top10 : "—"}</td>

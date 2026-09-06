@@ -184,11 +184,11 @@ export default function Gasto({
                     >
                       <div
                         style={{ height: `${(d.dataforseo / cima) * 100}%` }}
-                        className="w-full bg-[color:var(--acento)]/70"
+                        className="w-full bg-[rgb(var(--acento-rgb)/0.7)]"
                       />
                       <div
                         style={{ height: `${(d.claude / cima) * 100}%` }}
-                        className="w-full bg-[color:var(--tinta)]/80"
+                        className="w-full bg-[rgb(var(--tinta-rgb)/0.8)]"
                       />
                     </div>
                   );
@@ -196,10 +196,10 @@ export default function Gasto({
               </div>
               <p className="mt-3 flex flex-wrap gap-4 text-[12px] text-[color:var(--tinta-suave)]">
                 <span className="flex items-center gap-1.5">
-                  <span className="inline-block h-2 w-2 bg-[color:var(--tinta)]/80" /> Claude
+                  <span className="inline-block h-2 w-2 bg-[rgb(var(--tinta-rgb)/0.8)]" /> Claude
                 </span>
                 <span className="flex items-center gap-1.5">
-                  <span className="inline-block h-2 w-2 bg-[color:var(--acento)]/70" /> API de SEO
+                  <span className="inline-block h-2 w-2 bg-[rgb(var(--acento-rgb)/0.7)]" /> API de SEO
                 </span>
                 <span className="ml-auto">
                   {datos.desde} a {datos.hasta}
@@ -227,7 +227,7 @@ export default function Gasto({
                           className={`pastilla ${
                             c.servicio === "claude"
                               ? "bg-black/[0.06] text-[color:var(--tinta-media)]"
-                              : "bg-[color:var(--acento)]/10 text-[color:var(--acento)]"
+                              : "bg-[rgb(var(--acento-rgb)/0.1)] text-[color:var(--acento)]"
                           }`}
                         >
                           {c.servicio === "claude" ? "Claude" : "SEO"}

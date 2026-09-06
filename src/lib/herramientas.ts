@@ -643,7 +643,7 @@ export function herramientasDe(ctx: Contexto) {
 
       if (!cliente?.gscConexionId || !cliente.gscPropiedad) {
         return problema(
-          "Este cliente no tiene Search Console conectado. Se conecta desde la pestaña Posiciones."
+          "Este cliente no tiene Search Console conectado. Se conecta desde la pestaña Search Console."
         );
       }
 

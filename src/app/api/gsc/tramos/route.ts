@@ -38,7 +38,12 @@ export async function GET(req: NextRequest) {
   if (!cliente.gscConexionId || !cliente.gscPropiedad) return Response.json({ meses: [] });
 
   try {
-    const meses = await porMes(clienteId, cliente.gscConexionId, cliente.gscPropiedad, 365);
+    const todos = await porMes(clienteId, cliente.gscConexionId, cliente.gscPropiedad, 365);
+    // El mes en curso entra en la curva cuando ya tiene diez días de datos:
+    // con tres, el último punto se hunde y parece una caída.
+    const enCurso = new Date().toISOString().slice(0, 7);
+    const diasConDatos = new Date().getUTCDate() - 3;
+    const meses = todos.filter((m) => m.mes !== enCurso || diasConDatos >= 10);
     return Response.json({ meses });
   } catch (e) {
     return Response.json({ error: e instanceof Error ? e.message : "No se pudo leer Search Console." }, { status: 502 });

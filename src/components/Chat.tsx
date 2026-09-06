@@ -376,7 +376,7 @@ export default function Chat({
                         className={`rounded px-1.5 py-0.5 text-[12px] font-medium ${
                           ESCRIBEN.has(u)
                             ? "bg-emerald-50 text-emerald-700"
-                            : "bg-[color:var(--acento)]/10 text-[color:var(--acento)]"
+                            : "bg-[rgb(var(--acento-rgb)/0.1)] text-[color:var(--acento)]"
                         }`}
                       >
                         {nombreHerramienta(u)}
@@ -494,7 +494,7 @@ export default function Chat({
           anadir(e.dataTransfer.files);
         }}
         className={`mt-4 rounded-xl border-t pt-4 transition ${
-          arrastrando ? "border-t-[color:var(--acento)] bg-[color:var(--acento)]/5" : "border-t-[color:var(--linea-fuerte)]"
+          arrastrando ? "border-t-[color:var(--acento)] bg-[rgb(var(--acento-rgb)/0.05)]" : "border-t-[color:var(--linea-fuerte)]"
         }`}
       >
         {adjuntas.length > 0 && (
@@ -564,7 +564,7 @@ export default function Chat({
             rows={2}
             aria-label={`Instrucción para ${nombre}`}
             placeholder={`Escribe una instrucción para ${nombre}…`}
-            className="flex-1 resize-none rounded-xl border border-[color:var(--linea-fuerte)] px-3.5 py-2.5 text-sm outline-none focus:border-[color:var(--acento)] focus:ring-2 focus:ring-[color:var(--acento)]/20 disabled:bg-black/[0.03]"
+            className="flex-1 resize-none rounded-xl border border-[color:var(--linea-fuerte)] px-3.5 py-2.5 text-sm outline-none focus:border-[color:var(--acento)] focus:ring-2 focus:ring-[rgb(var(--acento-rgb)/0.2)] disabled:bg-black/[0.03]"
           />
           {ocupado ? (
             <button

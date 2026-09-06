@@ -27,7 +27,7 @@ export async function GET(req: NextRequest) {
   const app = await aplicacion();
   if (!app) {
     redirect(
-      `/panel/clientes/${clienteId}?error=` +
+      `/panel/clientes/${clienteId}?t=gsc&error=` +
         encodeURIComponent("Search Console no está configurado en el panel. Avisa a un administrador.")
     );
   }

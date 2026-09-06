@@ -7,6 +7,11 @@ import { db } from "@/lib/db";
  * Junta lo que ya se pagó en dos sitios distintos —la auditoría de la ficha
  * de Google Business y el último barrido de la cuadrícula— para verlo de
  * todos los clientes a la vez. Abrir esta pantalla no habla con nadie.
+ *
+ * Las variaciones solo comparan lo comparable: la ficha con la auditoría
+ * anterior del mismo negocio, y el barrido con el anterior de la misma
+ * búsqueda, el mismo negocio y la misma cuadrícula. Dos búsquedas distintas
+ * no son un antes y un después.
  */
 
 export interface FilaLocal {
@@ -17,9 +22,9 @@ export interface FilaLocal {
   barrido: {
     keyword: string;
     negocio: string;
-    /** Porcentaje de puntos del mapa en los que aparece. */
+    /** Porcentaje de los puntos con datos en los que aparece. */
     visible: number;
-    /** Porcentaje de puntos en los que está entre los tres primeros: el paquete que la gente ve. */
+    /** Porcentaje de los puntos con datos en los que está entre los tres primeros: el paquete que la gente ve. */
     enTop3: number;
     deltaTop3: number | null;
     media: number | null;
@@ -54,6 +59,16 @@ function resumir(puntos: { puesto: number | null; resultados: number; primero: s
   };
 }
 
+/** Todas las filas de cada cliente, en el orden en que llegaron. */
+function porCliente<T extends { clienteId: string }>(filas: T[]): Map<string, T[]> {
+  const m = new Map<string, T[]>();
+  for (const f of filas) m.set(f.clienteId, [...(m.get(f.clienteId) ?? []), f]);
+  return m;
+}
+
+/** Con qué se identifica un negocio: el cid de Google si lo hay, y si no, su nombre. */
+const quien = (x: { cid: string | null; negocio: string }) => x.cid ?? x.negocio;
+
 export async function carteraLocal(clientes: { id: string; nombre: string; dominio: string }[]): Promise<FilaLocal[]> {
   const ids = clientes.map((c) => c.id);
   if (ids.length === 0) return [];
@@ -62,29 +77,30 @@ export async function carteraLocal(clientes: { id: string; nombre: string; domin
     db.auditoriaFicha.findMany({
       where: { clienteId: { in: ids } },
       orderBy: { creado: "desc" },
-      select: { clienteId: true, negocio: true, nota: true, creado: true },
+      select: { clienteId: true, negocio: true, cid: true, nota: true, creado: true },
     }),
     db.rejilla.findMany({
       where: { clienteId: { in: ids }, estado: "terminado" },
       orderBy: { creado: "desc" },
-      select: { id: true, clienteId: true, keyword: true, negocio: true, creado: true },
+      select: { id: true, clienteId: true, keyword: true, negocio: true, cid: true, lado: true, separacion: true, creado: true },
     }),
   ]);
 
-  // Las dos últimas de cada cliente: la actual y la anterior, para la variación.
-  const dosPor = <T extends { clienteId: string }>(filas: T[]) => {
-    const m = new Map<string, T[]>();
-    for (const f of filas) {
-      const l = m.get(f.clienteId) ?? [];
-      if (l.length < 2) l.push(f);
-      m.set(f.clienteId, l);
-    }
-    return m;
-  };
-  const auditoriasPor = dosPor(auditorias);
-  const rejillasPor = dosPor(rejillas);
+  const auditoriasPor = porCliente(auditorias);
+  const rejillasPor = porCliente(rejillas);
 
-  const rejillaIds = [...rejillasPor.values()].flat().map((r) => r.id);
+  // De cada cliente, el último barrido y el anterior comparable con él.
+  const pares = new Map<string, { actual: (typeof rejillas)[number]; previo: (typeof rejillas)[number] | null }>();
+  for (const [clienteId, lista] of rejillasPor) {
+    const [actual, ...resto] = lista;
+    const previo =
+      resto.find(
+        (r) => r.keyword === actual.keyword && quien(r) === quien(actual) && r.lado === actual.lado && r.separacion === actual.separacion
+      ) ?? null;
+    pares.set(clienteId, { actual, previo });
+  }
+
+  const rejillaIds = [...pares.values()].flatMap((p) => (p.previo ? [p.actual.id, p.previo.id] : [p.actual.id]));
   const puntos = rejillaIds.length
     ? await db.puntoRejilla.findMany({
         where: { rejillaId: { in: rejillaIds } },
@@ -95,12 +111,11 @@ export async function carteraLocal(clientes: { id: string; nombre: string; domin
   for (const x of puntos) puntosPor.set(x.rejillaId, [...(puntosPor.get(x.rejillaId) ?? []), x]);
 
   return clientes.map((c) => {
-    const [a, aAntes] = auditoriasPor.get(c.id) ?? [];
-    const [r, rAntes] = rejillasPor.get(c.id) ?? [];
-    const actual = r ? resumir(puntosPor.get(r.id) ?? []) : null;
-    // Solo se compara con un barrido de la misma búsqueda: dos palabras
-    // distintas no son un antes y un después.
-    const previo = r && rAntes && rAntes.keyword === r.keyword ? resumir(puntosPor.get(rAntes.id) ?? []) : null;
+    const [a, ...aResto] = auditoriasPor.get(c.id) ?? [];
+    const aAntes = a ? aResto.find((x) => quien(x) === quien(a)) : undefined;
+    const par = pares.get(c.id);
+    const actual = par ? resumir(puntosPor.get(par.actual.id) ?? []) : null;
+    const previo = par?.previo ? resumir(puntosPor.get(par.previo.id) ?? []) : null;
 
     return {
       id: c.id,
@@ -108,17 +123,17 @@ export async function carteraLocal(clientes: { id: string; nombre: string; domin
       dominio: c.dominio,
       ficha: a ? { negocio: a.negocio, nota: a.nota, delta: aAntes ? a.nota - aAntes.nota : null, creado: a.creado.toISOString() } : null,
       barrido:
-        r && actual
+        par && actual
           ? {
-              keyword: r.keyword,
-              negocio: r.negocio,
+              keyword: par.actual.keyword,
+              negocio: par.actual.negocio,
               visible: actual.visible,
               enTop3: actual.enTop3,
               deltaTop3: previo ? actual.enTop3 - previo.enTop3 : null,
               media: actual.media,
               rival: actual.rival,
               medidos: actual.medidos,
-              creado: r.creado.toISOString(),
+              creado: par.actual.creado.toISOString(),
             }
           : null,
     };

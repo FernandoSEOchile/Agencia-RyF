@@ -434,7 +434,7 @@ export default function Posiciones({
                 {subieron === 1 ? "subió" : "subieron"} 3 puestos o más
               </li>
             )}
-            {sinMedir === 0 && bajaron === 0 && (
+            {(sinMedir === 0 || !puedeEditar) && bajaron === 0 && (
               <li className="text-[color:var(--tinta-media)]">Nada urgente por aquí.</li>
             )}
           </ul>
@@ -548,8 +548,16 @@ export default function Posiciones({
           <div className="mt-4 rounded-2xl border border-[color:var(--linea)] bg-[color:var(--panel)] px-6 py-12 text-center">
             <p className="text-[15px] font-medium">Todavía no se sigue ninguna consulta.</p>
             <p className="mx-auto mt-2 max-w-md text-[14px] text-[color:var(--tinta-media)]">
-              Añade las palabras por las que este cliente quiere posicionar, o pulsa «Seguir» en cualquier
-              búsqueda de Search Console más abajo.
+              Añade las palabras por las que este cliente quiere posicionar, o pulsa «Seguir» en cualquiera
+              de las palabras por las que ya posicionas, más abajo.
+              {hayGsc && irA && (
+                <>
+                  {" "}
+                  <button type="button" onClick={() => irA("gsc")} className="underline-offset-4 hover:text-[color:var(--acento)] hover:underline">
+                    También puedes traerlas desde Search Console →
+                  </button>
+                </>
+              )}
             </p>
           </div>
         ) : (

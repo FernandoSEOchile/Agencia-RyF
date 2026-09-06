@@ -5,7 +5,7 @@
  * cada uno se elige a propósito para una pantalla, y un paquete de cinco mil
  * iconos invita a poner uno donde no hace falta ninguno.
  */
-const TRAZOS: Record<string, string[]> = {
+const TRAZOS = {
   clientes: [
     "M9 7a4 4 0 1 0 8 0a4 4 0 0 0 -8 0",
     "M3 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2",
@@ -98,8 +98,9 @@ const TRAZOS: Record<string, string[]> = {
   recibo: ["M5 21v-16a2 2 0 0 1 2 -2h10a2 2 0 0 1 2 2v16l-3 -2l-2 2l-2 -2l-2 2l-2 -2l-3 2", "M9 7l6 0", "M9 11l6 0"],
   registro: ["M12 8l0 4l2 2", "M3.05 11a9 9 0 1 1 .5 4", "M3 20v-5h5"],
   datos: ["M12 6m-8 0a8 3 0 1 0 16 0a8 3 0 1 0 -16 0", "M4 6v6a8 3 0 0 0 16 0v-6", "M4 12v6a8 3 0 0 0 16 0v-6"],
-};
+} as const satisfies Record<string, readonly string[]>;
 
+/** La unión de los nombres reales: un icono mal escrito no compila en vez de pintar un SVG vacío. */
 export type NombreIcono = keyof typeof TRAZOS;
 
 export function Icono({ nombre, tam = 20, className }: { nombre: NombreIcono; tam?: number; className?: string }) {
@@ -116,7 +117,7 @@ export function Icono({ nombre, tam = 20, className }: { nombre: NombreIcono; ta
       strokeLinejoin="round"
       className={className}
     >
-      {(TRAZOS[nombre] ?? []).map((d) => (
+      {TRAZOS[nombre].map((d) => (
         <path key={d} d={d} />
       ))}
     </svg>

@@ -88,3 +88,30 @@ export function dinero(n: number | null | undefined, cero = "sin coste"): string
 export function miles(n: number | null | undefined): string {
   return (n ?? 0).toLocaleString("es-CL");
 }
+
+/** «sep», o «sep 25» si no es este año, para un mes escrito «2026-09». */
+export function mesCorto(mes: string): string {
+  const [a, m] = mes.split("-").map(Number);
+  if (!a || !m || !MESES[m - 1]) return mes;
+  const hoy = partes(new Date());
+  return `${MESES[m - 1]}${a !== hoy.anio ? ` ${String(a).slice(2)}` : ""}`;
+}
+
+/**
+ * Instante en que empieza el mes en curso según el reloj de Chile.
+ *
+ * Con la medianoche UTC el mes cambiaría a las ocho o nueve de la noche del
+ * último día (según haya horario de verano) y lo apuntado esa noche caería en
+ * el mes siguiente. El desfase se lee de la zona y no se escribe a mano porque
+ * cambia dos veces al año.
+ */
+export function inicioDeMes(ahora = new Date()): Date {
+  const { anio, mes } = partes(ahora);
+  const aprox = Date.UTC(anio, mes - 1, 1);
+  // Lo que marca Chile en ese instante, leído como si fuera UTC: la
+  // diferencia con `aprox` es el desfase de la zona (tres o cuatro horas).
+  const l = partes(new Date(aprox));
+  const [h, mi] = l.hora.split(":").map(Number);
+  const comoUTC = Date.UTC(l.anio, l.mes - 1, l.dia, h % 24, mi);
+  return new Date(aprox - (comoUTC - aprox));
+}

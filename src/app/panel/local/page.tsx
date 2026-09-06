@@ -54,7 +54,7 @@ export default async function Local() {
             {[
               { k: "Con ficha auditada", v: conFicha, de: filas.length },
               { k: "Con cuadrícula medida", v: conMapa, de: filas.length },
-              { k: "En el paquete de tres", v: enPaquete, de: conMapa, pie: "en más de la mitad de su zona" },
+              { k: "En el paquete de tres", v: enPaquete, de: conMapa, pie: "en la mitad o más de los puntos con datos" },
               { k: "Sin nada medido", v: sinNada, de: filas.length },
             ].map((c) => (
               <div key={c.k} className="bg-[color:var(--panel)] px-5 py-4">

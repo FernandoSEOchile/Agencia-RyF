@@ -7,8 +7,8 @@ export const metadata: Metadata = {
 };
 
 /**
- * El armazón no lleva navegación: cada pantalla trae la suya, porque la lista
- * de clientes y la ficha necesitan acciones distintas.
+ * El armazón raíz no lleva navegación: la web pública, entrar y el informe por
+ * enlace no la tienen. La del panel —riel y barra— vive en src/app/panel/layout.tsx.
  */
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (

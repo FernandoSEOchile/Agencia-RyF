@@ -55,6 +55,10 @@ export async function GET(req: NextRequest) {
   // Search Console guarda dieciséis meses. Antes se capaba a 180 y «1 año» devolvía medio año sin decirlo.
   const dias = Math.min(480, Math.max(7, Number(req.nextUrl.searchParams.get("dias")) || 28));
 
+  // Técnico solo quiere las canibalizaciones de ahora: se ahorra la segunda
+  // lectura, que es la que dispara el límite de Google.
+  const comparar = req.nextUrl.searchParams.get("comparar") !== "0";
+
   const p = await permiso(clienteId);
   if ("error" in p) return Response.json({ error: p.error }, { status: p.codigo });
 
@@ -104,20 +108,35 @@ export async function GET(req: NextRequest) {
     // cuánto cambió cada consulta y cada cifra. Va después y no en paralelo:
     // dos consultas a la vez a Google es la forma más rápida de que nos limite.
     // Si falla, la tabla sale igual, solo sin la columna de cambio.
+    // Search Console guarda dieciséis meses: con «1 año» el periodo anterior
+    // cae fuera y Google devuelve medio periodo vacío sin avisar. Mejor no
+    // comparar que comparar con la mitad.
+    const cabe = 2 * dias + 4 <= 480;
     let previas: FilaConsulta[] | null = null;
-    try {
-      previas = await consultasAnteriores(p.cliente.gscConexionId, p.cliente.gscPropiedad, dias);
-    } catch {
+    let motivoSinAnterior: "retencion" | "error" | null = null;
+    if (!comparar) {
       previas = null;
+    } else if (!cabe) {
+      motivoSinAnterior = "retencion";
+    } else {
+      try {
+        previas = await consultasAnteriores(p.cliente.gscConexionId, p.cliente.gscPropiedad, dias);
+      } catch {
+        previas = null;
+        motivoSinAnterior = "error";
+      }
     }
+    // Sin periodo anterior, «antes» va nulo en todas y la pantalla lo dice: no
+    // es lo mismo «nueva» que «no se pudo comparar».
+    const comparable = previas !== null;
     const porConsulta = new Map((previas ?? []).map((f) => [f.consulta, f]));
     const filas = actuales.map((f) => {
       const a = porConsulta.get(f.consulta);
-      return { ...f, antes: previas && a ? { posicion: a.posicion, clics: a.clics, impresiones: a.impresiones } : null };
+      return { ...f, antes: comparable && a ? { posicion: a.posicion, clics: a.clics, impresiones: a.impresiones } : null };
     });
 
     const anterior = previas ? resumen(previas) : null;
-    return Response.json({ ...base, propiedades: disponibles, dias, filas, anterior });
+    return Response.json({ ...base, propiedades: disponibles, dias, filas, anterior, comparable, motivoSinAnterior });
   } catch (e) {
     return Response.json(
       {
@@ -148,6 +167,9 @@ export async function PUT(req: NextRequest) {
     if (id && !(await db.conexionGoogle.findUnique({ where: { id } }))) {
       return Response.json({ error: "Esa cuenta de Google ya no existe." }, { status: 400 });
     }
+    // La curva mensual guardada era de la fuente anterior: con otra cuenta o
+    // propiedad se recalcula desde cero, no se hereda.
+    await db.tramoMes.deleteMany({ where: { clienteId: p.cliente.id } });
     await db.cliente.update({
       where: { id: p.cliente.id },
       data: { gscConexionId: id || null, gscPropiedad: null },
@@ -170,6 +192,9 @@ export async function PUT(req: NextRequest) {
     }
   }
 
+  if (valor !== (p.cliente.gscPropiedad ?? "")) {
+    await db.tramoMes.deleteMany({ where: { clienteId: p.cliente.id } });
+  }
   await db.cliente.update({ where: { id: p.cliente.id }, data: { gscPropiedad: valor || null } });
   return Response.json({ ok: true });
 }

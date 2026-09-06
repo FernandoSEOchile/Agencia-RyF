@@ -29,6 +29,11 @@
      debajo del mínimo legible para texto pequeño, y es el color de las fechas. */
   --tinta-suave: #757579;
   --fondo: #fbfbfd;
+  /* Los mismos tres colores en canales sueltos, para usarlos con alfa:
+     Tailwind 3 no sabe aplicar «/10» a un var() y descarta la clase entera. */
+  --acento-rgb: 255 107 0;
+  --tinta-rgb: 29 29 31;
+  --fondo-rgb: 251 251 253;
   --panel: #ffffff;
   --linea: rgba(0, 0, 0, 0.075);
   --linea-fuerte: rgba(0, 0, 0, 0.16);
@@ -78,11 +83,16 @@ h2,
 
 @layer components {
   /* Un solo ancho para todas las pantallas: si cada pestaña elige el suyo, las
-     columnas bailan al cambiar de una a otra. Va a todo el ancho porque el
-     panel es una herramienta con tablas, no un texto: el tope solo evita que
-     en una pantalla enorme una fila mida dos metros. */
+     columnas bailan al cambiar de una a otra. */
   .contenedor {
-    @apply mx-auto w-full max-w-[1600px] px-5 sm:px-6 lg:px-8;
+    @apply mx-auto w-full max-w-[1120px] px-6;
+  }
+
+  /* Dentro del panel va a todo el ancho, porque es una herramienta con tablas
+     y no un texto; el tope solo evita que en una pantalla enorme una fila mida
+     dos metros. La web pública y las páginas legales se quedan en 1120. */
+  .zona-panel .contenedor {
+    @apply max-w-[1600px] px-5 sm:px-6 lg:px-8;
   }
 
   /* Superficie base. El borde es un pelo, no una caja: lo que separa del fondo
@@ -268,7 +278,8 @@ h2,
 @media print {
   .imprimir-oculto,
   header,
-  nav {
+  nav,
+  aside {
     display: none !important;
   }
 

@@ -14,8 +14,10 @@ export async function GET(req: NextRequest) {
   const estado = params.get("estado") || params.get("state");
   const rechazo = params.get("error");
 
+  // De vuelta a la pestaña Search Console: es donde falta elegir la propiedad,
+  // y aterrizar en el chat con un «Conectado» en verde hacía creer que ya estaba.
   const destino = (clienteId: string, q: string) =>
-    clienteId ? `/panel/clientes/${clienteId}?${q}` : `/panel?${q}`;
+    clienteId ? `/panel/clientes/${clienteId}?t=gsc&${q}` : `/panel?${q}`;
 
   const datos = estado ? leerEstado(estado) : null;
   const clienteId = datos?.clienteId ?? "";

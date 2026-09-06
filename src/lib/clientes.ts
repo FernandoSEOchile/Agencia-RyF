@@ -142,14 +142,21 @@ export function veTodo(rol: string) {
   return rol === "ADMIN" || rol === "GESTOR";
 }
 
-/** Clientes visibles para un usuario, según su rol y sus accesos. */
+/**
+ * Clientes visibles para un usuario, según su rol y sus accesos.
+ *
+ * Solo los activos: «dar de baja» promete que el cliente desaparece de la
+ * cartera y del selector, y sin este filtro su última revisión quedaba
+ * congelada como «caído» y su gasto seguía sumando en la portada. Su ficha
+ * sigue abriéndose por su enlace, avisando de la baja.
+ */
 export async function clientesDe(usuarioId: string, rol: string) {
   if (veTodo(rol)) {
-    return db.cliente.findMany({ orderBy: { nombre: "asc" } });
+    return db.cliente.findMany({ where: { activo: true }, orderBy: { nombre: "asc" } });
   }
 
   return db.cliente.findMany({
-    where: { accesos: { some: { usuarioId } } },
+    where: { activo: true, accesos: { some: { usuarioId } } },
     orderBy: { nombre: "asc" },
   });
 }

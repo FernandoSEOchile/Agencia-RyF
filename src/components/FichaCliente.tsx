@@ -256,7 +256,7 @@ export default function FichaCliente({
       {/* La columna de secciones, como en cualquier herramienta de escritorio:
           fija mientras se baja, agrupada por lo que se va a hacer. En pantallas
           estrechas no cabe y se vuelve a los segmentos de siempre. */}
-      <aside className="sticky top-16 hidden w-48 shrink-0 lg:block">
+      <aside className="scroll-fino sticky top-16 hidden max-h-[calc(100vh-4.5rem)] w-48 shrink-0 overflow-y-auto lg:block">
         <nav aria-label="Secciones del cliente" className="flex flex-col gap-4">
           {ZONAS.map((z) => (
             <div key={z.id}>
@@ -279,7 +279,7 @@ export default function FichaCliente({
                         <Icono nombre={p.icono} tam={17} className={aqui ? "text-[color:var(--acento)]" : "text-[color:var(--tinta-suave)]"} />
                         <span className="truncate">{p.etiqueta}</span>
                         {p.id === "registro" && sucesos.length > 0 && (
-                          <span className="ml-auto text-[12px] tabular-nums text-[color:var(--tinta-suave)]">{sucesos.length}</span>
+                          <span className="ml-auto text-[12px] tabular-nums text-[color:var(--tinta-suave)]">{sucesos.length >= 100 ? "99+" : sucesos.length}</span>
                         )}
                       </button>
                     </li>
@@ -325,7 +325,7 @@ export default function FichaCliente({
                 {p.etiqueta}
                 {p.id === "registro" && sucesos.length > 0 && (
                   <span className="ml-1.5 tabular-nums text-[color:var(--tinta-suave)]">
-                    {sucesos.length}
+                    {sucesos.length >= 100 ? "99+" : sucesos.length}
                   </span>
                 )}
               </button>
@@ -357,7 +357,7 @@ export default function FichaCliente({
                         href={`?c=${cv.id}`}
                         className={`block rounded-lg px-3 py-2 pr-7 text-[13px] transition ${
                           abierta
-                            ? "bg-[color:var(--acento)]/10 font-semibold text-[color:var(--tinta)]"
+                            ? "bg-[rgb(var(--acento-rgb)/0.1)] font-semibold text-[color:var(--tinta)]"
                             : "text-[color:var(--tinta-media)] hover:bg-black/[0.04]"
                         }`}
                       >
@@ -592,7 +592,7 @@ export default function FichaCliente({
                   <span
                     className={`rounded px-1.5 py-0.5 text-[12px] font-semibold ${
                       s.origen === "panel"
-                        ? "bg-[color:var(--acento)]/10 text-[color:var(--acento)]"
+                        ? "bg-[rgb(var(--acento-rgb)/0.1)] text-[color:var(--acento)]"
                         : "bg-black/[0.04] text-[color:var(--tinta-media)]"
                     }`}
                     title={s.origen === "panel" ? "Hecho desde el panel" : "Registrado por el conector"}

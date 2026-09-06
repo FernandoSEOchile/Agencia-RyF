@@ -15,13 +15,18 @@ import { enlaceActivo, type Enlace } from "@/lib/navegacion";
  * navegación que se mueve al bajar deja al usuario sin marco. El riel es
  * negro por lo mismo que lo era la barra: el logo de la agencia es blanco
  * con transparencia.
+ *
+ * Lleva scroll propio: en una ventana baja —un teléfono apaisado, Windows al
+ * 150 %— «Ajustes» y la cuenta quedaban fuera de la pantalla sin forma de
+ * llegar, porque el riel es fijo y la página no lo arrastra.
  */
 export default function Riel({ enlaces, usuario }: { enlaces: Enlace[]; usuario?: string | null }) {
   const ruta = usePathname();
+  const enCuenta = ruta.startsWith("/panel/cuenta");
 
   return (
-    <aside className="sticky top-0 hidden h-screen w-16 shrink-0 flex-col items-center bg-[#111111] py-3 md:flex">
-      <Link href="/panel" className="mb-3 grid h-9 w-12 place-items-center" aria-label="Portada del panel">
+    <aside className="scroll-fino sticky top-0 hidden h-screen w-16 shrink-0 flex-col items-center overflow-y-auto bg-[#111111] py-3 md:flex">
+      <Link href="/panel" className="mb-3 grid h-9 w-12 shrink-0 place-items-center" aria-label="Portada del panel">
         <Image src="/ryf.webp" alt="Agencia RYF" width={512} height={199} priority className="h-[15px] w-auto" />
       </Link>
 
@@ -48,12 +53,13 @@ export default function Riel({ enlaces, usuario }: { enlaces: Enlace[]; usuario?
       <Link
         href="/panel/cuenta"
         title={usuario ? `${usuario} · mi cuenta` : "Mi cuenta"}
-        aria-current={ruta.startsWith("/panel/cuenta") ? "page" : undefined}
-        className={`mt-auto grid h-9 w-9 place-items-center rounded-full text-[13px] font-semibold transition ${
-          ruta.startsWith("/panel/cuenta") ? "bg-white text-black" : "bg-white/[0.1] text-white/80 hover:bg-white/20 hover:text-white"
+        aria-label={usuario ? `Mi cuenta (${usuario})` : "Mi cuenta"}
+        aria-current={enCuenta ? "page" : undefined}
+        className={`mt-auto grid h-9 w-9 shrink-0 place-items-center rounded-full text-[13px] font-semibold transition ${
+          enCuenta ? "bg-white text-black" : "bg-white/[0.1] text-white/80 hover:bg-white/20 hover:text-white"
         }`}
       >
-        {(usuario ?? "?").trim().slice(0, 1).toUpperCase()}
+        <span aria-hidden>{(usuario ?? "?").trim().slice(0, 1).toUpperCase()}</span>
       </Link>
     </aside>
   );
@@ -63,9 +69,22 @@ export default function Riel({ enlaces, usuario }: { enlaces: Enlace[]; usuario?
 export function MenuMovil({ enlaces }: { enlaces: Enlace[] }) {
   const ruta = usePathname();
   const [abierto, setAbierto] = useState(false);
+  const cerrar = () => setAbierto(false);
 
-  // Navegar cierra el menú: si no, la pantalla nueva aparece tapada.
+  // Navegar cierra el menú: si no, la pantalla nueva aparece tapada. Los
+  // enlaces cierran además al tocarlos, porque tocar la pantalla en la que ya
+  // estás no cambia la ruta y este efecto no dispara.
   useEffect(() => setAbierto(false), [ruta]);
+
+  // Escape cierra, como cualquier capa que tapa la pantalla.
+  useEffect(() => {
+    if (!abierto) return;
+    const alPulsar = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setAbierto(false);
+    };
+    window.addEventListener("keydown", alPulsar);
+    return () => window.removeEventListener("keydown", alPulsar);
+  }, [abierto]);
 
   return (
     <div className="md:hidden">
@@ -73,21 +92,22 @@ export function MenuMovil({ enlaces }: { enlaces: Enlace[] }) {
         type="button"
         onClick={() => setAbierto(true)}
         aria-label="Abrir el menú"
+        aria-expanded={abierto}
         className="grid h-9 w-9 place-items-center rounded-full text-[color:var(--tinta-media)] transition hover:bg-black/[0.05] hover:text-[color:var(--tinta)]"
       >
         <Icono nombre="menu" />
       </button>
 
       {abierto && (
-        <div className="fixed inset-0 z-50 bg-black/40" onClick={() => setAbierto(false)} role="presentation">
+        <div className="fixed inset-0 z-50 bg-black/40" onClick={cerrar} role="presentation">
           <nav
             aria-label="Principal"
             onClick={(e) => e.stopPropagation()}
-            className="flex h-full w-64 flex-col bg-[#111111] px-3 py-4"
+            className="scroll-fino flex h-full w-64 flex-col overflow-y-auto bg-[#111111] px-3 py-4"
           >
             <div className="mb-4 flex items-center justify-between px-2">
               <Image src="/ryf.webp" alt="Agencia RYF" width={512} height={199} className="h-[16px] w-auto" />
-              <button type="button" onClick={() => setAbierto(false)} aria-label="Cerrar el menú" className="text-white/60 hover:text-white">
+              <button type="button" onClick={cerrar} aria-label="Cerrar el menú" className="text-white/60 hover:text-white">
                 <Icono nombre="cerrar" />
               </button>
             </div>
@@ -97,6 +117,7 @@ export function MenuMovil({ enlaces }: { enlaces: Enlace[] }) {
                 <Link
                   key={e.href}
                   href={e.href}
+                  onClick={cerrar}
                   aria-current={activo ? "page" : undefined}
                   className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-[14px] font-medium transition ${
                     activo ? "bg-white/[0.1] text-white" : "text-white/60 hover:bg-white/[0.06] hover:text-white"
@@ -107,7 +128,7 @@ export function MenuMovil({ enlaces }: { enlaces: Enlace[] }) {
                 </Link>
               );
             })}
-            <Link href="/panel/cuenta" className="mt-auto flex items-center gap-3 rounded-xl px-3 py-2.5 text-[14px] font-medium text-white/60 hover:text-white">
+            <Link href="/panel/cuenta" onClick={cerrar} className="mt-auto flex items-center gap-3 rounded-xl px-3 py-2.5 text-[14px] font-medium text-white/60 hover:text-white">
               <Icono nombre="cuenta" />
               Mi cuenta
             </Link>

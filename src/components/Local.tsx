@@ -454,7 +454,7 @@ export default function Local({
                 {barrido.top3}
               </p>
               <p className="mt-1.5 text-[13px] text-[color:var(--tinta-suave)]">
-                de {barrido.puntos.length} puntos
+                de {barrido.medidos} puntos con datos
               </p>
             </div>
             <div className="tarjeta px-5 py-4">

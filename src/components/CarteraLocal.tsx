@@ -29,8 +29,9 @@ const COLUMNAS: readonly Columna<Col>[] = [
   { id: "medido", texto: "Medido", clase: "text-right", num: true },
 ];
 
+/** Los mismos cortes que la pestaña Local del cliente: verde desde 80, ámbar desde 50. */
 function colorNota(n: number) {
-  return n >= 80 ? "text-emerald-600" : n >= 60 ? "text-amber-600" : "text-red-600";
+  return n >= 80 ? "text-emerald-600" : n >= 50 ? "text-amber-600" : "text-red-600";
 }
 
 function Delta({ n, sufijo = "" }: { n: number | null; sufijo?: string }) {
@@ -57,6 +58,17 @@ export default function CarteraLocal({ filas }: { filas: FilaLocal[] }) {
   const [busca, setBusca] = useState("");
   const { orden, ordenar, ordenarPor } = useOrden<Col>("top3", false);
 
+  // Como en la cartera: Ctrl, Cmd o Shift abren otra pestaña, y seleccionar
+  // texto para copiarlo no navega.
+  function abrir(e: React.MouseEvent, href: string) {
+    if (window.getSelection()?.toString()) return;
+    if (e.ctrlKey || e.metaKey || e.shiftKey) {
+      window.open(href, "_blank");
+      return;
+    }
+    router.push(href);
+  }
+
   const q = busca.trim().toLowerCase();
   const visibles = ordenarPor(
     filas.filter((f) => !q || `${f.nombre} ${f.dominio} ${f.barrido?.keyword ?? ""} ${f.ficha?.negocio ?? ""}`.toLowerCase().includes(q)),
@@ -73,7 +85,8 @@ export default function CarteraLocal({ filas }: { filas: FilaLocal[] }) {
         case "visible":
           return f.barrido?.visible ?? null;
         case "media":
-          return f.barrido?.media ?? null;
+          // Sin puesto es peor que cualquier puesto: al final en ascendente.
+          return f.barrido?.media ?? Number.POSITIVE_INFINITY;
         case "rival":
           return f.barrido?.rival ?? "";
         case "medido":
@@ -110,83 +123,97 @@ export default function CarteraLocal({ filas }: { filas: FilaLocal[] }) {
                 </td>
               </tr>
             )}
-            {visibles.map((f) => (
-              <tr
-                key={f.id}
-                onClick={() => router.push(`/panel/clientes/${f.id}?t=local`)}
-                className="cursor-pointer transition hover:bg-black/[0.02]"
-              >
-                <td className="px-5 py-3">
-                  <Link href={`/panel/clientes/${f.id}?t=local`} className="block min-w-0" onClick={(e) => e.stopPropagation()}>
-                    <span className="block truncate text-[15px] font-semibold">{f.nombre}</span>
-                    <span className="block truncate text-[13px] text-[color:var(--tinta-suave)]">{f.ficha?.negocio ?? f.dominio}</span>
-                  </Link>
-                </td>
-                <td className="px-3 py-3 text-right">
-                  {f.ficha ? (
-                    <span className="flex flex-col items-end gap-0.5">
-                      <span className={`cifra text-[16px] leading-none tabular-nums ${colorNota(f.ficha.nota)}`} title={`Auditada ${fecha(f.ficha.creado)}`}>
-                        {f.ficha.nota}
-                        <span className="ml-0.5 text-[12px] font-normal text-[color:var(--tinta-suave)]">/100</span>
+            {visibles.map((f) => {
+              const href = `/panel/clientes/${f.id}?t=local`;
+              return (
+                <tr
+                  key={f.id}
+                  onClick={(e) => abrir(e, href)}
+                  onAuxClick={(e) => {
+                    if (e.button === 1) window.open(href, "_blank");
+                  }}
+                  className="cursor-pointer transition hover:bg-black/[0.02]"
+                >
+                  <td className="px-5 py-3">
+                    <Link href={href} className="block min-w-0" onClick={(e) => e.stopPropagation()}>
+                      <span className="block truncate text-[15px] font-semibold">{f.nombre}</span>
+                      <span className="block truncate text-[13px] text-[color:var(--tinta-suave)]">{f.ficha?.negocio ?? f.dominio}</span>
+                    </Link>
+                  </td>
+                  <td className="px-3 py-3 text-right">
+                    {f.ficha ? (
+                      <span className="flex flex-col items-end gap-0.5">
+                        <span className={`cifra text-[16px] leading-none tabular-nums ${colorNota(f.ficha.nota)}`} title={`Auditada ${fecha(f.ficha.creado)}`}>
+                          {f.ficha.nota}
+                          <span className="ml-0.5 text-[12px] font-normal text-[color:var(--tinta-suave)]">/100</span>
+                        </span>
+                        <Delta n={f.ficha.delta} />
                       </span>
-                      <Delta n={f.ficha.delta} />
-                    </span>
-                  ) : (
-                    <Vacio titulo="Ficha de Google Business sin auditar" />
-                  )}
-                </td>
-                <td className="px-3 py-3">
-                  {f.barrido ? (
-                    <span className="block max-w-[220px] truncate" title={f.barrido.keyword}>
-                      {f.barrido.keyword}
-                    </span>
-                  ) : (
-                    <Vacio titulo="Sin cuadrícula medida" />
-                  )}
-                </td>
-                <td className="px-3 py-3 text-right">
-                  {f.barrido ? (
-                    <span className="flex flex-col items-end gap-0.5">
-                      <span
-                        className={`cifra text-[16px] leading-none tabular-nums ${f.barrido.enTop3 >= 50 ? "text-emerald-600" : f.barrido.enTop3 >= 20 ? "text-amber-600" : "text-red-600"}`}
-                        title={`Está entre los tres primeros en el ${f.barrido.enTop3}% de los ${miles(f.barrido.medidos)} puntos del mapa`}
-                      >
-                        {f.barrido.enTop3}%
+                    ) : (
+                      <Vacio titulo="Ficha de Google Business sin auditar" />
+                    )}
+                  </td>
+                  <td className="px-3 py-3">
+                    {f.barrido ? (
+                      <span className="block max-w-[220px] truncate" title={f.barrido.keyword}>
+                        {f.barrido.keyword}
                       </span>
-                      <Delta n={f.barrido.deltaTop3} sufijo=" pts" />
-                    </span>
-                  ) : (
-                    <Vacio titulo="Sin cuadrícula medida" />
-                  )}
-                </td>
-                <td className="px-3 py-3 text-right">
-                  {f.barrido ? (
-                    <span className="cifra text-[16px] leading-none tabular-nums" title="Puntos del mapa en los que aparece entre los resultados">
-                      {f.barrido.visible}%
-                    </span>
-                  ) : (
-                    <Vacio titulo="Sin cuadrícula medida" />
-                  )}
-                </td>
-                <td className="px-3 py-3 text-right tabular-nums">
-                  {f.barrido?.media != null ? f.barrido.media : <Vacio titulo="Sin cuadrícula medida" />}
-                </td>
-                <td className="px-3 py-3">
-                  {f.barrido?.rival ? (
-                    <span className="block max-w-[220px] truncate text-[color:var(--tinta-media)]" title={`Sale primero donde este cliente no: ${f.barrido.rival}`}>
-                      {f.barrido.rival}
-                    </span>
-                  ) : f.barrido ? (
-                    <span className="text-[13px] text-emerald-700">nadie: manda el cliente</span>
-                  ) : (
-                    <Vacio titulo="Sin cuadrícula medida" />
-                  )}
-                </td>
-                <td className="px-3 py-3 text-right text-[13px] tabular-nums text-[color:var(--tinta-suave)]">
-                  {f.barrido ? fecha(f.barrido.creado) : f.ficha ? fecha(f.ficha.creado) : "—"}
-                </td>
-              </tr>
-            ))}
+                    ) : (
+                      <Vacio titulo="Sin cuadrícula medida" />
+                    )}
+                  </td>
+                  <td className="px-3 py-3 text-right">
+                    {f.barrido ? (
+                      <span className="flex flex-col items-end gap-0.5">
+                        <span
+                          className={`cifra text-[16px] leading-none tabular-nums ${f.barrido.enTop3 >= 50 ? "text-emerald-600" : f.barrido.enTop3 >= 20 ? "text-amber-600" : "text-red-600"}`}
+                          title={`Está entre los tres primeros en el ${f.barrido.enTop3}% de los ${miles(f.barrido.medidos)} puntos con datos`}
+                        >
+                          {f.barrido.enTop3}%
+                        </span>
+                        <Delta n={f.barrido.deltaTop3} sufijo=" pts" />
+                      </span>
+                    ) : (
+                      <Vacio titulo="Sin cuadrícula medida" />
+                    )}
+                  </td>
+                  <td className="px-3 py-3 text-right">
+                    {f.barrido ? (
+                      <span className="cifra text-[16px] leading-none tabular-nums" title="Puntos con datos en los que aparece entre los resultados">
+                        {f.barrido.visible}%
+                      </span>
+                    ) : (
+                      <Vacio titulo="Sin cuadrícula medida" />
+                    )}
+                  </td>
+                  <td className="px-3 py-3 text-right tabular-nums">
+                    {f.barrido ? (
+                      f.barrido.media != null ? (
+                        f.barrido.media
+                      ) : (
+                        <Vacio titulo="No aparece en ningún punto con datos" />
+                      )
+                    ) : (
+                      <Vacio titulo="Sin cuadrícula medida" />
+                    )}
+                  </td>
+                  <td className="px-3 py-3">
+                    {f.barrido?.rival ? (
+                      <span className="block max-w-[220px] truncate text-[color:var(--tinta-media)]" title={`Sale primero donde este cliente no: ${f.barrido.rival}`}>
+                        {f.barrido.rival}
+                      </span>
+                    ) : f.barrido ? (
+                      <span className="text-[13px] text-emerald-700">nadie: manda el cliente</span>
+                    ) : (
+                      <Vacio titulo="Sin cuadrícula medida" />
+                    )}
+                  </td>
+                  <td className="px-3 py-3 text-right text-[13px] tabular-nums text-[color:var(--tinta-suave)]">
+                    {f.barrido ? fecha(f.barrido.creado) : f.ficha ? fecha(f.ficha.creado) : "—"}
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>

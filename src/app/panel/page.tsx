@@ -38,9 +38,11 @@ export default async function Panel() {
   const rol = (sesion.user as { rol?: string }).rol ?? "LECTOR";
   const clientes = await clientesDe(sesion.user.id, rol);
 
-  const [filas, versionConector, registro] = await Promise.all([
-    cartera(clientes),
-    versionPublicada(),
+  // La versión publicada es la referencia de «actualizar»; se lee de un archivo
+  // local, así que secuenciarla no cuesta nada.
+  const versionConector = await versionPublicada();
+  const [filas, registro] = await Promise.all([
+    cartera(clientes, versionConector),
     db.registro.findMany({
       where: rol === "ADMIN" ? {} : { clienteId: { in: clientes.map((c) => c.id) } },
       orderBy: { creado: "desc" },
@@ -49,7 +51,10 @@ export default async function Panel() {
     }),
   ]);
 
-  const caidos = filas.filter((f) => f.estado.nivel === "caido").length;
+  // «Caído» es la web, que es lo que cuenta la pantalla de Fallos; el conector
+  // que falla se dice aparte para que las dos cifras cuadren.
+  const caidos = filas.filter((f) => f.webCaida).length;
+  const conectorRoto = filas.filter((f) => f.estado.nivel === "conector").length;
   const atrasados = filas.filter((f) => f.estado.nivel === "aviso").length;
   const gastoMes = filas.reduce((t, f) => t + f.gastoMes, 0);
 
@@ -60,7 +65,8 @@ export default async function Panel() {
           <h1 className="text-[30px] font-bold leading-tight">Clientes</h1>
           <p className="mt-1 text-[15px] text-[color:var(--tinta-media)]">
             {clientes.length} {clientes.length === 1 ? "sitio" : "sitios"}
-            {caidos > 0 && <span className="text-red-600"> · {caidos} {caidos === 1 ? "caído" : "caídos"}</span>}
+            {caidos > 0 && <span className="text-red-600"> · {caidos} {caidos === 1 ? "web caída" : "webs caídas"}</span>}
+            {conectorRoto > 0 && <span className="text-red-600"> · {conectorRoto} con el conector fallando</span>}
             {atrasados > 0 && <span className="text-amber-600"> · {atrasados} por actualizar</span>}
             {gastoMes > 0 && ` · ${dinero(gastoMes)} gastados este mes`}
           </p>
@@ -84,7 +90,7 @@ export default async function Panel() {
         <div className="mt-10 rounded-2xl border border-[color:var(--linea)] bg-[color:var(--panel)] px-6 py-20 text-center">
           <p className="text-[15px] font-medium">Todavía no hay clientes aquí.</p>
           <p className="mx-auto mt-2 max-w-sm text-[14px] text-[color:var(--tinta-media)]">
-            {rol === "ADMIN"
+            {rol === "ADMIN" || rol === "GESTOR"
               ? "Da de alta un dominio, pega la cadena del plugin de WordPress o autoriza una tienda Shopify."
               : "Pide a un administrador que te asigne los clientes con los que vas a trabajar."}
           </p>
@@ -133,7 +139,7 @@ export default async function Panel() {
                 <span className="w-20 shrink-0 tabular-nums text-[12px] text-[color:var(--tinta-suave)]">
                   {fecha(r.creado, { hora: true })}
                 </span>
-                <span className="pastilla bg-[color:var(--acento)]/10 text-[color:var(--acento)]">
+                <span className="pastilla bg-[rgb(var(--acento-rgb)/0.1)] text-[color:var(--acento)]">
                   {r.accion}
                 </span>
                 <span className={r.resultado === "ok" ? "text-[color:var(--tinta)]" : "font-medium text-red-600"}>

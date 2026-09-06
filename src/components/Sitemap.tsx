@@ -166,7 +166,7 @@ export default function Sitemap({ clienteId }: { clienteId: string }) {
                 setPagina(1);
               }}
               className={`rounded-full px-2.5 py-0.5 text-[12px] font-medium transition ${
-                estado === id ? "bg-[color:var(--acento)]/10 text-[color:var(--acento)]" : "text-[color:var(--tinta-media)] hover:bg-black/[0.04]"
+                estado === id ? "bg-[rgb(var(--acento-rgb)/0.1)] text-[color:var(--acento)]" : "text-[color:var(--tinta-media)] hover:bg-black/[0.04]"
               }`}
             >
               {texto}
@@ -238,7 +238,7 @@ export default function Sitemap({ clienteId }: { clienteId: string }) {
                     <td className="max-w-[280px] px-5 py-3 text-[14px] text-[color:var(--tinta-media)]">
                       {f.cambio ? (
                         <>
-                          <span className="mr-1.5 rounded bg-[color:var(--acento)]/10 px-1.5 py-0.5 text-[11px] font-semibold text-[color:var(--acento)]">
+                          <span className="mr-1.5 rounded bg-[rgb(var(--acento-rgb)/0.1)] px-1.5 py-0.5 text-[11px] font-semibold text-[color:var(--acento)]">
                             {f.cambio.accion}
                           </span>
                           <span className="text-[color:var(--tinta-media)]">{f.cambio.resumen}</span>
