@@ -23,17 +23,19 @@ export default async function PaginaExplorar() {
   return (
     <>
       <main className="contenedor py-10">
-        <Link href="/panel" className="boton-sutil">
-          ← Clientes
-        </Link>
+        <div className="imprimir-oculto">
+          <Link href="/panel" className="boton-sutil">
+            ← Clientes
+          </Link>
 
-        <h1 className="mt-4 text-[32px] font-bold leading-tight">Explorar dominio</h1>
-        <p className="mt-1 max-w-2xl text-[15px] text-[color:var(--tinta-media)]">
-          Qué posiciona un sitio cualquiera, cuánto tráfico vale y contra quién compite. Sirve para
-          estudiar a la competencia de un cliente y para preparar una propuesta antes de tenerlo.
-        </p>
+          <h1 className="mt-4 text-[32px] font-bold leading-tight">Explorar dominio</h1>
+          <p className="mt-1 max-w-2xl text-[15px] text-[color:var(--tinta-media)]">
+            Qué posiciona un sitio cualquiera, cuánto tráfico vale y contra quién compite. Sirve para
+            estudiar a la competencia de un cliente y para preparar una propuesta antes de tenerlo.
+          </p>
+        </div>
 
-        <div className="mt-7">
+        <div className="mt-7 print:mt-0">
           <Explorar puedeExplorar={rol !== "LECTOR"} />
         </div>
       </main>

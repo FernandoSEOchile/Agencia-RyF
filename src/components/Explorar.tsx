@@ -4,6 +4,8 @@ import { useConfirmar } from "@/components/Confirmar";
 import { useEffect, useState } from "react";
 import { Cabecera, useOrden, type Columna } from "@/components/Tabla";
 import { dinero } from "@/lib/formato";
+import { flushSync } from "react-dom";
+import InformeExplorar from "@/components/InformeExplorar";
 
 interface Tramos {
   pos1: number;
@@ -133,7 +135,9 @@ export default function Explorar({ puedeExplorar }: { puedeExplorar: boolean }) 
     coste: number | null;
     fresca: boolean;
     panorama: Panorama | null;
+    pais: number;
   } | null>(null);
+  const [generado, setGenerado] = useState<Date | null>(null);
   const [recientes, setRecientes] = useState<{ dominio: string; pais: number; creado: string }[]>([]);
   const [ocupado, setOcupado] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -159,7 +163,9 @@ export default function Explorar({ puedeExplorar }: { puedeExplorar: boolean }) 
       const r = await fetch(`/api/explorar?dominio=${encodeURIComponent(d)}&pais=${p}`);
       const j = await r.json();
       if (!r.ok) throw new Error(j.error || "No se pudo consultar.");
-      setDatos(j);
+      // El país va con los datos: si después se cambia el selector, el informe
+      // tiene que seguir diciendo de qué mercado son estas cifras.
+      setDatos({ ...j, pais: p });
       if (!j.panorama) {
         setAviso("No hay datos guardados de este dominio. Pulsa «Consultar» para pedirlos al proveedor.");
       }
@@ -225,12 +231,32 @@ export default function Explorar({ puedeExplorar }: { puedeExplorar: boolean }) 
     (x, c) => (c === "dominio" ? x.dominio : x[c])
   );
 
+  function descargarPdf() {
+    if (!p) return;
+    // La fecha del informe es la del clic, no la de cuando se cargó la pantalla.
+    flushSync(() => setGenerado(new Date()));
+    // Chrome y Edge proponen el título de la página como nombre del archivo.
+    const antes = document.title;
+    document.title = `Analisis SEO ${p.dominio} ${new Date().toISOString().slice(0, 10)}`;
+    window.print();
+    document.title = antes;
+  }
+
   const t = p?.resumen.tramos;
   const totalTramos = t ? t.pos1 + t.pos2a3 + t.pos4a10 + t.pos11a20 + t.pos21a50 + t.pos51a100 : 0;
 
   return (
     <div>
       {dialogo}
+      {p && datos && (
+        <InformeExplorar
+          panorama={p}
+          medido={datos.medido}
+          pais={PAISES.find(([id]) => id === datos.pais)?.[1] ?? String(datos.pais)}
+          generado={generado ?? new Date()}
+        />
+      )}
+      <div className="imprimir-oculto">
       <form
         onSubmit={(e) => {
           e.preventDefault();
@@ -316,6 +342,14 @@ export default function Explorar({ puedeExplorar }: { puedeExplorar: boolean }) 
                 {!datos.fresca && " · conviene actualizarlo"}
               </span>
             )}
+            <button
+              type="button"
+              onClick={descargarPdf}
+              className="boton ml-auto"
+              title="Abre el diálogo de impresión: elige «Guardar como PDF» como destino"
+            >
+              Descargar PDF
+            </button>
           </div>
 
           <dl className="tarjeta mt-3 grid grid-cols-3 divide-x divide-[color:var(--linea)] overflow-hidden">
@@ -476,6 +510,7 @@ export default function Explorar({ puedeExplorar }: { puedeExplorar: boolean }) 
           </p>
         </>
       )}
+      </div>
     </div>
   );
 }
