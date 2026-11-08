@@ -303,13 +303,15 @@ h2,
   }
 }
 
+
 /* --------------------------------------------------------------------------
    Informe de Explorar en PDF
    --------------------------------------------------------------------------
    Va en una página con nombre para que su A4 y sus márgenes no cambien cómo
-   sale impresa la bitácora. Estilos sueltos y no utilidades de Tailwind porque
-   es un documento, no una pantalla: tablas planas, letra de 9-10 pt y nada
-   que dependa del color para leerse.
+   sale impresa la bitácora. Clases propias (ip-) y no utilidades de Tailwind
+   porque es un documento que se entrega: se maqueta en puntos, no en píxeles
+   de pantalla. `print-color-adjust: exact` es lo que hace que los fondos y las
+   barras salgan; sin él Chrome los quita para ahorrar tinta.
 */
 .solo-imprimir {
   display: none;
@@ -317,7 +319,7 @@ h2,
 
 @page informe {
   size: A4;
-  margin: 14mm 12mm;
+  margin: 12mm 12mm 14mm;
 }
 
 @media print {
@@ -327,66 +329,17 @@ h2,
 
   .informe-pdf {
     page: informe;
-    color: #111;
-    font-size: 10pt;
-    line-height: 1.4;
-  }
-
-  .informe-pdf .informe-cabecera {
-    border-bottom: 2px solid #111;
-    padding-bottom: 8pt;
-    margin-bottom: 4pt;
-  }
-
-  .informe-pdf .informe-marca {
-    font-size: 8pt;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    color: #555;
-  }
-
-  .informe-pdf h1 {
-    font-size: 18pt;
-    font-weight: 700;
-    margin: 2pt 0 4pt;
-  }
-
-  .informe-pdf .informe-cabecera p {
-    color: #444;
-  }
-
-  .informe-pdf h2 {
-    font-size: 12pt;
-    font-weight: 600;
-    margin: 16pt 0 6pt;
-    break-after: avoid;
-  }
-
-  .informe-pdf table {
-    width: 100%;
-    border-collapse: collapse;
+    color: #1d1d1f;
     font-size: 9pt;
+    line-height: 1.4;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
   }
 
-  .informe-pdf th,
-  .informe-pdf td {
-    border-bottom: 0.5pt solid #ccc;
-    padding: 3pt 5pt;
-    text-align: left;
-    vertical-align: top;
-  }
-
-  .informe-pdf thead th {
-    border-bottom: 1pt solid #111;
-    font-weight: 600;
-  }
-
-  .informe-pdf thead {
-    display: table-header-group;
-  }
-
-  .informe-pdf tr {
-    break-inside: avoid;
+  .informe-pdf h1,
+  .informe-pdf h2,
+  .informe-pdf p {
+    margin: 0;
   }
 
   .informe-pdf .der {
@@ -395,28 +348,359 @@ h2,
     white-space: nowrap;
   }
 
-  .informe-pdf .informe-metricas th {
-    font-weight: 500;
-    color: #555;
-    border: 0;
+  .informe-pdf .ip-suave {
+    color: #86868b;
   }
 
-  .informe-pdf .informe-metricas td {
-    font-size: 16pt;
+  .informe-pdf .ip-fuerte {
+    font-weight: 600;
+  }
+
+  .informe-pdf .ip-vacio {
+    color: #86868b;
+    padding: 8pt 0;
+  }
+
+  /* Portada */
+  .ip-portada {
+    background: #111111;
+    color: #fff;
+    border-radius: 10pt;
+    padding: 16pt 20pt 18pt;
+    border-top: 4pt solid #ff6b00;
+  }
+
+  .ip-portada-fila {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .ip-marca {
     font-weight: 700;
-    border: 0;
-    padding-top: 0;
+    font-size: 10pt;
+    letter-spacing: 0.02em;
   }
 
-  .informe-pdf .informe-url {
-    word-break: break-all;
-    font-size: 8pt;
-    color: #444;
+  .ip-marca span {
+    font-weight: 400;
+    color: #a1a1a6;
   }
 
-  .informe-pdf .informe-nota {
+  .ip-etiqueta {
+    font-size: 7.5pt;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: #ff6b00;
+    border: 0.75pt solid #ff6b00;
+    border-radius: 20pt;
+    padding: 2pt 8pt;
+  }
+
+  .ip-portada h1 {
+    font-size: 26pt;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    margin: 14pt 0 10pt;
+  }
+
+  .ip-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4pt 22pt;
+    font-size: 8.5pt;
+    color: #e5e5ea;
+  }
+
+  .ip-meta em {
+    display: block;
+    font-style: normal;
+    font-size: 7pt;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: #8e8e93;
+    margin-bottom: 1pt;
+  }
+
+  /* KPIs */
+  .ip-kpis {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8pt;
+    margin-top: 10pt;
+  }
+
+  .ip-kpi {
+    border: 0.75pt solid #e3e3e8;
+    border-radius: 8pt;
+    padding: 10pt 12pt;
+    background: #fafafc;
+  }
+
+  .ip-kpi-acento {
+    background: #fff4ec;
+    border-color: #ffd3b3;
+  }
+
+  .ip-kpi-rotulo {
+    font-size: 7pt;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: #6e6e73;
+    font-weight: 600;
+  }
+
+  .ip-kpi-valor {
+    font-size: 19pt;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    margin-top: 3pt !important;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .ip-kpi-acento .ip-kpi-valor {
+    color: #e35f00;
+  }
+
+  .ip-kpi-nota {
+    font-size: 7.5pt;
+    color: #86868b;
+    margin-top: 1pt !important;
+  }
+
+  /* Tarjetas en dos columnas */
+  .ip-fila {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8pt;
+    margin-top: 8pt;
+    break-inside: avoid;
+  }
+
+  .ip-tarjeta {
+    border: 0.75pt solid #e3e3e8;
+    border-radius: 8pt;
+    padding: 11pt 12pt 10pt;
+    break-inside: avoid;
+  }
+
+  .ip-tarjeta h2 {
+    font-size: 9.5pt;
+    font-weight: 700;
+    margin-bottom: 8pt;
+  }
+
+  .ip-pie-tarjeta {
+    margin-top: 6pt !important;
+    font-size: 7pt;
+    color: #86868b;
+  }
+
+  .ip-barra-apilada {
+    display: flex;
+    height: 12pt;
+    border-radius: 6pt;
+    overflow: hidden;
+    margin-bottom: 8pt;
+  }
+
+  .informe-pdf table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  .ip-leyenda td {
+    padding: 2.5pt 0;
+    border-bottom: 0.5pt solid #f0f0f3;
+  }
+
+  .ip-leyenda td + td {
+    padding-left: 8pt;
+  }
+
+  .ip-leyenda i {
+    display: inline-block;
+    width: 7pt;
+    height: 7pt;
+    border-radius: 2pt;
+    margin-right: 6pt;
+    vertical-align: -0.5pt;
+  }
+
+  .ip-grafico-cifras {
+    display: flex;
+    gap: 16pt;
+    font-size: 7.5pt;
+    color: #6e6e73;
+    margin-bottom: 6pt;
+  }
+
+  .ip-grafico-cifras strong {
+    color: #1d1d1f;
+    font-size: 10pt;
+    margin-left: 3pt;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .ip-grafico {
+    border-bottom: 0.75pt solid #d2d2d7;
+  }
+
+  .ip-grafico svg {
+    display: block;
+  }
+
+  .ip-ejes {
+    display: flex;
+    justify-content: space-between;
+    font-size: 7pt;
+    color: #86868b;
+    margin-top: 3pt;
+  }
+
+  /* Rankings con barra bajo el texto */
+  .ip-ranking td {
+    padding: 2.5pt 0;
+    vertical-align: middle;
+  }
+
+  .ip-ranking td + td {
+    padding-left: 8pt;
+    width: 1%;
+  }
+
+  .ip-ranking-texto span {
+    display: block;
+    font-size: 8.5pt;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 62mm;
+  }
+
+  .ip-ranking-texto b {
+    display: block;
+    height: 3pt;
+    border-radius: 2pt;
+    background: #ff6b00;
+    margin-top: 1.5pt;
+    min-width: 2pt;
+  }
+
+  .ip-ranking-texto b.ip-barra-gris {
+    background: #1d1d1f;
+  }
+
+  .ip-pos {
+    display: inline-block;
+    min-width: 16pt;
+    text-align: center;
+    border-radius: 10pt;
+    padding: 0.5pt 5pt;
+    font-weight: 600;
+    font-size: 7.5pt;
+    background: #f0f0f3;
+    color: #6e6e73;
+  }
+
+  .ip-pos-top {
+    background: #dcf5e4;
+    color: #0b7a43;
+  }
+
+  .ip-pos-pag1 {
+    background: #eef7d9;
+    color: #4f7a12;
+  }
+
+  .ip-pos-pag2 {
+    background: #fff1d1;
+    color: #9a6a00;
+  }
+
+  .ip-pos-nula {
+    background: transparent;
+  }
+
+  /* Detalle completo */
+  .ip-seccion {
     margin-top: 16pt;
+  }
+
+  .ip-salto {
+    break-before: page;
+  }
+
+  .ip-titulo-seccion {
+    font-size: 12pt;
+    font-weight: 700;
+    padding-bottom: 6pt;
+    border-bottom: 2pt solid #111;
+    break-after: avoid;
+    display: flex;
+    align-items: center;
+    gap: 6pt;
+  }
+
+  .ip-titulo-seccion span {
+    font-size: 7.5pt;
+    font-weight: 600;
+    background: #ff6b00;
+    color: #fff;
+    border-radius: 10pt;
+    padding: 1pt 6pt;
+  }
+
+  .ip-tabla {
     font-size: 8pt;
-    color: #555;
+  }
+
+  .ip-tabla thead {
+    display: table-header-group;
+  }
+
+  .ip-tabla th {
+    text-align: left;
+    font-size: 6.5pt;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: #6e6e73;
+    font-weight: 600;
+    padding: 6pt 5pt 4pt;
+    border-bottom: 0.75pt solid #d2d2d7;
+  }
+
+  .ip-tabla td {
+    padding: 3pt 5pt;
+    vertical-align: top;
+    border-bottom: 0.5pt solid #ececf0;
+  }
+
+  .ip-tabla tbody tr:nth-child(even) td {
+    background: #fafafc;
+  }
+
+  .ip-tabla tr {
+    break-inside: avoid;
+  }
+
+  .ip-url {
+    word-break: break-all;
+    font-size: 7pt;
+    color: #6e6e73;
+  }
+
+  .ip-nota {
+    margin-top: 14pt !important;
+    padding: 9pt 11pt;
+    border-radius: 8pt;
+    background: #f5f5f7;
+    font-size: 7.5pt;
+    color: #6e6e73;
+    break-inside: avoid;
+  }
+
+  .ip-nota strong {
+    color: #1d1d1f;
   }
 }
