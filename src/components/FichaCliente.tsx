@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import Chat from "@/components/Chat";
 import Sitemap from "@/components/Sitemap";
 import Arquitectura, { type ArquitecturaVista } from "@/components/Arquitectura";
-import Posiciones, { type KeywordVista, type ExploracionVista } from "@/components/Posiciones";
+import Posiciones, { type KeywordVista, type ExploracionVista, type UbicacionProyecto } from "@/components/Posiciones";
 import Gasto from "@/components/Gasto";
 import Bitacora from "@/components/Bitacora";
 import Backlinks from "@/components/Backlinks";
@@ -171,6 +171,7 @@ export default function FichaCliente({
   hayGsc,
   puedeSubir,
   medirCada,
+  ubicacionProyecto,
   costePorMedicion,
   exploracion,
   costeExploracion,
@@ -206,6 +207,7 @@ export default function FichaCliente({
   hayGsc: boolean;
   puedeSubir: boolean;
   medirCada: number | null;
+  ubicacionProyecto: UbicacionProyecto;
   costePorMedicion: number;
   exploracion: ExploracionVista | null;
   costeExploracion: number;
@@ -511,6 +513,7 @@ export default function FichaCliente({
           hayProveedor={hayProveedor}
           hayGsc={hayGsc}
           medirCada={medirCada}
+          ubicacionProyecto={ubicacionProyecto}
           costePorMedicion={costePorMedicion}
           exploracion={exploracion}
           costeExploracion={costeExploracion}

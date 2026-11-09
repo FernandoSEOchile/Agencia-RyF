@@ -1,6 +1,8 @@
 import "server-only";
 import { db } from "@/lib/db";
 import { cifrar, descifrar } from "@/lib/cifrado";
+import { leerSerp, type LecturaSerp } from "@/lib/serp";
+import { paisPorIso } from "@/lib/ubicaciones";
 
 /**
  * Cliente de DataForSEO para medir posiciones en Google.
@@ -18,18 +20,8 @@ import { cifrar, descifrar } from "@/lib/cifrado";
 const PRODUCCION = "https://api.dataforseo.com";
 const PRUEBAS = "https://sandbox.dataforseo.com";
 
-export interface Medicion {
-  puesto: number | null;
-  url: string | null;
-  bloquesArriba: number | null;
+export interface Medicion extends LecturaSerp {
   coste: number | null;
-  /** Si Google puso su bloque de IA en esa búsqueda, si citó al cliente y a quién citó. */
-  iaOverview: boolean;
-  iaCitado: boolean;
-  iaUrl: string | null;
-  iaFuentes: string[];
-  /** Los veinte primeros orgánicos: dominio, URL y puesto. Para comparar con rivales. */
-  serp: { d: string; u: string; p: number }[];
 }
 
 export interface Credenciales {
@@ -133,22 +125,15 @@ export async function estadoCuenta(): Promise<Cuenta | null> {
   }
 }
 
-/** Quita protocolo, www y barra final para poder comparar dominios. */
-function raiz(url: string): string {
-  return url
-    .replace(/^https?:\/\//, "")
-    .replace(/^www\./, "")
-    .replace(/\/.*$/, "")
-    .toLowerCase();
-}
-
 /**
  * Mide en qué puesto aparece un dominio para una consulta.
  *
- * Se cuenta la posición dentro de lo orgánico, no la del array: DataForSEO
- * mezcla anuncios, mapas y «otras preguntas» en la misma lista, y llamar
- * «puesto 3» a algo que tiene dos bloques de anuncios encima sería mentir
- * sobre lo que el usuario ve.
+ * Qué cuenta como aparecer —orgánico, fragmento destacado, mapa— lo decide
+ * `leerSerp`, que se prueba aparte con resultados de ejemplo.
+ *
+ * El dominio de Google y el idioma salen del país de la consulta. Dejar que el
+ * proveedor los dedujera funcionaba para Chile, pero medir Estados Unidos
+ * terminaba buscando en español.
  */
 export async function medir(
   c: Credenciales,
@@ -156,15 +141,16 @@ export async function medir(
   consulta: {
     termino: string;
     ubicacion: number;
+    pais: string;
     idioma: string;
     dispositivo: string;
   }
 ): Promise<Medicion> {
   const base = c.pruebas ? PRUEBAS : PRODUCCION;
+  const pais = paisPorIso(consulta.pais);
 
   // «advanced» y no «regular» para traer el bloque de IA de Google con sus
-  // fuentes: cuesta el doble (US$0,004 medido en vivo) y con eso se sabe si la
-  // IA cita al cliente en la misma consulta que mide el puesto.
+  // fuentes, y el mapa: cuesta el doble (US$0,004 medido en vivo).
   const r = await fetch(`${base}/v3/serp/google/organic/live/advanced`, {
     method: "POST",
     headers: { Authorization: cabecera(c), "Content-Type": "application/json" },
@@ -172,7 +158,8 @@ export async function medir(
       {
         keyword: consulta.termino,
         location_code: consulta.ubicacion,
-        language_code: consulta.idioma,
+        language_code: consulta.idioma || pais.idioma,
+        se_domain: pais.google,
         device: consulta.dispositivo,
         depth: 100,
         load_async_ai_overview: true,
@@ -198,73 +185,48 @@ export async function medir(
   const coste = typeof j?.cost === "number" ? j.cost : null;
   const items: Array<Record<string, unknown>> = tarea?.result?.[0]?.items ?? [];
 
-  const objetivo = raiz(dominio);
-  let orgánicos = 0;
-  let noOrgánicosArriba = 0;
-  const serp: { d: string; u: string; p: number }[] = [];
+  return { ...leerSerp(items, dominio), coste };
+}
 
-  // El bloque de IA: sus fuentes vienen arriba (`references`) y dentro de cada
-  // trozo de texto (`items[].references`). Se juntan todas.
-  const ai = items.find((i) => String(i.type ?? "") === "ai_overview") as
-    | { references?: { domain?: string; url?: string }[]; items?: { references?: { domain?: string; url?: string }[] }[] }
-    | undefined;
-  const fuentes: string[] = [];
-  let iaUrl: string | null = null;
-  if (ai) {
-    const refs = [...(ai.references ?? []), ...(ai.items ?? []).flatMap((x) => x.references ?? [])];
-    for (const ref of refs) {
-      const d = raiz(String(ref.domain ?? "") || String(ref.url ?? ""));
-      if (!d) continue;
-      if (d === objetivo && !iaUrl) iaUrl = String(ref.url ?? "") || null;
-      if (!fuentes.includes(d)) fuentes.push(d);
-    }
-  }
-  const ia = { iaOverview: Boolean(ai), iaCitado: fuentes.includes(objetivo), iaUrl, iaFuentes: fuentes.slice(0, 20) };
+export interface UbicacionProveedor {
+  codigo: number;
+  nombre: string;
+  tipo: string;
+}
 
-  for (const item of items) {
-    const tipo = String(item.type ?? "");
+const ubicacionesGuardadas = new Map<string, { cuando: number; lista: UbicacionProveedor[] }>();
 
-    if (tipo !== "organic") {
-      // Solo cuentan los bloques que van por encima del resultado, así que se
-      // acumulan mientras no lo hayamos encontrado.
-      noOrgánicosArriba++;
-      continue;
-    }
+/**
+ * Las ciudades y regiones de un país, con el código exacto del proveedor.
+ *
+ * La lista es gratis pero pesa —miles de filas en países grandes— y casi no
+ * cambia, así que se guarda en memoria un día.
+ */
+export async function ubicacionesDe(c: Credenciales, iso: string): Promise<UbicacionProveedor[]> {
+  const guardada = ubicacionesGuardadas.get(iso);
+  if (guardada && Date.now() - guardada.cuando < 86_400_000) return guardada.lista;
 
-    orgánicos++;
+  const base = c.pruebas ? PRUEBAS : PRODUCCION;
+  const r = await fetch(`${base}/v3/serp/google/locations/${encodeURIComponent(iso)}`, {
+    headers: { Authorization: cabecera(c) },
+    signal: AbortSignal.timeout(30000),
+    cache: "no-store",
+  });
+  if (r.status === 401) throw new Error("Usuario o contraseña de DataForSEO incorrectos.");
+  if (!r.ok) throw new Error(`DataForSEO respondió ${r.status}.`);
 
-    const suUrl = String(item.url ?? "");
-    const suDominio = String(item.domain ?? "") || raiz(suUrl);
-    if (orgánicos <= 20) serp.push({ d: raiz(suDominio), u: suUrl, p: orgánicos });
-  }
+  const j = await r.json();
+  const filas: Array<Record<string, unknown>> = j?.tasks?.[0]?.result ?? [];
+  const lista = filas
+    .filter((f) => ["City", "Region", "State", "Province"].includes(String(f.location_type ?? "")))
+    .map((f) => ({
+      codigo: Number(f.location_code),
+      nombre: String(f.location_name ?? ""),
+      tipo: String(f.location_type ?? ""),
+    }))
+    .filter((f) => f.codigo && f.nombre)
+    .sort((a, b) => (a.tipo === b.tipo ? a.nombre.localeCompare(b.nombre, "es") : a.tipo === "City" ? -1 : 1));
 
-  const mio = serp.find((x) => x.d === objetivo);
-  if (mio) {
-    // Los bloques por encima son los que había antes de SU resultado, no los de
-    // toda la página: se recalculan hasta su posición.
-    let arriba = 0;
-    let vistos = 0;
-    for (const item of items) {
-      if (String(item.type ?? "") === "organic") {
-        vistos++;
-        if (vistos === mio.p) break;
-      } else arriba++;
-    }
-    return { puesto: mio.p, url: mio.u || null, bloquesArriba: arriba, coste, ...ia, serp };
-  }
-
-  // Fuera de los veinte guardados puede estar más abajo: se busca en el resto.
-  let vistos = 0;
-  for (const item of items) {
-    if (String(item.type ?? "") !== "organic") continue;
-    vistos++;
-    const suUrl = String(item.url ?? "");
-    const suDominio = String(item.domain ?? "") || raiz(suUrl);
-    if (raiz(suDominio) === objetivo) {
-      return { puesto: vistos, url: suUrl || null, bloquesArriba: noOrgánicosArriba, coste, ...ia, serp };
-    }
-  }
-
-  // No aparecer no es un error: es el dato.
-  return { puesto: null, url: null, bloquesArriba: null, coste, ...ia, serp };
+  ubicacionesGuardadas.set(iso, { cuando: Date.now(), lista });
+  return lista;
 }

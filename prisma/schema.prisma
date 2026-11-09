@@ -84,6 +84,14 @@ model Cliente {
   /// activa una persona en la ficha, viendo lo que cuesta cada pasada.
   medirCada Int?
 
+  /// Dónde se miden por defecto sus posiciones: el país (iso) y la ubicación
+  /// exacta, que puede ser el país entero o una ciudad. Un negocio local se
+  /// mide mejor desde su ciudad: «florería santiago» no da lo mismo buscada
+  /// desde «Chile» que desde Santiago.
+  posPais            String  @default("cl")
+  posUbicacion       Int     @default(2152)
+  posUbicacionNombre String?
+
   /// La ficha del informe público del cliente. Nula: sin enlace. Se crea y se
   /// revoca desde Datos; quien tenga la ficha ve el informe, nadie más.
   tokenInforme String? @unique
@@ -663,9 +671,12 @@ model Keyword {
 
   termino String
 
-  /// Código de ubicación de Google Ads. 2152 es Chile.
-  ubicacion Int    @default(2152)
-  idioma    String @default("es")
+  /// Código de ubicación de Google Ads: un país (2152 es Chile) o una ciudad.
+  /// El país va aparte porque de una ciudad no se deduce qué Google usar.
+  ubicacion       Int     @default(2152)
+  pais            String  @default("cl")
+  ubicacionNombre String?
+  idioma          String  @default("es")
 
   /// «desktop» o «mobile»: la misma consulta da resultados distintos, y en
   /// ecommerce el móvil suele ser el que importa.
@@ -692,11 +703,24 @@ model Posicion {
   keywordId String
   keyword   Keyword @relation(fields: [keywordId], references: [id], onDelete: Cascade)
 
-  /// null cuando el sitio no aparece en los cien primeros resultados.
+  /// null cuando el sitio no aparece entre los `revisados`. Cuenta el
+  /// fragmento destacado como un puesto más.
   puesto Int?
 
   /// La URL concreta que Google eligió mostrar.
   url String?
+
+  /// «organico» o «destacado». Nulo en las mediciones de antes de distinguirlo.
+  tipo String?
+
+  /// Puesto dentro del mapa de Google (1 a 3), aparte del orgánico: es donde
+  /// un negocio local recibe las visitas, y Search Console sí lo cuenta.
+  puestoMapa Int?
+  urlMapa    String?
+
+  /// Cuántos resultados orgánicos trajo la consulta. Google no siempre entrega
+  /// cien; «no aparece» solo vale dentro de estos. Nulo en mediciones antiguas.
+  revisados Int?
 
   /// El bloque de IA de Google en esa búsqueda: si lo hubo, si citó al
   /// cliente, a qué URL, y a qué dominios citó (JSON). Nulo si no se miró.

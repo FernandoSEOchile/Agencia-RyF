@@ -1,7 +1,8 @@
 "use client";
 
 import { useConfirmar } from "@/components/Confirmar";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { PAISES, paisPorIso } from "@/lib/ubicaciones";
 import { useRouter } from "next/navigation";
 import Chispa from "@/components/Chispa";
 import { dinero, fecha, miles } from "@/lib/formato";
@@ -22,9 +23,17 @@ export interface KeywordVista {
   id: string;
   termino: string;
   dispositivo: string;
+  /** «Chile» o «Santiago, Chile». */
+  ubicacion: string;
   urlObjetivo: string | null;
   puesto: number | null;
   urlPosicionada: string | null;
+  /** «destacado» si el puesto es el fragmento destacado. */
+  tipo: string | null;
+  /** Puesto en el mapa de Google, aparte del orgánico. */
+  puestoMapa: number | null;
+  /** Cuántos orgánicos trajo la última medición; nulo en las de antes. */
+  revisados: number | null;
   bloquesArriba: number | null;
   medido: string | null;
   anterior: number | null;
@@ -33,6 +42,30 @@ export interface KeywordVista {
   /** El bloque de IA de Google en esa búsqueda: nulo si no se midió. */
   iaOverview: boolean | null;
   iaCitado: boolean | null;
+}
+
+/** Desde dónde se miden por defecto las palabras de este cliente. */
+export interface UbicacionProyecto {
+  pais: string;
+  ubicacion: number;
+  ubicacionNombre: string | null;
+}
+
+/**
+ * El puesto tal como se puede afirmar.
+ *
+ * «+100» se escribía para todo lo que no aparecía, aunque Google hubiera
+ * entregado solo doce resultados: era afirmar algo que no se había mirado.
+ * Ahora, si no está, se dice dentro de cuántos; y las mediciones de antes de
+ * guardar ese número quedan como «sin dato».
+ */
+function textoPuesto(k: KeywordVista): { texto: string; detalle: string | null } {
+  if (k.mediciones === 0) return { texto: "—", detalle: null };
+  if (k.puesto !== null) return { texto: String(k.puesto), detalle: null };
+  if (k.revisados === null) {
+    return { texto: "sin dato", detalle: "Medición anterior al arreglo: no contaba el mapa ni cuántos resultados se revisaron. Vuelve a medir." };
+  }
+  return { texto: "no está", detalle: `No aparece en los ${k.revisados} resultados orgánicos que entregó Google.` };
 }
 
 /** La foto de DataForSEO del dominio: lo que ya posiciona, estimado. */
@@ -56,16 +89,6 @@ const COL_EX: readonly ColumnaTabla<ColEx>[] = [
   { id: "url", texto: "URL" },
   { id: "seguir", texto: "", fija: true },
 ];
-
-const UBICACIONES = [
-  [2152, "Chile"],
-  [2484, "México"],
-  [2032, "Argentina"],
-  [2170, "Colombia"],
-  [2604, "Perú"],
-  [2724, "España"],
-  [2840, "Estados Unidos"],
-] as const;
 
 const COLUMNAS = [
   { id: "termino", texto: "Consulta", ancho: "", num: false },
@@ -129,6 +152,7 @@ export default function Posiciones({
   hayProveedor,
   hayGsc,
   medirCada,
+  ubicacionProyecto,
   costePorMedicion,
   exploracion,
   costeExploracion,
@@ -141,6 +165,7 @@ export default function Posiciones({
   hayGsc: boolean;
   /** Cada cuántos días se mide sola; nulo, solo a mano. */
   medirCada: number | null;
+  ubicacionProyecto: UbicacionProyecto;
   /** Lo que costó de media la última consulta, para estimar cada pasada. */
   costePorMedicion: number;
   /** La exploración del dominio, si se hizo. */
@@ -154,7 +179,16 @@ export default function Posiciones({
   const [programada, setProgramada] = useState<number | null>(medirCada);
   const [abierto, setAbierto] = useState(false);
   const [texto, setTexto] = useState("");
-  const [ubicacion, setUbicacion] = useState(2152);
+  const [pais, setPais] = useState(ubicacionProyecto.pais);
+  // La ciudad, si se mide desde una; nula, el país entero.
+  const [ciudad, setCiudad] = useState<{ codigo: number; nombre: string } | null>(
+    ubicacionProyecto.ubicacionNombre && ubicacionProyecto.ubicacion !== paisPorIso(ubicacionProyecto.pais).codigo
+      ? { codigo: ubicacionProyecto.ubicacion, nombre: ubicacionProyecto.ubicacionNombre }
+      : null
+  );
+  const [textoCiudad, setTextoCiudad] = useState(ciudad?.nombre ?? "");
+  const [ciudades, setCiudades] = useState<{ codigo: number; nombre: string; tipo: string }[]>([]);
+  const [ciudadesDe, setCiudadesDe] = useState<string | null>(null);
   const [dispositivo, setDispositivo] = useState("desktop");
   const [orden, setOrden] = useState<{ col: Columna; asc: boolean }>({ col: "puesto", asc: true });
   const [ocupado, setOcupado] = useState(false);
@@ -167,6 +201,30 @@ export default function Posiciones({
   const [siguiendo, setSiguiendo] = useState<string | null>(null);
   const [explorando, setExplorando] = useState(false);
   const oEx = useOrden<ColEx>("trafico", false);
+
+  // Las ciudades del país se piden al abrir el formulario, no antes: la lista
+  // es larga y la mayoría de las veces nadie la abre.
+  useEffect(() => {
+    if (!abierto || !hayProveedor || ciudadesDe === pais) return;
+    let vigente = true;
+    fetch(`/api/posiciones?pais=${encodeURIComponent(pais)}`)
+      .then((r) => r.json())
+      .then((j) => {
+        if (!vigente) return;
+        setCiudades(Array.isArray(j.ubicaciones) ? j.ubicaciones : []);
+        setCiudadesDe(pais);
+      })
+      .catch(() => {});
+    return () => {
+      vigente = false;
+    };
+  }, [abierto, hayProveedor, pais, ciudadesDe]);
+
+  function escribirCiudad(valor: string) {
+    setTextoCiudad(valor);
+    const exacta = ciudades.find((c) => c.nombre === valor);
+    setCiudad(exacta ? { codigo: exacta.codigo, nombre: exacta.nombre } : null);
+  }
 
   /** Al cambiar de columna se arranca por lo útil; volver a pulsar invierte. */
   function ordenar(col: Columna) {
@@ -228,7 +286,8 @@ export default function Posiciones({
     setError(null);
     setAviso(null);
     try {
-      await llamar("POST", { clienteId, terminos: consulta, ubicacion: 2152, dispositivo: "desktop" });
+      // Sin ubicación: el servidor usa la del proyecto.
+      await llamar("POST", { clienteId, terminos: consulta, dispositivo: "desktop" });
       setAviso(`«${consulta}» añadida al seguimiento. Pulsa «Medir las nuevas» arriba.`);
       router.refresh();
       return true;
@@ -243,7 +302,20 @@ export default function Posiciones({
     setError(null);
     setAviso(null);
     try {
-      const j = await llamar("POST", { clienteId, terminos: texto, ubicacion, dispositivo });
+      const elegido = paisPorIso(pais);
+      // Lo escrito tiene que ser una ciudad de la lista: un nombre suelto no
+      // tiene código y mediría otra cosa sin avisar.
+      if (textoCiudad.trim() && !ciudad) {
+        throw new Error("Elige la ciudad de la lista, o deja el campo vacío para medir el país entero.");
+      }
+      const j = await llamar("POST", {
+        clienteId,
+        terminos: texto,
+        pais: elegido.iso,
+        ubicacion: ciudad?.codigo ?? elegido.codigo,
+        ubicacionNombre: ciudad?.nombre ?? null,
+        dispositivo,
+      });
       const repes = j.recibidas - j.añadidas;
       setAviso(`${j.añadidas} consultas añadidas${repes > 0 ? ` (${repes} ya estaban)` : ""}. Ahora pulsa «Medir las nuevas».`);
       setTexto("");
@@ -313,7 +385,8 @@ export default function Posiciones({
 
   const medidas = keywords.filter((k) => k.puesto !== null);
   const sinMedir = keywords.filter((k) => k.mediciones === 0).length;
-  const fuera = keywords.filter((k) => k.mediciones > 0 && k.puesto === null).length;
+  const fuera = keywords.filter((k) => k.mediciones > 0 && k.puesto === null && k.revisados !== null).length;
+  const enMapa = keywords.filter((k) => k.puestoMapa !== null).length;
   const media = medidas.length
     ? Math.round((medidas.reduce((s, k) => s + (k.puesto ?? 0), 0) / medidas.length) * 10) / 10
     : null;
@@ -397,7 +470,8 @@ export default function Posiciones({
               )}
               <p className="mt-2 text-[13px] text-[color:var(--tinta-suave)]">
                 {media !== null ? `puesto medio ${media}` : "sin medir"}
-                {fuera > 0 && ` · ${fuera} fuera del top 100`}
+                {fuera > 0 && ` · ${fuera} sin aparecer en lo revisado`}
+                {enMapa > 0 && ` · ${enMapa} en el mapa`}
                 {ultimaMedicion && ` · última medición ${fecha(ultimaMedicion)}`}
                 {programada && ` · se mide sola cada ${programada} días`}
               </p>
@@ -512,16 +586,40 @@ export default function Posiciones({
               <label className="flex items-center gap-2 text-[14px]">
                 <span className="text-[color:var(--tinta-media)]">País</span>
                 <select
-                  value={ubicacion}
-                  onChange={(e) => setUbicacion(Number(e.target.value))}
+                  value={pais}
+                  onChange={(e) => {
+                    setPais(e.target.value);
+                    setCiudad(null);
+                    setTextoCiudad("");
+                  }}
                   className="rounded-full border border-[color:var(--linea-fuerte)] bg-white px-3 py-1.5 text-[14px] outline-none"
                 >
-                  {UBICACIONES.map(([id, n]) => (
-                    <option key={id} value={id}>
-                      {n}
+                  {PAISES.map((p) => (
+                    <option key={p.iso} value={p.iso}>
+                      {p.nombre}
                     </option>
                   ))}
                 </select>
+              </label>
+              <label className="flex items-center gap-2 text-[14px]">
+                <span className="text-[color:var(--tinta-media)]">Ciudad</span>
+                <input
+                  value={textoCiudad}
+                  onChange={(e) => escribirCiudad(e.target.value)}
+                  list="ciudades-posiciones"
+                  placeholder={ciudadesDe === pais || !hayProveedor ? "Todo el país" : "Cargando…"}
+                  aria-label="Ciudad desde la que se mide"
+                  className={`w-56 rounded-full border bg-white px-3 py-1.5 text-[14px] outline-none transition focus:border-[color:var(--acento)] ${
+                    textoCiudad.trim() && !ciudad ? "border-red-400" : "border-[color:var(--linea-fuerte)]"
+                  }`}
+                />
+                <datalist id="ciudades-posiciones">
+                  {ciudades.map((c) => (
+                    <option key={c.codigo} value={c.nombre}>
+                      {c.tipo === "City" ? "Ciudad" : "Región"}
+                    </option>
+                  ))}
+                </datalist>
               </label>
               <div className="segmentos">
                 {[
@@ -539,7 +637,9 @@ export default function Posiciones({
             </div>
             <p className="mt-3 text-[13px] text-[color:var(--tinta-suave)]">
               La misma consulta en escritorio y en móvil son dos seguimientos distintos, porque Google
-              devuelve resultados distintos. En ecommerce suele importar más el móvil.
+              devuelve resultados distintos. En ecommerce suele importar más el móvil. Para un negocio
+              local conviene medir desde su ciudad: el mapa de Google cambia según dónde se busca. La
+              ubicación elegida queda como la del proyecto.
             </p>
           </div>
         )}
@@ -582,8 +682,12 @@ export default function Posiciones({
                     "posiciones",
                     visiblesKw.map((k) => ({
                       palabra: k.termino,
+                      ubicacion: k.ubicacion,
                       dispositivo: k.dispositivo,
-                      puesto: k.mediciones === 0 ? "" : (k.puesto ?? "+100"),
+                      puesto: k.mediciones === 0 ? "" : textoPuesto(k).texto,
+                      tipo: k.tipo === "destacado" ? "fragmento destacado" : "",
+                      puesto_mapa: k.puestoMapa ?? "",
+                      revisados: k.revisados ?? "",
                       anterior: k.anterior ?? "",
                       url: k.urlPosicionada ?? "",
                       url_objetivo: k.urlObjetivo ?? "",
@@ -623,14 +727,37 @@ export default function Posiciones({
                         <td className="px-5 py-3">
                           <p className="font-medium">{k.termino}</p>
                           <p className="mt-0.5 text-[12px] text-[color:var(--tinta-suave)]">
-                            {k.dispositivo === "mobile" ? "móvil" : "escritorio"}
+                            {k.ubicacion} · {k.dispositivo === "mobile" ? "móvil" : "escritorio"}
                             {k.medido && ` · ${fecha(k.medido)}`}
                             {k.mediciones === 0 && " · sin medir"}
                           </p>
                         </td>
 
                         <td className={`px-3 py-3 text-right text-[16px] font-semibold tabular-nums ${colorPuesto(k.puesto)}`}>
-                          {k.mediciones === 0 ? "—" : (k.puesto ?? "+100")}
+                          {(() => {
+                            const t = textoPuesto(k);
+                            return k.puesto === null && k.mediciones > 0 ? (
+                              <span className="text-[13px] font-medium text-[color:var(--tinta-suave)]" title={t.detalle ?? undefined}>
+                                {t.texto}
+                                {k.revisados !== null && <span className="block text-[11px] font-normal">en {k.revisados} revisados</span>}
+                              </span>
+                            ) : (
+                              t.texto
+                            );
+                          })()}
+                          {k.tipo === "destacado" && (
+                            <span className="ml-1.5 pastilla align-middle bg-amber-50 text-amber-700" title="El sitio ocupa el fragmento destacado de Google">
+                              destacado
+                            </span>
+                          )}
+                          {k.puestoMapa !== null && (
+                            <span
+                              className="ml-1.5 pastilla align-middle bg-sky-50 text-sky-700"
+                              title={`Aparece en el mapa de Google, puesto ${k.puestoMapa} de 3. Va aparte del puesto orgánico.`}
+                            >
+                              mapa {k.puestoMapa}
+                            </span>
+                          )}
                           {k.historial.filter((x) => x !== null).length >= 2 && (
                             <span className="ml-2 inline-block align-middle" title={`Últimas ${k.historial.length} mediciones`}>
                               <Chispa valores={k.historial} invertido ancho={56} alto={16} />
@@ -677,7 +804,13 @@ export default function Posiciones({
                             </a>
                           ) : (
                             <span className="text-[color:var(--tinta-suave)]">
-                              {k.mediciones === 0 ? "sin medir" : "no aparece en los 100 primeros"}
+                              {k.mediciones === 0
+                                ? "sin medir"
+                                : k.puestoMapa !== null
+                                  ? "solo en el mapa"
+                                  : k.revisados === null
+                                    ? "sin dato"
+                                    : `no aparece en los ${k.revisados} revisados`}
                             </span>
                           )}
                         </td>

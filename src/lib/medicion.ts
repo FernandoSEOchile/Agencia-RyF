@@ -62,6 +62,7 @@ export async function medirPosiciones(o: {
           const r = await medir(cred, o.dominio, {
             termino: k.termino,
             ubicacion: k.ubicacion,
+            pais: k.pais,
             idioma: k.idioma,
             dispositivo: k.dispositivo,
           });
@@ -71,6 +72,10 @@ export async function medirPosiciones(o: {
               keywordId: k.id,
               puesto: r.puesto,
               url: r.url,
+              tipo: r.tipo,
+              puestoMapa: r.puestoMapa,
+              urlMapa: r.urlMapa,
+              revisados: r.revisados,
               bloquesArriba: r.bloquesArriba,
               coste: r.coste,
               iaOverview: r.iaOverview,
