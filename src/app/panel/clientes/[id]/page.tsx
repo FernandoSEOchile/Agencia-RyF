@@ -413,6 +413,7 @@ export default async function Ficha({
         puedeSubir={rol !== "LECTOR"}
         hayProveedor={Boolean(proveedor)}
         medirCada={cliente.medirCada}
+        dominio={cliente.dominio}
         ubicacionProyecto={{
           pais: cliente.posPais,
           ubicacion: cliente.posUbicacion,

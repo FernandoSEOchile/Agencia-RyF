@@ -3,6 +3,8 @@
 import { useConfirmar } from "@/components/Confirmar";
 import { useEffect, useState } from "react";
 import { PAISES, paisPorIso } from "@/lib/ubicaciones";
+import { flushSync } from "react-dom";
+import InformePosiciones from "@/components/InformePosiciones";
 import { useRouter } from "next/navigation";
 import Chispa from "@/components/Chispa";
 import { dinero, fecha, miles } from "@/lib/formato";
@@ -152,6 +154,7 @@ export default function Posiciones({
   hayProveedor,
   hayGsc,
   medirCada,
+  cliente,
   ubicacionProyecto,
   costePorMedicion,
   exploracion,
@@ -159,6 +162,8 @@ export default function Posiciones({
   irA,
 }: {
   clienteId: string;
+  /** Para la portada del informe que se le entrega. */
+  cliente: { nombre: string; dominio: string };
   keywords: KeywordVista[];
   puedeEditar: boolean;
   hayProveedor: boolean;
@@ -219,6 +224,22 @@ export default function Posiciones({
       vigente = false;
     };
   }, [abierto, hayProveedor, pais, ciudadesDe]);
+
+  const [generado, setGenerado] = useState<Date | null>(null);
+
+  function descargarInforme() {
+    // La fecha del informe es la del clic.
+    flushSync(() => setGenerado(new Date()));
+    const antes = document.title;
+    document.title = `Posiciones ${cliente.dominio} ${new Date().toISOString().slice(0, 10)}`;
+    document.body.classList.add("imprimiendo-informe");
+    try {
+      window.print();
+    } finally {
+      document.body.classList.remove("imprimiendo-informe");
+      document.title = antes;
+    }
+  }
 
   function escribirCiudad(valor: string) {
     setTextoCiudad(valor);
@@ -400,6 +421,7 @@ export default function Posiciones({
   return (
     <div className="mt-5">
       {dialogo}
+      {keywords.length > 0 && <InformePosiciones cliente={cliente} keywords={keywords} generado={generado ?? new Date()} />}
 
       {error && <p className="mb-4 rounded-2xl bg-red-50 px-4 py-3 text-[14px] text-red-700">{error}</p>}
       {aviso && <p className="mb-4 rounded-2xl bg-emerald-50 px-4 py-3 text-[14px] text-emerald-700">{aviso}</p>}
@@ -698,6 +720,14 @@ export default function Posiciones({
                 className="ml-auto text-[13px] text-[color:var(--tinta-suave)] transition hover:text-[color:var(--acento)]"
               >
                 Descargar CSV
+              </button>
+              <button
+                type="button"
+                onClick={descargarInforme}
+                className="boton"
+                title="Informe con diseño para entregar al cliente. Abre el diálogo de impresión: elige «Guardar como PDF»."
+              >
+                Descargar informe PDF
               </button>
             </div>
 

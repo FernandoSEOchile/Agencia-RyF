@@ -171,6 +171,7 @@ export default function FichaCliente({
   hayGsc,
   puedeSubir,
   medirCada,
+  dominio,
   ubicacionProyecto,
   costePorMedicion,
   exploracion,
@@ -207,6 +208,7 @@ export default function FichaCliente({
   hayGsc: boolean;
   puedeSubir: boolean;
   medirCada: number | null;
+  dominio: string;
   ubicacionProyecto: UbicacionProyecto;
   costePorMedicion: number;
   exploracion: ExploracionVista | null;
@@ -513,6 +515,7 @@ export default function FichaCliente({
           hayProveedor={hayProveedor}
           hayGsc={hayGsc}
           medirCada={medirCada}
+          cliente={{ nombre, dominio }}
           ubicacionProyecto={ubicacionProyecto}
           costePorMedicion={costePorMedicion}
           exploracion={exploracion}

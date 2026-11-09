@@ -704,3 +704,51 @@ h2,
     color: #1d1d1f;
   }
 }
+
+/* --------------------------------------------------------------------------
+   Informe de posiciones en PDF
+   --------------------------------------------------------------------------
+   Usa las mismas piezas (ip-) que el de Explorar. Se monta como hijo directo
+   de <body> porque vive dentro de la ficha del cliente, y al imprimir hay que
+   quitar todo lo demás de una vez: menú, pestañas y paneles.
+*/
+@media print {
+  body.imprimiendo-informe > *:not(.informe-pdf) {
+    display: none !important;
+  }
+
+  .ip-subtitulo {
+    margin-top: -6pt !important;
+    margin-bottom: 10pt !important;
+    font-size: 11pt;
+    color: #a1a1a6;
+  }
+
+  .informe-pdf .ip-sube {
+    color: #0b7a43;
+    font-weight: 600;
+  }
+
+  .informe-pdf .ip-baja {
+    color: #c62828;
+    font-weight: 600;
+  }
+
+  .ip-marca-destacado {
+    display: inline-block;
+    margin-left: 4pt;
+    font-size: 6.5pt;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: #9a6a00;
+    background: #fff1d1;
+    border-radius: 8pt;
+    padding: 0.5pt 5pt;
+    vertical-align: 0.5pt;
+  }
+
+  .ip-pos-mapa {
+    background: #e0f0fd;
+    color: #0b5c99;
+  }
+}
