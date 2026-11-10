@@ -8,6 +8,7 @@ import { aplicacion } from "@/lib/gsc";
 import Plataforma from "@/components/Plataforma";
 import { fecha } from "@/lib/formato";
 import { nombreUbicacion } from "@/lib/ubicaciones";
+import { limpiarUrl } from "@/lib/serp";
 import { conectarSitio } from "@/lib/conectarSitio";
 import { randomBytes } from "node:crypto";
 import { fotoDe, costeMedioExploracion } from "@/lib/exploracion";
@@ -442,7 +443,8 @@ export default async function Ficha({
           ubicacion: nombreUbicacion(k),
           urlObjetivo: k.urlObjetivo,
           puesto: k.posiciones[0]?.puesto ?? null,
-          urlPosicionada: k.posiciones[0]?.url ?? null,
+          // Las mediciones de antes de limpiar las URL traen el srsltid de Google.
+          urlPosicionada: k.posiciones[0]?.url ? limpiarUrl(k.posiciones[0].url) : null,
           tipo: k.posiciones[0]?.tipo ?? null,
           puestoMapa: k.posiciones[0]?.puestoMapa ?? null,
           revisados: k.posiciones[0]?.revisados ?? null,
