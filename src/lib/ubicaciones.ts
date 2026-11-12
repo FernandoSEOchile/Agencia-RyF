@@ -1,9 +1,10 @@
 /**
  * Dónde se hace la búsqueda al medir posiciones.
  *
- * Cada país trae su Google y su idioma. Antes el idioma iba siempre en
- * español y el dominio de Google lo deducía el proveedor: medir Estados Unidos
- * era buscar en español. Ahora sale de aquí.
+ * Cada país trae su idioma: antes iba siempre en español, y medir Estados
+ * Unidos era buscar en español. El dominio de Google (`google`) es solo
+ * informativo: no se le manda al proveedor, porque forzarlo le hacía devolver
+ * enlaces de redirección de Google en vez de los sitios (ver `medir`).
  *
  * Los códigos son los de ubicación de Google Ads, que son los que usa
  * DataForSEO. Las ciudades no se escriben a mano: se piden al proveedor con su

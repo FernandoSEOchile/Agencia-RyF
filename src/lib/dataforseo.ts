@@ -131,9 +131,14 @@ export async function estadoCuenta(): Promise<Cuenta | null> {
  * Qué cuenta como aparecer —orgánico, fragmento destacado, mapa— lo decide
  * `leerSerp`, que se prueba aparte con resultados de ejemplo.
  *
- * El dominio de Google y el idioma salen del país de la consulta. Dejar que el
- * proveedor los dedujera funcionaba para Chile, pero medir Estados Unidos
- * terminaba buscando en español.
+ * El idioma sale del país de la consulta: dejarlo fijo en español hacía que
+ * medir Estados Unidos fuera buscar en español.
+ *
+ * El dominio de Google (`se_domain`) NO se manda, a propósito. El proveedor ya
+ * elige google.cl para Chile a partir de la ubicación, y forzarlo hizo que
+ * devolviera cada resultado como un enlace de redirección de Google
+ * (google.cl/goto?url=…) en vez de la URL del sitio: el 10-nov-2026 cuarenta
+ * mediciones de Fontus salieron «no está» por eso.
  */
 export async function medir(
   c: Credenciales,
@@ -159,7 +164,6 @@ export async function medir(
         keyword: consulta.termino,
         location_code: consulta.ubicacion,
         language_code: consulta.idioma || pais.idioma,
-        se_domain: pais.google,
         device: consulta.dispositivo,
         depth: 100,
         load_async_ai_overview: true,

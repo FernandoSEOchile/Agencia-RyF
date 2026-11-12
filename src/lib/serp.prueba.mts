@@ -73,6 +73,20 @@ test("búsqueda que viene corta: no aparece, pero dice cuántos se revisaron", (
   assert.equal(r.serp.length, 12);
 });
 
+test("resultados como enlaces de Google: la medición se rechaza, no se guarda «no está»", () => {
+  const items = Array.from({ length: 10 }, () => ({
+    type: "organic",
+    domain: "google.cl",
+    url: "https://google.cl/goto?url=CAESygEBxCJF18A3&gsessionid=x",
+  }));
+  assert.throws(() => leerSerp(items, "fontus.cl"), /enlaces de Google/);
+});
+
+test("un resultado de Google entre sitios normales no rechaza la medición", () => {
+  const r = leerSerp([org("google.cl"), org("easy.cl"), org("fontus.cl")], "fontus.cl");
+  assert.equal(r.puesto, 3);
+});
+
 test("subdominios del cliente cuentan; el dominio padre no", () => {
   assert.equal(esDelCliente("tienda.cliente.cl", "cliente.cl"), true);
   assert.equal(esDelCliente("www.cliente.cl", "https://cliente.cl/"), true);

@@ -163,6 +163,14 @@ export function leerSerp(items: Item[], dominioCliente: string): LecturaSerp {
     }
   }
 
+  // Si los orgánicos vienen como enlaces de Google (google.cl/goto?url=…) no
+  // se sabe de qué sitio es cada uno, y guardar «no está» sería inventar. Se
+  // rechaza la medición: queda como fallo, a la vista, y no como dato.
+  const deGoogle = serp.filter((s) => /^google\.[a-z.]+$/.test(s.d)).length;
+  if (serp.length > 0 && deGoogle > serp.length / 2) {
+    throw new Error("El proveedor devolvió enlaces de Google en vez de las URLs de los sitios; no se puede leer el puesto.");
+  }
+
   lectura.revisados = organicos;
   return lectura;
 }
