@@ -112,7 +112,10 @@ export async function POST(req: NextRequest) {
 
 /** Mide las consultas pendientes y guarda el resultado. */
 export async function PATCH(req: NextRequest) {
-  const { clienteId, soloNuevas } = await req.json();
+  const { clienteId, soloNuevas, keywordIds } = await req.json();
+  // Medir consultas sueltas: para comprobar una contra Google sin pagar la
+  // pasada entera.
+  const ids = Array.isArray(keywordIds) ? keywordIds.map(String).slice(0, 40) : undefined;
 
   const p = await permiso(String(clienteId || ""));
   if ("error" in p) return Response.json({ error: p.error }, { status: p.codigo });
@@ -136,6 +139,7 @@ export async function PATCH(req: NextRequest) {
     dominio: p.dominio,
     usuarioId: p.usuarioId,
     soloNuevas: Boolean(soloNuevas),
+    ids,
     tope: 40,
   });
   const { medidas, coste, fallos, pendientes } = r;

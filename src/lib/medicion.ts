@@ -28,6 +28,8 @@ export async function medirPosiciones(o: {
   dominio: string;
   usuarioId?: string | null;
   soloNuevas?: boolean;
+  /** Solo estas consultas (siempre del mismo cliente: el filtro va junto al clienteId). */
+  ids?: string[];
   /** Cuántas como mucho en esta pasada. Desde el panel, 40; programada, más. */
   tope?: number;
   concepto?: string;
@@ -36,7 +38,7 @@ export async function medirPosiciones(o: {
   if (!cred) throw new Error("Falta configurar DataForSEO. Un administrador puede hacerlo en Ajustes.");
 
   let keywords = await db.keyword.findMany({
-    where: { clienteId: o.clienteId, activa: true },
+    where: { clienteId: o.clienteId, activa: true, ...(o.ids ? { id: { in: o.ids } } : {}) },
     include: { posiciones: { orderBy: { medido: "desc" }, take: 1 } },
     orderBy: { creado: "asc" },
   });
