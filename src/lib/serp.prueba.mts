@@ -82,6 +82,19 @@ test("resultados como enlaces de Google: la medición se rechaza, no se guarda �
   assert.throws(() => leerSerp(items, "fontus.cl"), /enlaces de Google/);
 });
 
+test("enlace de Google con ruta del sitio: se reconoce el dominio y no se guarda la redirección", () => {
+  const r = leerSerp(
+    [
+      { type: "organic", domain: "google.cl", url: "https://google.cl/goto?url=CAES1&gsessionid=x", breadcrumb: "https://riegostore.cl › filtros" },
+      { type: "organic", domain: "google.cl", url: "https://google.cl/goto?url=CAES2&gsessionid=x", breadcrumb: "https://www.fontus.cl › filtros-de-agua" },
+    ],
+    "fontus.cl"
+  );
+  assert.equal(r.puesto, 2);
+  assert.equal(r.url, null);
+  assert.equal(r.serp[0].d, "riegostore.cl");
+});
+
 test("un resultado de Google entre sitios normales no rechaza la medición", () => {
   const r = leerSerp([org("google.cl"), org("easy.cl"), org("fontus.cl")], "fontus.cl");
   assert.equal(r.puesto, 3);

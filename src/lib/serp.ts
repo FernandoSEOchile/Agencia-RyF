@@ -83,8 +83,34 @@ type Item = Record<string, unknown>;
 
 const ORGANICOS = new Set(["organic", "featured_snippet"]);
 
+const esGoogle = (d: string) => /^google\.[a-z.]+$/.test(d);
+
+/** Si la URL es una redirección de Google (google.cl/goto?url=…), no la del sitio. */
+export function esRedireccionGoogle(url: string): boolean {
+  return /^https?:\/\/(www\.)?google\.[a-z.]+\/(goto|url)\?/.test(url);
+}
+
+/**
+ * El dominio de un resultado.
+ *
+ * Desde noviembre de 2026 el proveedor a veces entrega el enlace como una
+ * redirección de Google, y el campo `domain` también dice google.cl. La ruta
+ * que Google muestra bajo el título (`breadcrumb`, «https://fontus.cl › filtros»)
+ * sigue siendo la del sitio, así que se lee de ahí.
+ */
 function dominioDe(item: Item): string {
-  return raiz(String(item.domain ?? "") || String(item.url ?? ""));
+  const d = raiz(String(item.domain ?? "") || String(item.url ?? ""));
+  if (!esGoogle(d)) return d;
+  const migas = String(item.breadcrumb ?? "").trim();
+  const desdeMigas = raiz(migas.split(/\s*›\s*/)[0] ?? "");
+  if (desdeMigas && !esGoogle(desdeMigas) && desdeMigas.includes(".")) return desdeMigas;
+  return d;
+}
+
+/** La URL del resultado, salvo que sea una redirección de Google: esa no dice nada. */
+function urlDe(item: Item): string {
+  const u = String(item.url ?? "");
+  return esRedireccionGoogle(u) ? "" : limpiarUrl(u);
 }
 
 export function leerSerp(items: Item[], dominioCliente: string): LecturaSerp {
@@ -135,7 +161,7 @@ export function leerSerp(items: Item[], dominioCliente: string): LecturaSerp {
       enMapa++;
       if (lectura.puestoMapa === null && esDelCliente(dominioDe(item), objetivo)) {
         lectura.puestoMapa = enMapa;
-        lectura.urlMapa = item.url ? limpiarUrl(String(item.url)) : null;
+        lectura.urlMapa = urlDe(item) || null;
       }
       // DataForSEO entrega cada negocio del mapa como un elemento; para quien
       // busca es un solo bloque.
@@ -151,7 +177,7 @@ export function leerSerp(items: Item[], dominioCliente: string): LecturaSerp {
     // El fragmento destacado ocupa un puesto: es lo primero que ve quien busca,
     // y Google no repite esa URL más abajo.
     organicos++;
-    const url = limpiarUrl(String(item.url ?? ""));
+    const url = urlDe(item);
     const d = dominioDe(item);
     if (organicos <= 20) serp.push({ d, u: url, p: organicos });
 
@@ -166,8 +192,18 @@ export function leerSerp(items: Item[], dominioCliente: string): LecturaSerp {
   // Si los orgánicos vienen como enlaces de Google (google.cl/goto?url=…) no
   // se sabe de qué sitio es cada uno, y guardar «no está» sería inventar. Se
   // rechaza la medición: queda como fallo, a la vista, y no como dato.
-  const deGoogle = serp.filter((s) => /^google\.[a-z.]+$/.test(s.d)).length;
+  const deGoogle = serp.filter((s) => esGoogle(s.d)).length;
   if (serp.length > 0 && deGoogle > serp.length / 2) {
+    // Queda en el registro del contenedor la forma del primer orgánico, para
+    // ver de dónde sacar el sitio si el proveedor vuelve a cambiar. Son datos
+    // públicos de Google: nada de credenciales.
+    const primero = items.find((i) => ORGANICOS.has(String(i.type ?? "")));
+    if (primero) {
+      const corto = Object.fromEntries(
+        Object.entries(primero).map(([c, v]) => [c, typeof v === "string" ? v.slice(0, 120) : Array.isArray(v) ? `[${v.length}]` : v && typeof v === "object" ? "{…}" : v])
+      );
+      console.error("[serp] orgánico con enlace de Google:", JSON.stringify(corto));
+    }
     throw new Error("El proveedor devolvió enlaces de Google en vez de las URLs de los sitios; no se puede leer el puesto.");
   }
 

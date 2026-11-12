@@ -1,6 +1,6 @@
 import "server-only";
 import { db } from "@/lib/db";
-import { credenciales, medir } from "@/lib/dataforseo";
+import { credenciales, medir, ErrorMedicion } from "@/lib/dataforseo";
 import { apuntar } from "@/lib/gasto";
 import { anotar } from "@/lib/clientes";
 
@@ -92,6 +92,7 @@ export async function medirPosiciones(o: {
           medidas++;
           coste += r.coste ?? 0;
         } catch (e) {
+          if (e instanceof ErrorMedicion) coste += e.coste ?? 0;
           fallos.push(`${k.termino}: ${e instanceof Error ? e.message : "error"}`);
         }
       })

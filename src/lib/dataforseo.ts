@@ -189,7 +189,23 @@ export async function medir(
   const coste = typeof j?.cost === "number" ? j.cost : null;
   const items: Array<Record<string, unknown>> = tarea?.result?.[0]?.items ?? [];
 
-  return { ...leerSerp(items, dominio), coste };
+  try {
+    return { ...leerSerp(items, dominio), coste };
+  } catch (e) {
+    // La consulta ya se cobró aunque no se pueda leer: el importe viaja con el
+    // error para que se apunte igual.
+    throw new ErrorMedicion(e instanceof Error ? e.message : "No se pudo leer el resultado.", coste);
+  }
+}
+
+/** Un fallo después de que el proveedor ya cobró la consulta. */
+export class ErrorMedicion extends Error {
+  constructor(
+    mensaje: string,
+    public coste: number | null
+  ) {
+    super(mensaje);
+  }
 }
 
 export interface UbicacionProveedor {
